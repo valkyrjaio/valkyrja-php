@@ -5,10 +5,9 @@ declare(strict_types=1);
 /*
  * This file is part of the Valkyrja Framework package.
  *
- * (c) Melech Mizrachi <melechmizrachi@gmail.com>
+ * Copyright (c) 2016-present Melech Mizrachi
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * Released under the MIT License. See LICENSE.md for details.
  */
 
 namespace Valkyrja\Tests\Unit\Queue\Client\Puller;
@@ -80,7 +79,7 @@ final class BeanstalkdPullerTest extends TestCase
 
     public function testAReservedJobIsReadBackAsAJob(): void
     {
-        $this->seed(Job::create(self::NAME, ['user_id' => 42]));
+        $this->seed(new JobFactory()->create(self::NAME, ['user_id' => 42]));
 
         $job = $this->puller()->receive();
 
@@ -93,7 +92,7 @@ final class BeanstalkdPullerTest extends TestCase
     {
         $puller = $this->reserved();
 
-        $puller->settle(Job::create(self::NAME), JobResult::ACK, new InMemoryClient());
+        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertSame([[(string) self::JOB_ID]], $this->pheanstalk->getCalls('delete'));
         self::assertSame([], $this->pheanstalk->getCalls('release'));
@@ -104,7 +103,7 @@ final class BeanstalkdPullerTest extends TestCase
     {
         $puller = $this->reserved();
 
-        $puller->settle(Job::create(self::NAME), JobResult::RETRY, new InMemoryClient());
+        $puller->settle(new JobFactory()->create(self::NAME), JobResult::RETRY, new InMemoryClient());
 
         $calls = $this->pheanstalk->getCalls('release');
 
@@ -119,7 +118,7 @@ final class BeanstalkdPullerTest extends TestCase
         // A buried job stays for inspection and can be kicked back on
         $puller = $this->reserved();
 
-        $puller->settle(Job::create(self::NAME), $result, new InMemoryClient());
+        $puller->settle(new JobFactory()->create(self::NAME), $result, new InMemoryClient());
 
         self::assertSame([[(string) self::JOB_ID, 1024]], $this->pheanstalk->getCalls('bury'));
         self::assertSame([], $this->pheanstalk->getCalls('delete'));
@@ -127,7 +126,7 @@ final class BeanstalkdPullerTest extends TestCase
 
     public function testSettlingWithNothingReservedDoesNothing(): void
     {
-        $this->puller()->settle(Job::create(self::NAME), JobResult::ACK, new InMemoryClient());
+        $this->puller()->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertSame([], $this->pheanstalk->getCalls('delete'));
         self::assertSame([], $this->pheanstalk->getCalls('release'));
@@ -138,8 +137,8 @@ final class BeanstalkdPullerTest extends TestCase
     {
         $puller = $this->reserved();
 
-        $puller->settle(Job::create(self::NAME), JobResult::ACK, new InMemoryClient());
-        $puller->settle(Job::create(self::NAME), JobResult::ACK, new InMemoryClient());
+        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertCount(1, $this->pheanstalk->getCalls('delete'));
     }
@@ -171,7 +170,7 @@ final class BeanstalkdPullerTest extends TestCase
 
     protected function reserved(): BeanstalkdPuller
     {
-        $this->seed(Job::create(self::NAME));
+        $this->seed(new JobFactory()->create(self::NAME));
 
         $puller = $this->puller();
         $puller->receive();
