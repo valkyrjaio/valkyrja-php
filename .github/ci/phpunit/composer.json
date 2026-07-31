@@ -6,7 +6,7 @@
     "valkyrja/ci-phpunit" : "^26.6.52"
   },
   "scripts"           : {
-    "check"                  : "vendor/bin/phpunit --no-coverage --display-all-issues",
+    "check"                  : "php -d memory_limit=-1 vendor/bin/phpunit --no-coverage --display-all-issues",
     "coverage"               : "php -d xdebug.mode=coverage -d memory_limit=-1 vendor/bin/phpunit --coverage-text --stderr",
     "path-coverage"          : "php -d xdebug.mode=coverage -d memory_limit=-1 vendor/bin/phpunit --path-coverage --coverage-text --stderr",
     "path-coverage-parallel" : "bash path-coverage-shards.sh",
