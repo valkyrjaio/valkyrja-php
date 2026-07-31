@@ -5,15 +5,18 @@ declare(strict_types=1);
 /*
  * This file is part of the Valkyrja Framework package.
  *
- * (c) Melech Mizrachi <melechmizrachi@gmail.com>
+ * Copyright (c) 2016-present Melech Mizrachi
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * Released under the MIT License. See LICENSE.md for details.
  */
 
 namespace Valkyrja\Tests\Unit\Queue\Client\Puller;
 
+use Google\ApiCore\ApiException;
 use Google\Cloud\PubSub\Message;
+use Google\Rpc\Code;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Psr7\Request;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
@@ -59,16 +62,52 @@ final class PubSubPullerTest extends TestCase
         self::assertNull($this->puller()->receive());
     }
 
-    public function testAPullAsksForOneDeliveryAtATime(): void
+    public function testAPullAsksForOneDeliveryWithinItsDeadline(): void
     {
         $this->puller()->receive();
 
-        self::assertSame([['maxMessages' => 1]], $this->subscription->pulls);
+        self::assertSame(
+            [['maxMessages' => 1, 'timeoutMillis' => 250]],
+            $this->subscription->pulls
+        );
+    }
+
+    public function testATransportDeadlineReadsAsNothingArrived(): void
+    {
+        // The REST transport reports a passed deadline as a connection error
+        $this->subscription->failure = new ConnectException('timed out', new Request('POST', '/'));
+
+        self::assertNull($this->puller()->receive());
+    }
+
+    public function testAnApiDeadlineReadsAsNothingArrived(): void
+    {
+        $this->subscription->failure = new ApiException(
+            'deadline exceeded',
+            Code::DEADLINE_EXCEEDED,
+            'DEADLINE_EXCEEDED'
+        );
+
+        self::assertNull($this->puller()->receive());
+    }
+
+    public function testAnyOtherApiFailureTravelsOn(): void
+    {
+        // A real failure must not be mistaken for an empty subscription
+        $this->subscription->failure = new ApiException(
+            'permission denied',
+            Code::PERMISSION_DENIED,
+            'PERMISSION_DENIED'
+        );
+
+        $this->expectException(ApiException::class);
+
+        $this->puller()->receive();
     }
 
     public function testAReceivedDeliveryIsReadBackAsAJob(): void
     {
-        $this->seed(Job::create(self::NAME, ['user_id' => 42]));
+        $this->seed(new JobFactory()->create(self::NAME, ['user_id' => 42]));
 
         $job = $this->puller()->receive();
 
@@ -82,7 +121,7 @@ final class PubSubPullerTest extends TestCase
     {
         $puller = $this->received();
 
-        $puller->settle(Job::create(self::NAME), $result, new InMemoryClient());
+        $puller->settle(new JobFactory()->create(self::NAME), $result, new InMemoryClient());
 
         self::assertCount(1, $this->subscription->acknowledged);
         self::assertSame([], $this->subscription->deadlines);
@@ -92,7 +131,7 @@ final class PubSubPullerTest extends TestCase
     {
         $puller = $this->received();
 
-        $puller->settle(Job::create(self::NAME), JobResult::RETRY, new InMemoryClient());
+        $puller->settle(new JobFactory()->create(self::NAME), JobResult::RETRY, new InMemoryClient());
 
         self::assertCount(1, $this->subscription->deadlines);
         // Zero is Pub/Sub's nack: available again, and the attempt count goes up
@@ -102,7 +141,7 @@ final class PubSubPullerTest extends TestCase
 
     public function testSettlingWithNothingInFlightDoesNothing(): void
     {
-        $this->puller()->settle(Job::create(self::NAME), JobResult::ACK, new InMemoryClient());
+        $this->puller()->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertSame([], $this->subscription->acknowledged);
         self::assertSame([], $this->subscription->deadlines);
@@ -112,8 +151,8 @@ final class PubSubPullerTest extends TestCase
     {
         $puller = $this->received();
 
-        $puller->settle(Job::create(self::NAME), JobResult::ACK, new InMemoryClient());
-        $puller->settle(Job::create(self::NAME), JobResult::ACK, new InMemoryClient());
+        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertCount(1, $this->subscription->acknowledged);
     }
@@ -151,7 +190,7 @@ final class PubSubPullerTest extends TestCase
 
     protected function received(): PubSubPuller
     {
-        $this->seed(Job::create(self::NAME));
+        $this->seed(new JobFactory()->create(self::NAME));
 
         $puller = $this->puller();
         $puller->receive();
@@ -161,6 +200,6 @@ final class PubSubPullerTest extends TestCase
 
     protected function puller(): PubSubPuller
     {
-        return new PubSubPuller($this->subscription);
+        return new PubSubPuller($this->subscription, timeoutMs: 250);
     }
 }
