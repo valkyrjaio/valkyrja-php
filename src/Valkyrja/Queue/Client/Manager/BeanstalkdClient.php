@@ -5,10 +5,9 @@ declare(strict_types=1);
 /*
  * This file is part of the Valkyrja Framework package.
  *
- * (c) Melech Mizrachi <melechmizrachi@gmail.com>
+ * Copyright (c) 2016-present Melech Mizrachi
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * Released under the MIT License. See LICENSE.md for details.
  */
 
 namespace Valkyrja\Queue\Client\Manager;

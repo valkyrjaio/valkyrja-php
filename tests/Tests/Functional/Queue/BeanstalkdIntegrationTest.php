@@ -5,17 +5,18 @@ declare(strict_types=1);
 /*
  * This file is part of the Valkyrja Framework package.
  *
- * (c) Melech Mizrachi <melechmizrachi@gmail.com>
+ * Copyright (c) 2016-present Melech Mizrachi
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * Released under the MIT License. See LICENSE.md for details.
  */
 
 namespace Valkyrja\Tests\Functional\Queue;
 
 use Override;
+use Pheanstalk\Exception\TubeNotFoundException;
 use Pheanstalk\Pheanstalk;
 use Pheanstalk\Values\TubeName;
+use Pheanstalk\Values\TubeStats;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
 use Valkyrja\Application\Data\QueueConfig;
 use Valkyrja\Application\Directory\Directory;
@@ -23,6 +24,7 @@ use Valkyrja\Application\Entry\PullQueue;
 use Valkyrja\Queue\Client\Manager\BeanstalkdClient;
 use Valkyrja\Queue\Client\Puller\BeanstalkdPuller;
 use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
@@ -93,7 +95,7 @@ final class BeanstalkdIntegrationTest extends TestCase
     {
         $job = new Job(
             name: QueueRoutingProviderFixture::ALWAYS_ACK,
-            payload: Job::create('x', ['user_id' => 42, 'nested' => ['a' => 1]])->getPayload(),
+            payload: new JobFactory()->create('x', ['user_id' => 42, 'nested' => ['a' => 1]])->getPayload(),
             id: 'stable-id',
             maxAttempts: 7,
             priority: 3,
@@ -109,14 +111,14 @@ final class BeanstalkdIntegrationTest extends TestCase
 
         self::assertNotNull($received);
         // The envelope is the cross-language contract, so every field must survive
-        self::assertSame($client->getPushed()[0]->toArray(), $received->toArray());
+        self::assertSame($client->getPushed()[0]->asArray(), $received->asArray());
 
         $puller->settle($received, JobResult::ACK, $client);
     }
 
     public function testAnAcknowledgedJobIsGoneForGood(): void
     {
-        $job = Job::create(QueueRoutingProviderFixture::ALWAYS_ACK);
+        $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
 
         $client = $this->client();
         $client->push($job);
@@ -156,7 +158,7 @@ final class BeanstalkdIntegrationTest extends TestCase
 
     public function testADeadLetteredJobIsBuriedRatherThanDropped(): void
     {
-        $job = Job::create(QueueRoutingProviderFixture::ALWAYS_FAIL);
+        $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_FAIL);
 
         $client = $this->client();
         $client->push($job);
@@ -204,12 +206,27 @@ final class BeanstalkdIntegrationTest extends TestCase
 
     private function readyCount(): int
     {
-        return $this->pheanstalk->statsTube(new TubeName(self::TUBE))->currentJobsReady;
+        return $this->stats()?->currentJobsReady ?? 0;
     }
 
     private function buriedCount(): int
     {
-        return $this->pheanstalk->statsTube(new TubeName(self::TUBE))->currentJobsBuried;
+        return $this->stats()?->currentJobsBuried ?? 0;
+    }
+
+    /**
+     * Get the tube's stats, or null when beanstalkd has dropped the tube.
+     *
+     * beanstalkd removes a tube once it holds no jobs and nobody watches it, so
+     * a missing tube means an empty one rather than an error.
+     */
+    private function stats(): TubeStats|null
+    {
+        try {
+            return $this->pheanstalk->statsTube(new TubeName(self::TUBE));
+        } catch (TubeNotFoundException) {
+            return null;
+        }
     }
 
     /**
