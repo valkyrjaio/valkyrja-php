@@ -23,6 +23,7 @@
     "psr/log"                 : "^3.0.2"
   },
   "require-dev"       : {
+    "async-aws/sqs"              : "^2.9.0",
     "filp/whoops"                : "^2.18.5",
     "firebase/php-jwt"           : "^7.2.1",
     "guzzlehttp/guzzle"          : "^7.15.5",
@@ -38,6 +39,7 @@
     "vonage/client-core"         : "^4.14.0"
   },
   "conflict"          : {
+    "async-aws/sqs"              : "<2.9.0",
     "filp/whoops"                : "<2.18.5",
     "firebase/php-jwt"           : "<7.2.1",
     "guzzlehttp/guzzle"          : "<7.15.5",
@@ -66,6 +68,7 @@
     ]
   },
   "suggest"           : {
+    "async-aws/sqs"              : "Required to use the SQS Queue processor (^2.9.0).",
     "filp/whoops"                : "Required to use the default Throwable handler (^2.18.5)",
     "firebase/php-jwt"           : "Required to use the default Jwt adapter (^7.2.1)",
     "guzzlehttp/guzzle"          : "Required to use the default Client adapter (^7.15.5).",
