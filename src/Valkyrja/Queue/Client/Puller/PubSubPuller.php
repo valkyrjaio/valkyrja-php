@@ -5,16 +5,18 @@ declare(strict_types=1);
 /*
  * This file is part of the Valkyrja Framework package.
  *
- * (c) Melech Mizrachi <melechmizrachi@gmail.com>
+ * Copyright (c) 2016-present Melech Mizrachi
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * Released under the MIT License. See LICENSE.md for details.
  */
 
 namespace Valkyrja\Queue\Client\Puller;
 
+use Google\ApiCore\ApiException;
 use Google\Cloud\PubSub\Message;
 use Google\Cloud\PubSub\Subscription;
+use Google\Rpc\Code;
+use GuzzleHttp\Exception\ConnectException;
 use JsonException;
 use Override;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
@@ -33,8 +35,10 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
  * thing that received it holds the acknowledgement id. The framework never sees
  * an ack id — it hands over an outcome enum and this translates it.
  *
- * A pull is a synchronous request that returns whatever is waiting, so an empty
- * subscription already returns at once and needs no separate wait.
+ * A pull holds the connection open until a message arrives or the deadline
+ * passes, so it needs a deadline of its own. Without one a worker on an empty
+ * subscription would block for ever and never reach the entry's loop bounds or
+ * its graceful shutdown.
  */
 class PubSubPuller implements PullerContract, RequeuerContract
 {
@@ -46,8 +50,12 @@ class PubSubPuller implements PullerContract, RequeuerContract
      */
     protected Message|null $current = null;
 
+    /**
+     * @param int<1, max> $timeoutMs The deadline for one pull, in milliseconds
+     */
     public function __construct(
         protected Subscription $subscription,
+        protected int $timeoutMs = 1000,
         protected JobFactoryContract $factory = new JobFactory(),
     ) {
     }
@@ -70,7 +78,7 @@ class PubSubPuller implements PullerContract, RequeuerContract
     #[Override]
     public function receive(): JobContract|null
     {
-        $messages = $this->subscription->pull(['maxMessages' => 1]);
+        $messages = $this->pull();
 
         $message = $messages[0] ?? null;
 
@@ -118,6 +126,37 @@ class PubSubPuller implements PullerContract, RequeuerContract
         // the dead-letter topic on the delivery-attempt count, so the framework
         // acknowledging it is what stops the chain.
         $this->subscription->acknowledge($message);
+    }
+
+    /**
+     * Ask the subscription for the next message, within the deadline.
+     *
+     * Both transports report a passed deadline as an error rather than as an
+     * empty result, and an empty subscription is the normal case here, so a
+     * deadline reads as nothing arrived. Any other failure is a real one and
+     * travels on.
+     *
+     * `returnImmediately` would avoid the deadline, but Pub/Sub documents it as
+     * able to return nothing while a message is waiting, so it cannot be used.
+     *
+     * @return Message[]
+     */
+    protected function pull(): array
+    {
+        try {
+            return $this->subscription->pull([
+                'maxMessages'   => 1,
+                'timeoutMillis' => $this->timeoutMs,
+            ]);
+        } catch (ConnectException) {
+            return [];
+        } catch (ApiException $exception) {
+            if ($exception->getCode() !== Code::DEADLINE_EXCEEDED) {
+                throw $exception;
+            }
+
+            return [];
+        }
     }
 
     /**

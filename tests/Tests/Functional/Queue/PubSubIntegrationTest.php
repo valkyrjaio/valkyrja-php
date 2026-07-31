@@ -5,14 +5,14 @@ declare(strict_types=1);
 /*
  * This file is part of the Valkyrja Framework package.
  *
- * (c) Melech Mizrachi <melechmizrachi@gmail.com>
+ * Copyright (c) 2016-present Melech Mizrachi
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * Released under the MIT License. See LICENSE.md for details.
  */
 
 namespace Valkyrja\Tests\Functional\Queue;
 
+use Google\Auth\Credentials\InsecureCredentials;
 use Google\Cloud\PubSub\PubSubClient as PubSub;
 use Google\Cloud\PubSub\Subscription;
 use Google\Cloud\PubSub\Topic;
@@ -24,6 +24,8 @@ use Valkyrja\Application\Entry\PullQueue;
 use Valkyrja\Queue\Client\Manager\PubSubClient;
 use Valkyrja\Queue\Client\Puller\PubSubPuller;
 use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
+use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
@@ -33,6 +35,8 @@ use Valkyrja\Tests\Functional\Abstract\TestCase;
 use function class_exists;
 use function getenv;
 use function is_string;
+use function preg_replace;
+use function strtolower;
 
 /**
  * Exercise the Pub/Sub processor against a real endpoint.
@@ -49,10 +53,7 @@ use function is_string;
 final class PubSubIntegrationTest extends TestCase
 {
     /** @var non-empty-string */
-    private const string TOPIC = 'valkyrja-tests';
-
-    /** @var non-empty-string */
-    private const string SUBSCRIPTION = 'valkyrja-tests-sub';
+    private const string PREFIX = 'valkyrja-tests-';
 
     private Topic $topic;
 
@@ -73,21 +74,22 @@ final class PubSubIntegrationTest extends TestCase
             self::markTestSkipped('The google/cloud-pubsub package is not installed.');
         }
 
-        $pubSub = new PubSub(['projectId' => 'valkyrja-tests', 'transport' => 'rest']);
+        // The emulator has no credentials, so they are supplied explicitly: the
+        // library only skips them for a gRPC transport, and this uses REST
+        $pubSub = new PubSub([
+            'projectId'   => 'valkyrja-tests',
+            'transport'   => 'rest',
+            'apiEndpoint' => $host,
+            'credentials' => new InsecureCredentials(),
+        ]);
 
-        $this->topic = $pubSub->topic(self::TOPIC);
+        // A topic and a subscription per test: Pub/Sub redelivers a nacked
+        // message on its own schedule, so a shared subscription would let one
+        // test's leftovers reach the next
+        $name = self::PREFIX . strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $this->name()) ?? 'x');
 
-        if (! $this->topic->exists()) {
-            $this->topic = $pubSub->createTopic(self::TOPIC);
-        }
-
-        $this->subscription = $pubSub->subscription(self::SUBSCRIPTION);
-
-        if (! $this->subscription->exists()) {
-            $this->subscription = $this->topic->subscribe(self::SUBSCRIPTION);
-        }
-
-        $this->drain();
+        $this->topic        = $pubSub->createTopic($name);
+        $this->subscription = $this->topic->subscribe($name . '-sub');
 
         ResultLogMiddlewareFixture::reset();
     }
@@ -96,7 +98,8 @@ final class PubSubIntegrationTest extends TestCase
     protected function tearDown(): void
     {
         if (isset($this->subscription)) {
-            $this->drain();
+            $this->subscription->delete();
+            $this->topic->delete();
         }
 
         ResultLogMiddlewareFixture::reset();
@@ -108,7 +111,7 @@ final class PubSubIntegrationTest extends TestCase
     {
         $job = new Job(
             name: QueueRoutingProviderFixture::ALWAYS_ACK,
-            payload: Job::create('x', ['user_id' => 42, 'nested' => ['a' => 1]])->getPayload(),
+            payload: new JobFactory()->create('x', ['user_id' => 42, 'nested' => ['a' => 1]])->getPayload(),
             id: 'stable-id',
             maxAttempts: 7,
             priority: 3,
@@ -122,14 +125,14 @@ final class PubSubIntegrationTest extends TestCase
 
         self::assertNotNull($received);
         // The envelope is the cross-language contract, so every field must survive
-        self::assertSame($client->getPushed()[0]->toArray(), $received->toArray());
+        self::assertSame($client->getPushed()[0]->asArray(), $received->asArray());
 
         $puller->settle($received, JobResult::ACK, $client);
     }
 
     public function testAnAcknowledgedJobIsGoneForGood(): void
     {
-        $job = Job::create(QueueRoutingProviderFixture::ALWAYS_ACK);
+        $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
 
         $client = $this->client();
         $client->push($job);
@@ -164,7 +167,7 @@ final class PubSubIntegrationTest extends TestCase
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
         // A processor-owned retry is not a re-publish, so the client is untouched
         self::assertCount(1, $client->getPushed());
-        self::assertNotNull($this->puller()->receive());
+        self::assertNotNull($this->redelivered());
     }
 
     public function testAnEmptySubscriptionYieldsNothing(): void
@@ -174,7 +177,7 @@ final class PubSubIntegrationTest extends TestCase
 
     public function testDisconnectHandsAnInFlightDeliveryBack(): void
     {
-        $this->client()->push(Job::create(QueueRoutingProviderFixture::ALWAYS_ACK));
+        $this->client()->push(new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK));
 
         $puller = $this->puller();
         $puller->connect();
@@ -185,7 +188,28 @@ final class PubSubIntegrationTest extends TestCase
         // out the whole acknowledgement deadline
         $puller->disconnect();
 
-        self::assertNotNull($this->puller()->receive());
+        self::assertNotNull($this->redelivered());
+    }
+
+    /**
+     * Wait for a nacked message to come back.
+     *
+     * Pub/Sub makes a nacked message available again on its own schedule, so a
+     * single pull is not enough to say it was dropped.
+     */
+    private function redelivered(): JobContract|null
+    {
+        $puller = $this->puller();
+
+        for ($attempt = 0; $attempt < 30; $attempt++) {
+            $job = $puller->receive();
+
+            if ($job !== null) {
+                return $job;
+            }
+        }
+
+        return null;
     }
 
     private function client(): PubSubClient
@@ -195,7 +219,7 @@ final class PubSubIntegrationTest extends TestCase
 
     private function puller(): PubSubPuller
     {
-        return new PubSubPuller(subscription: $this->subscription);
+        return new PubSubPuller(subscription: $this->subscription, timeoutMs: 1000);
     }
 
     private function config(): QueueConfigContract
@@ -205,16 +229,5 @@ final class PubSubIntegrationTest extends TestCase
             providers: [new QueueTestComponentProviderFixture()],
             resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
         );
-    }
-
-    /**
-     * Acknowledge everything waiting, so one test cannot see another's
-     * leftovers.
-     */
-    private function drain(): void
-    {
-        foreach ($this->subscription->pull(['maxMessages' => 100]) as $message) {
-            $this->subscription->acknowledge($message);
-        }
     }
 }

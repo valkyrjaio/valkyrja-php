@@ -5,10 +5,9 @@ declare(strict_types=1);
 /*
  * This file is part of the Valkyrja Framework package.
  *
- * (c) Melech Mizrachi <melechmizrachi@gmail.com>
+ * Copyright (c) 2016-present Melech Mizrachi
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * Released under the MIT License. See LICENSE.md for details.
  */
 
 namespace Valkyrja\Tests\Fixtures\Queue\Client;
@@ -16,6 +15,7 @@ namespace Valkyrja\Tests\Fixtures\Queue\Client;
 use Google\Cloud\PubSub\Message;
 use Google\Cloud\PubSub\Subscription;
 use Override;
+use Throwable;
 
 /**
  * A recording stand-in for a Pub/Sub subscription.
@@ -37,6 +37,9 @@ final class PubSubSubscriptionFixture extends Subscription
     /** @var array<int, array{0: Message, 1: int}> Every deadline change, in order */
     public array $deadlines = [];
 
+    /** @var Throwable|null The failure the next pull raises */
+    public Throwable|null $failure = null;
+
     /**
      * @noinspection PhpMissingParentConstructorInspection
      */
@@ -51,6 +54,14 @@ final class PubSubSubscriptionFixture extends Subscription
     public function pull(array $options = [])
     {
         $this->pulls[] = $options;
+
+        $failure = $this->failure;
+
+        if ($failure !== null) {
+            $this->failure = null;
+
+            throw $failure;
+        }
 
         $next = $this->next;
 

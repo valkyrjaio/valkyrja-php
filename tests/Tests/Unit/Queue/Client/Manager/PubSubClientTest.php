@@ -5,10 +5,9 @@ declare(strict_types=1);
 /*
  * This file is part of the Valkyrja Framework package.
  *
- * (c) Melech Mizrachi <melechmizrachi@gmail.com>
+ * Copyright (c) 2016-present Melech Mizrachi
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * Released under the MIT License. See LICENSE.md for details.
  */
 
 namespace Valkyrja\Tests\Unit\Queue\Client\Manager;
@@ -16,6 +15,7 @@ namespace Valkyrja\Tests\Unit\Queue\Client\Manager;
 use Override;
 use Valkyrja\Queue\Client\Manager\PubSubClient;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
+use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Fixtures\Queue\Client\PubSubTopicFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -42,7 +42,7 @@ final class PubSubClientTest extends TestCase
 
     public function testPushPublishesTheEnvelopeToTheTopic(): void
     {
-        $this->client()->push(Job::create(self::NAME, ['user_id' => 42]));
+        $this->client()->push(new JobFactory()->create(self::NAME, ['user_id' => 42]));
 
         self::assertCount(1, $this->topic->published);
 
