@@ -43,6 +43,11 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 class PubSubPuller implements PullerContract, RequeuerContract
 {
     /**
+     * The cURL error number for a request that ran out its own deadline.
+     */
+    public const int CURL_OPERATION_TIMED_OUT = 28;
+
+    /**
      * The delivery currently in flight, if any.
      *
      * A pull worker handles one job at a time, so a single slot is enough — and
@@ -148,7 +153,11 @@ class PubSubPuller implements PullerContract, RequeuerContract
                 'maxMessages'   => 1,
                 'timeoutMillis' => $this->timeoutMs,
             ]);
-        } catch (ConnectException) {
+        } catch (ConnectException $exception) {
+            if (! $this->isDeadline($exception)) {
+                throw $exception;
+            }
+
             return [];
         } catch (ApiException $exception) {
             if ($exception->getCode() !== Code::DEADLINE_EXCEEDED) {
@@ -157,6 +166,25 @@ class PubSubPuller implements PullerContract, RequeuerContract
 
             return [];
         }
+    }
+
+    /**
+     * Read whether a transport failure is the pull deadline, and not an outage.
+     *
+     * The REST transport reports a passed deadline as a cURL timeout, and it
+     * reports a refused connection, a failed name lookup, and a TLS failure the
+     * same way. Only the timeout means that nothing arrived.
+     *
+     * Warning: the entry's loop does not back off when a receive gives nothing,
+     * so treating an outage as an empty poll would spin the worker instead of
+     * surfacing the failure.
+     */
+    protected function isDeadline(ConnectException $exception): bool
+    {
+        /** @var mixed $errno */
+        $errno = $exception->getHandlerContext()['errno'] ?? null;
+
+        return $errno === self::CURL_OPERATION_TIMED_OUT;
     }
 
     /**
