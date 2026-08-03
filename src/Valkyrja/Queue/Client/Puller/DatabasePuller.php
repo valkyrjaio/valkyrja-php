@@ -46,6 +46,18 @@ use function is_string;
 class DatabasePuller implements PullerContract, RequeuerContract
 {
     /**
+     * The age at which a claim is treated as abandoned, in milliseconds.
+     *
+     * A database has no native visibility timeout, so the reservation needs one
+     * of its own. Without it a worker that dies between the claim and the
+     * settle strands its row: no other worker can ever take it.
+     *
+     * Warning: a job that runs longer than this can be taken by a second
+     * worker. Set the value above the longest a job may run.
+     */
+    public const int DEFAULT_RESERVATION_TIMEOUT_MS = 300_000;
+
+    /**
      * The id of the row currently reserved, if any.
      *
      * A pull worker handles one job at a time, so a single slot is enough — and
@@ -54,13 +66,15 @@ class DatabasePuller implements PullerContract, RequeuerContract
     protected int|null $current = null;
 
     /**
-     * @param non-empty-string $queue The queue jobs are consumed from
-     * @param non-empty-string $table The table jobs are stored in
+     * @param non-empty-string $queue                The queue jobs are consumed from
+     * @param non-empty-string $table                The table jobs are stored in
+     * @param int<1, max>      $reservationTimeoutMs The age at which a claim is abandoned
      */
     public function __construct(
         protected ManagerContract $manager,
         protected string $queue = 'default',
         protected string $table = DatabaseClient::DEFAULT_TABLE,
+        protected int $reservationTimeoutMs = self::DEFAULT_RESERVATION_TIMEOUT_MS,
         protected RequeuerContract $requeuer = new Requeuer(),
         protected JobFactoryContract $factory = new JobFactory(),
     ) {
@@ -144,14 +158,18 @@ class DatabasePuller implements PullerContract, RequeuerContract
      */
     protected function findEligible(): array|null
     {
+        $now = $this->now();
+
         $statement = $this->manager->prepare(
             "SELECT id, envelope FROM $this->table"
-            . ' WHERE queue = :queue AND reserved_at_ms IS NULL AND available_at_ms <= :now'
+            . ' WHERE queue = :queue AND available_at_ms <= :now'
+            . ' AND (reserved_at_ms IS NULL OR reserved_at_ms <= :stale)'
             . ' ORDER BY priority DESC, id ASC LIMIT 1'
         );
 
         $statement->bindValue(new Value('queue', $this->queue));
-        $statement->bindValue(new Value('now', $this->now()));
+        $statement->bindValue(new Value('now', $now));
+        $statement->bindValue(new Value('stale', $now - $this->reservationTimeoutMs));
         $statement->execute();
 
         // fetchAll, not fetch: the ORM treats an empty result as an error, and
@@ -176,12 +194,15 @@ class DatabasePuller implements PullerContract, RequeuerContract
      */
     protected function claim(int $id): bool
     {
+        $now = $this->now();
+
         $statement = $this->manager->prepare(
             "UPDATE $this->table SET reserved_at_ms = :now"
-            . ' WHERE id = :id AND reserved_at_ms IS NULL'
+            . ' WHERE id = :id AND (reserved_at_ms IS NULL OR reserved_at_ms <= :stale)'
         );
 
-        $statement->bindValue(new Value('now', $this->now()));
+        $statement->bindValue(new Value('now', $now));
+        $statement->bindValue(new Value('stale', $now - $this->reservationTimeoutMs));
         $statement->bindValue(new Value('id', $id));
         $statement->execute();
 

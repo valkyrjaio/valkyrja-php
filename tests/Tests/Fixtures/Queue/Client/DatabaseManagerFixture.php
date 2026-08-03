@@ -35,7 +35,7 @@ final class DatabaseManagerFixture implements ManagerContract
     /** @var DatabaseStatementFixture[] Every statement handed out, in order */
     public array $statements = [];
 
-    /** @var array<int, array<string, scalar|null>> The rows the next select returns, in order */
+    /** @var array<int, array<string, scalar|null>> The row each select returns, in order */
     public array $rows = [];
 
     /** @var int[] The row count each write reports, in order */
@@ -65,9 +65,15 @@ final class DatabaseManagerFixture implements ManagerContract
     #[Override]
     public function prepare(string $query): StatementContract
     {
+        // Only a select draws from `rows`, so seeding two rows drives two
+        // receives even though a claim writes between them
+        $isSelect = str_starts_with($query, 'SELECT');
+
         $statement = new DatabaseStatementFixture(
             query: $query,
-            row: array_shift($this->rows) ?? [],
+            row: $isSelect
+                ? array_shift($this->rows) ?? []
+                : [],
             rowCount: array_shift($this->rowCounts) ?? 1,
         );
 

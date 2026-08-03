@@ -107,6 +107,55 @@ final class DatabasePullerTest extends TestCase
         self::assertSame([], $this->manager->getStatements('UPDATE'));
     }
 
+    public function testAStringIdIsReadBackAsAJob(): void
+    {
+        // PDO returns a BIGINT as a string on pgsql, and on mysql whenever the
+        // driver emulates prepares, so the id arrives as text rather than an int
+        $this->manager->rows = [
+            [
+                'id'       => (string) self::ROW_ID,
+                'envelope' => new JobFactory()->toJson(new JobFactory()->create(self::NAME)),
+            ],
+        ];
+
+        $job = $this->puller()->receive();
+
+        self::assertNotNull($job);
+        self::assertSame(self::ROW_ID, $this->manager->getStatements('UPDATE')[0]->bound['id']);
+    }
+
+    public function testAStaleReservationBecomesEligibleAgain(): void
+    {
+        // A worker that dies between the claim and the settle leaves the row
+        // reserved. Without the staleness window no worker could ever take it.
+        $this->puller()->receive();
+
+        $select = $this->manager->getStatements('SELECT')[0];
+
+        self::assertStringContainsString('reserved_at_ms IS NULL OR reserved_at_ms <= :stale', $select->query);
+        self::assertSame(
+            self::FROZEN_MS - DatabasePuller::DEFAULT_RESERVATION_TIMEOUT_MS,
+            $select->bound['stale']
+        );
+    }
+
+    public function testAClaimCanTakeAStaleReservation(): void
+    {
+        $this->seed(new JobFactory()->create(self::NAME));
+
+        $this->puller()->receive();
+
+        $update = $this->manager->getStatements('UPDATE')[0];
+
+        // The claim must accept the same window the select offered, or a stale
+        // row would be selected forever and never actually taken
+        self::assertStringContainsString('reserved_at_ms IS NULL OR reserved_at_ms <= :stale', $update->query);
+        self::assertSame(
+            self::FROZEN_MS - DatabasePuller::DEFAULT_RESERVATION_TIMEOUT_MS,
+            $update->bound['stale']
+        );
+    }
+
     public function testAnEligibleRowIsReadBackAsAJob(): void
     {
         $this->seed(new JobFactory()->create(self::NAME, ['user_id' => 42]));
