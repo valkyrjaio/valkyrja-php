@@ -14,6 +14,7 @@ namespace Valkyrja\Tests\Unit\Queue\Client\Puller;
 
 use Override;
 use PhpAmqpLib\Message\AMQPMessage;
+use PhpAmqpLib\Wire\AMQPTable;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Client\Puller\AmqpPuller;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
@@ -161,6 +162,88 @@ final class AmqpPullerTest extends TestCase
         self::assertSame(0, $puller->waits);
     }
 
+    public function testAFirstDeliveryKeepsTheEnvelopeAttempt(): void
+    {
+        $this->channel->next = $this->delivery(['name' => 'SendWelcomeEmail', 'attempts' => 1]);
+
+        $job = $this->puller()->receive();
+
+        self::assertNotNull($job);
+        self::assertSame(1, $job->getAttempts());
+    }
+
+    public function testAQuorumQueueDeliveryCountBecomesTheAttempt(): void
+    {
+        // The header counts redeliveries, so the attempt is one more than it.
+        // Without this the envelope attempt never advances and max_attempts
+        // can never stop a failing chain.
+        $this->channel->next = $this->delivery(
+            ['name' => 'SendWelcomeEmail', 'attempts' => 1],
+            headers: [AmqpPuller::DELIVERY_COUNT_HEADER => 4],
+        );
+
+        $job = $this->puller()->receive();
+
+        self::assertNotNull($job);
+        self::assertSame(5, $job->getAttempts());
+    }
+
+    public function testARedeliveredClassicDeliveryAdvancesPastTheFirstAttempt(): void
+    {
+        // A classic queue reports only a flag, so the adapter can say the
+        // delivery is not the first, and no more than that
+        $this->channel->next = $this->delivery(['name' => 'SendWelcomeEmail', 'attempts' => 1], redelivered: true);
+
+        $job = $this->puller()->receive();
+
+        self::assertNotNull($job);
+        self::assertSame(2, $job->getAttempts());
+    }
+
+    public function testARedeliveredFlagNeverLowersTheEnvelopeAttempt(): void
+    {
+        $this->channel->next = $this->delivery(['name' => 'SendWelcomeEmail', 'attempts' => 4], redelivered: true);
+
+        $job = $this->puller()->receive();
+
+        self::assertNotNull($job);
+        self::assertSame(4, $job->getAttempts());
+    }
+
+    public function testARawHeaderTableIsRead(): void
+    {
+        // php-amqplib keeps a header array as an array rather than wrapping it
+        $this->channel->next = $this->rawHeaderDelivery([AmqpPuller::DELIVERY_COUNT_HEADER => 2]);
+
+        $job = $this->puller()->receive();
+
+        self::assertNotNull($job);
+        self::assertSame(3, $job->getAttempts());
+    }
+
+    public function testANonTableHeaderValueIsIgnored(): void
+    {
+        $this->channel->next = $this->rawHeaderDelivery('not-a-table');
+
+        $job = $this->puller()->receive();
+
+        self::assertNotNull($job);
+        self::assertSame(1, $job->getAttempts());
+    }
+
+    public function testAMalformedDeliveryCountIsIgnored(): void
+    {
+        $this->channel->next = $this->delivery(
+            ['name' => 'SendWelcomeEmail', 'attempts' => 3],
+            headers: [AmqpPuller::DELIVERY_COUNT_HEADER => 'not-a-count'],
+        );
+
+        $job = $this->puller()->receive();
+
+        self::assertNotNull($job);
+        self::assertSame(3, $job->getAttempts());
+    }
+
     /**
      * Receive a single scripted delivery and return the puller holding it.
      */
@@ -175,16 +258,37 @@ final class AmqpPullerTest extends TestCase
     }
 
     /**
+     * Build a delivery whose headers are set without an AMQP table wrapper.
+     */
+    protected function rawHeaderDelivery(mixed $headers): AMQPMessage
+    {
+        $message = $this->delivery(['name' => 'SendWelcomeEmail', 'attempts' => 1]);
+
+        $message->set('application_headers', $headers);
+
+        return $message;
+    }
+
+    /**
      * Build a delivery whose ack and nack route back to the fixture channel.
      *
-     * @param array<non-empty-string, mixed> $envelope The envelope
+     * @param array<non-empty-string, mixed> $envelope    The envelope
+     * @param array<non-empty-string, mixed> $headers     The AMQP headers
+     * @param bool                           $redelivered Whether the broker marks this a redelivery
      */
-    protected function delivery(array $envelope): AMQPMessage
+    protected function delivery(array $envelope, array $headers = [], bool $redelivered = false): AMQPMessage
     {
-        $message = new AMQPMessage((string) json_encode([EnvelopeField::NAME => 'x', ...$envelope]));
+        $properties = $headers !== []
+            ? ['application_headers' => new AMQPTable($headers)]
+            : [];
+
+        $message = new AMQPMessage(
+            (string) json_encode([EnvelopeField::NAME => 'x', ...$envelope]),
+            $properties
+        );
 
         $message->setChannel($this->channel);
-        $message->setDeliveryTag('delivery-1');
+        $message->setDeliveryInfo('delivery-1', $redelivered, '', self::QUEUE);
 
         return $message;
     }
