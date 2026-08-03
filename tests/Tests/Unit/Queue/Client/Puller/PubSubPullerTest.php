@@ -74,10 +74,41 @@ final class PubSubPullerTest extends TestCase
 
     public function testATransportDeadlineReadsAsNothingArrived(): void
     {
-        // The REST transport reports a passed deadline as a connection error
-        $this->subscription->failure = new ConnectException('timed out', new Request('POST', '/'));
+        // The REST transport reports a passed deadline as a cURL timeout
+        $this->subscription->failure = new ConnectException(
+            'timed out',
+            new Request('POST', '/'),
+            null,
+            ['errno' => PubSubPuller::CURL_OPERATION_TIMED_OUT]
+        );
 
         self::assertNull($this->puller()->receive());
+    }
+
+    public function testAConnectionFailureTravelsOn(): void
+    {
+        // A refused connection, a failed name lookup and a TLS failure all
+        // arrive as a ConnectException too. The loop does not back off when a
+        // receive gives nothing, so swallowing these would spin the worker.
+        $this->subscription->failure = new ConnectException(
+            'connection refused',
+            new Request('POST', '/'),
+            null,
+            ['errno' => 7]
+        );
+
+        $this->expectException(ConnectException::class);
+
+        $this->puller()->receive();
+    }
+
+    public function testATransportFailureWithNoErrorNumberTravelsOn(): void
+    {
+        $this->subscription->failure = new ConnectException('unknown', new Request('POST', '/'));
+
+        $this->expectException(ConnectException::class);
+
+        $this->puller()->receive();
     }
 
     public function testAnApiDeadlineReadsAsNothingArrived(): void
