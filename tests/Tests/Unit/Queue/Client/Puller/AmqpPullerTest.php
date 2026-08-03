@@ -231,6 +231,21 @@ final class AmqpPullerTest extends TestCase
         self::assertSame(1, $job->getAttempts());
     }
 
+    public function testANegativeDeliveryCountIsIgnored(): void
+    {
+        // A count below zero would make the attempt zero, which the envelope
+        // rejects, so a malformed header would crash the puller
+        $this->channel->next = $this->delivery(
+            ['name' => 'SendWelcomeEmail', 'attempts' => 3],
+            headers: [AmqpPuller::DELIVERY_COUNT_HEADER => -1],
+        );
+
+        $job = $this->puller()->receive();
+
+        self::assertNotNull($job);
+        self::assertSame(3, $job->getAttempts());
+    }
+
     public function testAMalformedDeliveryCountIsIgnored(): void
     {
         $this->channel->next = $this->delivery(
