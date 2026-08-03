@@ -16,6 +16,7 @@ use JsonException;
 use Override;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Message\AMQPMessage;
+use PhpAmqpLib\Wire\AMQPTable;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Puller\Contract\PullerContract;
 use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
@@ -24,6 +25,9 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 
+use function is_array;
+use function is_int;
+use function max;
 use function sleep;
 
 /**
@@ -40,6 +44,13 @@ use function sleep;
  */
 class AmqpPuller implements PullerContract, RequeuerContract
 {
+    /**
+     * The header a quorum queue uses to report how many times it redelivered.
+     *
+     * @var non-empty-string
+     */
+    public const string DELIVERY_COUNT_HEADER = 'x-delivery-count';
+
     /**
      * The delivery currently in flight, if any.
      *
@@ -90,7 +101,7 @@ class AmqpPuller implements PullerContract, RequeuerContract
 
         $this->current = $message;
 
-        return $this->factory->fromJson($message->getBody());
+        return $this->withNormalizedAttempts($this->factory->fromJson($message->getBody()), $message);
     }
 
     /**
@@ -135,6 +146,67 @@ class AmqpPuller implements PullerContract, RequeuerContract
         }
 
         $message->ack();
+    }
+
+    /**
+     * Read the delivery count back off the broker and onto the job.
+     *
+     * A processor-owned adapter never rewrites the envelope, so the `attempts`
+     * the producer published never advances on its own. The broker owns the
+     * count, and the adapter normalizes it, which is what lets `max_attempts`
+     * stop a failing chain.
+     *
+     * A quorum queue reports the count in `x-delivery-count`, which counts the
+     * redeliveries and so is one less than the attempt number. A classic queue
+     * reports only the `redelivered` flag, which says that this delivery is not
+     * the first without saying which one it is.
+     *
+     * Warning: a classic queue therefore cannot count past the second attempt.
+     * Give the queue a dead-letter policy, or declare it as a quorum queue, when
+     * the ceiling has to hold.
+     */
+    protected function withNormalizedAttempts(JobContract $job, AMQPMessage $message): JobContract
+    {
+        $count = $this->getDeliveryCount($message);
+
+        if ($count === null) {
+            return $message->isRedelivered()
+                ? $job->withAttempts(max($job->getAttempts(), 2))
+                : $job;
+        }
+
+        return $job->withAttempts($count + 1);
+    }
+
+    /**
+     * Read the broker's redelivery count, when the broker keeps one.
+     *
+     * @return int<0, max>|null
+     */
+    protected function getDeliveryCount(AMQPMessage $message): int|null
+    {
+        if (! $message->has('application_headers')) {
+            return null;
+        }
+
+        /** @var mixed $headers */
+        $headers = $message->get('application_headers');
+
+        /** @var mixed $native */
+        $native = $headers instanceof AMQPTable
+            ? $headers->getNativeData()
+            : $headers;
+
+        if (! is_array($native)) {
+            return null;
+        }
+
+        /** @var mixed $count */
+        $count = $native[self::DELIVERY_COUNT_HEADER] ?? null;
+
+        return is_int($count) && $count >= 0
+            ? $count
+            : null;
     }
 
     /**

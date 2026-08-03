@@ -187,7 +187,7 @@ final class AmqpIntegrationTest extends TestCase
 
         self::assertSame([JobResult::FAIL], ResultLogMiddlewareFixture::getResults($job->getId()));
         // Dropped rather than requeued: with no dead-letter exchange bound, the
-        // broker discards it, which is the documented per-policy behaviour
+        // broker discards it, which is the documented per-policy behavior
         self::assertSame(0, $this->depth());
     }
 
