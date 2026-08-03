@@ -39,6 +39,13 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 class BeanstalkdPuller implements PullerContract, RequeuerContract
 {
     /**
+     * The tube every beanstalkd connection watches until it is told otherwise.
+     *
+     * @var non-empty-string
+     */
+    public const string DEFAULT_TUBE = 'default';
+
+    /**
      * The job currently reserved, if any.
      *
      * A pull worker handles one job at a time, so a single slot is enough — and
@@ -65,6 +72,13 @@ class BeanstalkdPuller implements PullerContract, RequeuerContract
     public function connect(): void
     {
         $this->pheanstalk->watch(new TubeName($this->tube));
+
+        // A fresh connection already watches `default`, and watching another
+        // tube adds to that list rather than replacing it. Without the ignore,
+        // a reserve can take a job another producer put on `default`.
+        if ($this->tube !== self::DEFAULT_TUBE) {
+            $this->pheanstalk->ignore(new TubeName(self::DEFAULT_TUBE));
+        }
     }
 
     /**

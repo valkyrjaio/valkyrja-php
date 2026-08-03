@@ -65,6 +65,23 @@ final class BeanstalkdPullerTest extends TestCase
         self::assertSame([[self::TUBE]], $this->pheanstalk->getCalls('watch'));
     }
 
+    public function testConnectStopsWatchingTheDefaultTube(): void
+    {
+        // A fresh connection watches `default` already, so without the ignore a
+        // reserve could take a job that another producer put on `default`
+        $this->puller()->connect();
+
+        self::assertSame([[BeanstalkdPuller::DEFAULT_TUBE]], $this->pheanstalk->getCalls('ignore'));
+    }
+
+    public function testConnectKeepsTheDefaultTubeWhenItIsTheConfiguredOne(): void
+    {
+        new BeanstalkdPuller($this->pheanstalk, BeanstalkdPuller::DEFAULT_TUBE, timeout: 3)->connect();
+
+        // Ignoring the only watched tube would leave the connection watching none
+        self::assertSame([], $this->pheanstalk->getCalls('ignore'));
+    }
+
     public function testAnEmptyTubeYieldsNothing(): void
     {
         self::assertNull($this->puller()->receive());
