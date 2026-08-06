@@ -95,6 +95,29 @@ final class SqsPullerTest extends TestCase
         self::assertNull($this->puller()->receive());
     }
 
+    public function testADeliveryWithNoReceiptHandleIsSkipped(): void
+    {
+        // SQS types the receipt handle as optional too. Without one the
+        // delivery can be neither deleted nor released, so running it would
+        // leave SQS redelivering the same message on every visibility timeout
+        $this->sqs->next = [
+            new Message([
+                'MessageId' => 'id-1',
+                'Body'      => new JobFactory()->toJson(new JobFactory()->create(self::NAME)),
+            ]),
+        ];
+
+        $puller = $this->puller();
+
+        self::assertNull($puller->receive());
+
+        // Nothing is in flight, so a later settle must not touch the queue
+        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+
+        self::assertSame([], $this->sqs->getCalls('deleteMessage'));
+        self::assertSame([], $this->sqs->getCalls('changeMessageVisibility'));
+    }
+
     #[DataProvider('terminalProvider')]
     public function testATerminalOutcomeDeletesTheDelivery(JobResult $result): void
     {
