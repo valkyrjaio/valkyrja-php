@@ -10,19 +10,13 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Application\Provider;
+namespace Valkyrja\Queue\Client\Provider;
 
 use Override;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Application\Provider\Contract\ComponentProviderContract;
-use Valkyrja\Log\Provider\LogComponentProvider;
-use Valkyrja\Queue\Client\Provider\QueueClientComponentProvider;
-use Valkyrja\Queue\Message\Provider\QueueMessageComponentProvider;
-use Valkyrja\Queue\Middleware\Provider\QueueMiddlewareComponentProvider;
-use Valkyrja\Queue\Routing\Provider\QueueRoutingComponentProvider;
-use Valkyrja\Queue\Server\Provider\QueueServerComponentProvider;
 
-class QueueApplicationComponentProvider implements ComponentProviderContract
+class QueueClientComponentProvider implements ComponentProviderContract
 {
     /**
      * @inheritDoc
@@ -30,15 +24,7 @@ class QueueApplicationComponentProvider implements ComponentProviderContract
     #[Override]
     public function getComponentProviders(ApplicationContract $app): array
     {
-        return [
-            new ApplicationComponentProvider(),
-            new QueueMessageComponentProvider(),
-            new QueueClientComponentProvider(),
-            new QueueMiddlewareComponentProvider(),
-            new QueueRoutingComponentProvider(),
-            new QueueServerComponentProvider(),
-            new LogComponentProvider(),
-        ];
+        return [];
     }
 
     /**
@@ -47,7 +33,9 @@ class QueueApplicationComponentProvider implements ComponentProviderContract
     #[Override]
     public function getContainerProviders(ApplicationContract $app): array
     {
-        return [];
+        return [
+            new QueueClientServiceProvider(),
+        ];
     }
 
     /**

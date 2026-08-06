@@ -10,19 +10,18 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Application\Provider;
+namespace Valkyrja\Tests\Fixtures\Queue\Provider;
 
 use Override;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Application\Provider\Contract\ComponentProviderContract;
-use Valkyrja\Log\Provider\LogComponentProvider;
-use Valkyrja\Queue\Client\Provider\QueueClientComponentProvider;
-use Valkyrja\Queue\Message\Provider\QueueMessageComponentProvider;
-use Valkyrja\Queue\Middleware\Provider\QueueMiddlewareComponentProvider;
-use Valkyrja\Queue\Routing\Provider\QueueRoutingComponentProvider;
-use Valkyrja\Queue\Server\Provider\QueueServerComponentProvider;
+use Valkyrja\Application\Provider\QueueApplicationComponentProvider;
+use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 
-class QueueApplicationComponentProvider implements ComponentProviderContract
+/**
+ * Boots the whole queue stack plus the fixture routes.
+ */
+final class QueueTestComponentProviderFixture implements ComponentProviderContract
 {
     /**
      * @inheritDoc
@@ -31,13 +30,7 @@ class QueueApplicationComponentProvider implements ComponentProviderContract
     public function getComponentProviders(ApplicationContract $app): array
     {
         return [
-            new ApplicationComponentProvider(),
-            new QueueMessageComponentProvider(),
-            new QueueClientComponentProvider(),
-            new QueueMiddlewareComponentProvider(),
-            new QueueRoutingComponentProvider(),
-            new QueueServerComponentProvider(),
-            new LogComponentProvider(),
+            new QueueApplicationComponentProvider(),
         ];
     }
 
@@ -83,6 +76,8 @@ class QueueApplicationComponentProvider implements ComponentProviderContract
     #[Override]
     public function getQueueProviders(ApplicationContract $app): array
     {
-        return [];
+        return [
+            new QueueRoutingProviderFixture(),
+        ];
     }
 }

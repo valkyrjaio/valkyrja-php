@@ -16,6 +16,7 @@ use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Application\Provider\ApplicationComponentProvider;
 use Valkyrja\Application\Provider\QueueApplicationComponentProvider;
 use Valkyrja\Log\Provider\LogComponentProvider;
+use Valkyrja\Queue\Client\Provider\QueueClientComponentProvider;
 use Valkyrja\Queue\Message\Provider\QueueMessageComponentProvider;
 use Valkyrja\Queue\Middleware\Provider\QueueMiddlewareComponentProvider;
 use Valkyrja\Queue\Routing\Provider\QueueRoutingComponentProvider;
@@ -32,10 +33,11 @@ final class QueueApplicationComponentProviderTest extends TestCase
 
         self::assertInstanceOf(ApplicationComponentProvider::class, $providers[0]);
         self::assertInstanceOf(QueueMessageComponentProvider::class, $providers[1]);
-        self::assertInstanceOf(QueueMiddlewareComponentProvider::class, $providers[2]);
-        self::assertInstanceOf(QueueRoutingComponentProvider::class, $providers[3]);
-        self::assertInstanceOf(QueueServerComponentProvider::class, $providers[4]);
-        self::assertInstanceOf(LogComponentProvider::class, $providers[5]);
+        self::assertInstanceOf(QueueClientComponentProvider::class, $providers[2]);
+        self::assertInstanceOf(QueueMiddlewareComponentProvider::class, $providers[3]);
+        self::assertInstanceOf(QueueRoutingComponentProvider::class, $providers[4]);
+        self::assertInstanceOf(QueueServerComponentProvider::class, $providers[5]);
+        self::assertInstanceOf(LogComponentProvider::class, $providers[6]);
     }
 
     public function testGetContainerProviders(): void
