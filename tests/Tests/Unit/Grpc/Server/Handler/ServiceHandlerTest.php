@@ -269,6 +269,22 @@ final class ServiceHandlerTest extends TestCase
         self::assertSame(1, ResponseSentMiddlewareFixture::getAndResetCounter());
     }
 
+    public function testRunsWithTheDefaultStageHandlers(): void
+    {
+        $collection = new RouteCollection();
+        $collection->add(new Route(self::METHOD, static fn (): ServiceResponseContract => ServiceResponse::ok('hello')));
+
+        $handler = new ServiceHandler(
+            container: new Container(),
+            router: new Router(collection: $collection),
+        );
+
+        $response = $handler->run(ServiceCall::unary(self::METHOD, 'ping'));
+
+        self::assertSame(['hello'], $response->getMessages());
+        self::assertSame(StatusCode::OK, $response->getStatus()->getCode());
+    }
+
     private function handler(bool $debug = false): ServiceHandler
     {
         $router = new Router(
