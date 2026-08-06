@@ -395,17 +395,17 @@ the binary name in version and help output.
 `providers` default to `[GrpcApplicationComponentProvider]`, and adds one cap
 and seven middleware lists:
 
-| Property                    | Default                                             |
-| --------------------------- | --------------------------------------------------- |
-| `port`                      | `50051` — the port the worker runtime listens on    |
-| `maxInboundMessages`        | `100` — the most messages one call may send inbound |
-| `callReceivedMiddleware`    | `[]`                                                |
-| `routeMatchedMiddleware`    | `[]`                                                |
-| `routeNotMatchedMiddleware` | `[]`                                                |
-| `routeDispatchedMiddleware` | `[]`                                                |
-| `throwableCaughtMiddleware` | `[]`                                                |
-| `sendingResponseMiddleware` | `[]`                                                |
-| `responseSentMiddleware`    | `[]`                                                |
+| Property                    | Default                                              |
+| --------------------------- | ---------------------------------------------------- |
+| `port`                      | `50051` — the port the worker runtime listens on     |
+| `maxInboundMessages`        | `1000` — the most messages one call may send inbound |
+| `callReceivedMiddleware`    | `[]`                                                 |
+| `routeMatchedMiddleware`    | `[]`                                                 |
+| `routeNotMatchedMiddleware` | `[]`                                                 |
+| `routeDispatchedMiddleware` | `[]`                                                 |
+| `throwableCaughtMiddleware` | `[]`                                                 |
+| `sendingResponseMiddleware` | `[]`                                                 |
+| `responseSentMiddleware`    | `[]`                                                 |
 
 Warning: `maxInboundMessages` bounds the inbound direction only. The framework
 puts no bound on the outbound direction, so a worker adapter applies its own
