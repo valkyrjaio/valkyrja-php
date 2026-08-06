@@ -78,4 +78,13 @@ final class HttpComponentProviderFixture implements ComponentProviderContract
             new HttpRouteProviderFixture(),
         ];
     }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getQueueProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }
