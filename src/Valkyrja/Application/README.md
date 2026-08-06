@@ -309,7 +309,7 @@ and seven middleware lists:
 | Property                    | Default                                                   |
 | --------------------------- | --------------------------------------------------------- |
 | `port`                      | `50051` — the port the worker runtime listens on          |
-| `maxInboundMessages`        | `100` — the most messages one call may send inbound       |
+| `maxInboundMessages`        | `1000` — the most messages one call may send inbound      |
 | `callReceivedMiddleware`    | `[]`                                                      |
 | `routeMatchedMiddleware`    | `[]`                                                      |
 | `routeNotMatchedMiddleware` | `[]`                                                      |
