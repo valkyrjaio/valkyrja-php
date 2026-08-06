@@ -12,9 +12,8 @@ declare(strict_types=1);
 
 namespace Valkyrja\Queue\Server\Throwable\Exception;
 
-use Valkyrja\Queue\Server\Throwable\Contract\QueueServerThrowable;
+use Valkyrja\Queue\Server\Throwable\Exception\Abstract\QueueServerRuntimeException;
 use Valkyrja\Queue\Throwable\Contract\QueueNonRetryableThrowable;
-use Valkyrja\Queue\Throwable\Exception\Abstract\QueueRuntimeException;
 
 /**
  * Thrown by a handler that is giving up on purpose.
@@ -22,6 +21,6 @@ use Valkyrja\Queue\Throwable\Exception\Abstract\QueueRuntimeException;
  * Retrying a bad payload or a failed validation reproduces the same failure
  * every time, so this dead-letters immediately.
  */
-class QueueServerNonRetryableJobException extends QueueRuntimeException implements QueueServerThrowable, QueueNonRetryableThrowable
+class QueueServerNonRetryableJobException extends QueueServerRuntimeException implements QueueNonRetryableThrowable
 {
 }
