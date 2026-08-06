@@ -34,6 +34,14 @@ final class CallReceivedHandlerTest extends HandlerTestCase
         self::assertSame(1, $handler->getCount());
     }
 
+    public function testConstructsItsOwnContainerByDefault(): void
+    {
+        $handler = new CallReceivedHandlerFixture();
+
+        self::assertSame($this->call, $handler->callReceived($this->call));
+        self::assertSame(1, $handler->getCount());
+    }
+
     public function testWalksTheChain(): void
     {
         CallReceivedMiddlewareFixture::resetCounter();
