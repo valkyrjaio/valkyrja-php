@@ -15,6 +15,8 @@ namespace Valkyrja\Tests\Unit\Application\Data;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Application\Data\QueueConfig;
 use Valkyrja\Application\Provider\QueueApplicationComponentProvider;
+use Valkyrja\Queue\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddleware;
+use Valkyrja\Queue\Server\Middleware\ThrowableCaught\RetryPolicyThrowableCaughtMiddleware;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class QueueConfigTest extends TestCase
@@ -43,7 +45,13 @@ final class QueueConfigTest extends TestCase
         self::assertEmpty($config->routeDispatchedMiddleware);
         self::assertEmpty($config->settlingResultMiddleware);
         self::assertEmpty($config->resultSettledMiddleware);
-        self::assertEmpty($config->throwableCaughtMiddleware);
+
+        // The failure is logged before the policy decides the outcome, so the
+        // log middleware sees the seeded result rather than the final one
+        self::assertSame(
+            [LogThrowableCaughtMiddleware::class, RetryPolicyThrowableCaughtMiddleware::class],
+            $config->throwableCaughtMiddleware
+        );
     }
 
     public function testConstructor(): void
