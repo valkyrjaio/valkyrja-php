@@ -95,7 +95,16 @@ class SqsPuller implements PullerContract, RequeuerContract
             return null;
         }
 
-        $this->current = $message->getReceiptHandle();
+        $handle = $message->getReceiptHandle();
+
+        // Settling needs the handle, so a delivery without one can be neither
+        // deleted nor made visible again. Running it would leave SQS to
+        // redeliver the same message on every visibility timeout, forever
+        if ($handle === null) {
+            return null;
+        }
+
+        $this->current = $handle;
 
         return $this->factory->fromJson($body);
     }
