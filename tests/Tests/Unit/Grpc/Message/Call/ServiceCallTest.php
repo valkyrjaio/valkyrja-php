@@ -164,6 +164,13 @@ final class ServiceCallTest extends TestCase
         self::assertSame(['one', 'two'], iterator_to_array($call->cancellable(['one', 'two']), false));
     }
 
+    public function testCancellableYieldsNothingForAnEmptyUncancelledSource(): void
+    {
+        $call = new ServiceCall('/pkg.Service/Method');
+
+        self::assertSame([], iterator_to_array($call->cancellable([])));
+    }
+
     public function testCancellableYieldsNothingWhenAlreadyCancelled(): void
     {
         $cancellation = new CancellationToken();
