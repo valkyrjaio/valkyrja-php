@@ -16,6 +16,7 @@ use Throwable;
 use Valkyrja\Queue\Client\Throwable\Contract\QueueClientThrowable;
 use Valkyrja\Queue\Client\Throwable\Exception\Abstract\QueueClientInvalidArgumentException;
 use Valkyrja\Queue\Client\Throwable\Exception\Abstract\QueueClientRuntimeException;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientSyncJobFailedException;
 use Valkyrja\Queue\Throwable\Contract\QueueThrowable;
 use Valkyrja\Queue\Throwable\Exception\Abstract\QueueInvalidArgumentException;
 use Valkyrja\Queue\Throwable\Exception\Abstract\QueueRuntimeException;
@@ -39,5 +40,10 @@ final class ExceptionsTest extends TestCase
     {
         self::isA(QueueClientThrowable::class, QueueClientRuntimeException::class);
         self::isA(QueueRuntimeException::class, QueueClientRuntimeException::class);
+    }
+
+    public function testSyncJobFailedException(): void
+    {
+        self::isA(QueueClientRuntimeException::class, QueueClientSyncJobFailedException::class);
     }
 }

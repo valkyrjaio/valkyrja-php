@@ -17,7 +17,9 @@ use Valkyrja\Application\Data\Contract\QueueConfigContract;
 use Valkyrja\Application\Data\QueueConfig;
 use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Queue\Client\Manager\SyncClient;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientSyncJobFailedException;
 use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
@@ -63,7 +65,7 @@ final class QueueLifecycleTest extends TestCase
     {
         $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_FAIL);
 
-        $this->client()->push($job);
+        $this->pushExpectingFailure($this->client(), $job);
 
         self::assertSame([JobResult::FAIL], ResultLogMiddlewareFixture::getResults($job->getId()));
     }
@@ -72,7 +74,7 @@ final class QueueLifecycleTest extends TestCase
     {
         $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 3);
 
-        $this->client()->push($job);
+        $this->pushExpectingFailure($this->client(), $job);
 
         // Two retries, then the ceiling converts the third into a dead-letter
         self::assertSame(
@@ -86,7 +88,7 @@ final class QueueLifecycleTest extends TestCase
         $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 3);
 
         $client = $this->client();
-        $client->push($job);
+        $this->pushExpectingFailure($client, $job);
 
         // One log key, so every redelivery carried the same id
         self::assertCount(1, ResultLogMiddlewareFixture::getLog());
@@ -98,7 +100,7 @@ final class QueueLifecycleTest extends TestCase
         $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 3);
 
         $client = $this->client();
-        $client->push($job);
+        $this->pushExpectingFailure($client, $job);
 
         $attempts = [];
 
@@ -113,12 +115,33 @@ final class QueueLifecycleTest extends TestCase
     {
         $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_THROWS, maxAttempts: 2);
 
-        $this->client()->push($job);
+        $this->pushExpectingFailure($this->client(), $job);
 
         self::assertSame(
             [JobResult::RETRY, JobResult::DEAD_LETTER],
             ResultLogMiddlewareFixture::getResults($job->getId())
         );
+    }
+
+    public function testATerminalFailureSurfacesAtTheCallSite(): void
+    {
+        $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_FAIL);
+
+        // A sync push blocks until the job finishes, so the caller is still
+        // there to be told; an async push throws only on an enqueue error
+        $this->expectException(QueueClientSyncJobFailedException::class);
+        $this->expectExceptionMessage('ended in FAIL after 1 attempt(s)');
+
+        $this->client()->push($job);
+    }
+
+    public function testAnAcknowledgedJobDoesNotThrow(): void
+    {
+        $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
+
+        $this->client()->push($job);
+
+        self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
     }
 
     public function testPushStampsTheFrameworkOwnedFields(): void
@@ -132,6 +155,23 @@ final class QueueLifecycleTest extends TestCase
         self::assertSame(1, $pushed->getAttempts());
         self::assertGreaterThan(0, $pushed->getEnqueuedAtMs());
         self::assertSame($pushed->getEnqueuedAtMs(), $pushed->getModifiedAtMs());
+    }
+
+    /**
+     * Push a job whose chain ends in a terminal failure.
+     *
+     * The sync client surfaces that failure at the call site, so every test
+     * that drives a failing job must take the throw before it reads the log.
+     */
+    protected function pushExpectingFailure(SyncClient $client, JobContract $job): void
+    {
+        try {
+            $client->push($job);
+        } catch (QueueClientSyncJobFailedException) {
+            return;
+        }
+
+        self::fail('The sync client did not surface the terminal failure.');
     }
 
     protected function client(): SyncClient
