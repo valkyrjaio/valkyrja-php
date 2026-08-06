@@ -18,9 +18,15 @@ use Valkyrja\Application\Data\Contract\QueueConfigContract;
 use Valkyrja\Application\Data\QueueConfig;
 use Valkyrja\Application\Entry\Queue;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
+use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
+use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
+use Valkyrja\Queue\Client\Requeuer\Requeuer;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientSyncJobFailedException;
+use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 
 use function array_shift;
+use function sprintf;
 
 /**
  * The zero-config default: run the job inline, now, blocking.
@@ -30,12 +36,15 @@ use function array_shift;
  * immediately until it acknowledges or exhausts its attempts. Only the *timing*
  * differs from production; the retry *count* is identical.
  *
+ * A terminal failure throws at the call site, which no other client does. The
+ * caller is still blocked on the push, so it is still there to be told.
+ *
  * Everything goes through the queue entry point, never the handler directly, so
  * the same routes, middleware, and config apply — swapping this for a real
  * broker is a config change with no code change, and the caller cannot tell
  * where a job ran.
  */
-class SyncClient extends Client
+class SyncClient extends Client implements RequeuerContract
 {
     /** @var JobContract[] */
     protected array $buffer = [];
@@ -44,19 +53,45 @@ class SyncClient extends Client
 
     protected QueueConfigContract $config;
 
+    protected RequeuerContract $requeuer;
+
+    protected JobContract|null $failedJob = null;
+
+    protected JobResult|null $failedResult = null;
+
     /**
      * @param non-empty-string $version The framework version stamped into the provenance
      */
     public function __construct(
         QueueConfigContract|null $config = null,
         string $version = ApplicationInfo::VERSION,
+        RequeuerContract $requeuer = new Requeuer(),
     ) {
-        $this->config = $config ?? new QueueConfig();
+        $this->config   = $config ?? new QueueConfig();
+        $this->requeuer = $requeuer;
 
         parent::__construct(
             applicationName: $this->config->applicationName,
             version: $version,
         );
+    }
+
+    /**
+     * @inheritDoc
+     *
+     * The sync client settles its own outcomes so that it sees a terminal
+     * failure. A retry still goes to the composed re-queuer, which hands the
+     * incremented job back through push and so continues the loop above.
+     */
+    #[Override]
+    public function settle(JobContract $job, JobResult $result, ClientContract $client): void
+    {
+        $this->requeuer->settle($job, $result, $client);
+
+        if ($result === JobResult::FAIL || $result === JobResult::DEAD_LETTER) {
+            $this->failedJob    = $job;
+            $this->failedResult = $result;
+        }
     }
 
     /**
@@ -83,9 +118,13 @@ class SyncClient extends Client
             while (($next = array_shift($this->buffer)) !== null) {
                 $this->run($next);
             }
+
+            $this->throwOnFailure();
         } finally {
-            $this->running = false;
-            $this->buffer  = [];
+            $this->running      = false;
+            $this->buffer       = [];
+            $this->failedJob    = null;
+            $this->failedResult = null;
         }
     }
 
@@ -102,6 +141,35 @@ class SyncClient extends Client
             config: $this->config,
             job: $job,
             client: $this,
+            requeuer: $this,
+        );
+    }
+
+    /**
+     * Surface a terminal failure at the call site.
+     *
+     * The whole buffer drains first, so a job that pushed another job still
+     * runs it. Only then does the failure throw.
+     *
+     * @throws QueueClientSyncJobFailedException
+     */
+    protected function throwOnFailure(): void
+    {
+        $job    = $this->failedJob;
+        $result = $this->failedResult;
+
+        if ($job === null || $result === null) {
+            return;
+        }
+
+        throw new QueueClientSyncJobFailedException(
+            sprintf(
+                'Job "%s" (%s) ended in %s after %d attempt(s).',
+                $job->getName(),
+                $job->getId(),
+                $result->name,
+                $job->getAttempts(),
+            )
         );
     }
 }
