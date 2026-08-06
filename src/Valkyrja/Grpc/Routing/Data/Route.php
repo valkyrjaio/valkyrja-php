@@ -24,10 +24,7 @@ use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingInvalidMethodException;
 
 use function array_merge;
-use function strlen;
-use function strpos;
-use function strrpos;
-use function substr;
+use function preg_match;
 
 /**
  * Immutable route implementation.
@@ -73,6 +70,30 @@ class Route implements RouteContract
     }
 
     /**
+     * Split a `/package.Service/Method` method into its service and its method name.
+     *
+     * A method carries a leading slash, a non-empty service, a separating slash, and a non-empty
+     * method name. Neither part holds a slash of its own.
+     *
+     * @param string $method The fully-qualified method
+     *
+     * @throws GrpcRoutingInvalidMethodException
+     *
+     * @return array{non-empty-string, non-empty-string}
+     */
+    protected static function partsOf(string $method): array
+    {
+        if (preg_match('#^/([^/]++)/([^/]++)$#', $method, $matches) !== 1) {
+            throw new GrpcRoutingInvalidMethodException("Invalid gRPC method `$method`; expected `/package.Service/Method`");
+        }
+
+        /** @var array{non-empty-string, non-empty-string} $parts */
+        $parts = [$matches[1], $matches[2]];
+
+        return $parts;
+    }
+
+    /**
      * Extract the `package.Service` portion of a `/package.Service/Method` method.
      *
      * @param string $method The fully-qualified method
@@ -83,17 +104,7 @@ class Route implements RouteContract
      */
     protected static function serviceOf(string $method): string
     {
-        $firstSlash = strpos($method, '/');
-        $lastSlash  = strrpos($method, '/');
-
-        if ($firstSlash !== 0 || $lastSlash === false || $lastSlash <= $firstSlash + 1) {
-            throw new GrpcRoutingInvalidMethodException("Invalid gRPC method `$method`; expected `/package.Service/Method`");
-        }
-
-        /** @var non-empty-string $service */
-        $service = substr($method, $firstSlash + 1, $lastSlash - $firstSlash - 1);
-
-        return $service;
+        return self::partsOf($method)[0];
     }
 
     /**
@@ -107,16 +118,7 @@ class Route implements RouteContract
      */
     protected static function methodNameOf(string $method): string
     {
-        $lastSlash = strrpos($method, '/');
-
-        if ($lastSlash === false || $lastSlash === strlen($method) - 1) {
-            throw new GrpcRoutingInvalidMethodException("Invalid gRPC method `$method`; expected `/package.Service/Method`");
-        }
-
-        /** @var non-empty-string $methodName */
-        $methodName = substr($method, $lastSlash + 1);
-
-        return $methodName;
+        return self::partsOf($method)[1];
     }
 
     /**
