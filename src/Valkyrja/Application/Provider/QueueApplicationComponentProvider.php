@@ -16,6 +16,7 @@ use Override;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Application\Provider\Contract\ComponentProviderContract;
 use Valkyrja\Log\Provider\LogComponentProvider;
+use Valkyrja\Queue\Client\Provider\QueueClientComponentProvider;
 use Valkyrja\Queue\Message\Provider\QueueMessageComponentProvider;
 use Valkyrja\Queue\Middleware\Provider\QueueMiddlewareComponentProvider;
 use Valkyrja\Queue\Routing\Provider\QueueRoutingComponentProvider;
@@ -32,6 +33,7 @@ class QueueApplicationComponentProvider implements ComponentProviderContract
         return [
             new ApplicationComponentProvider(),
             new QueueMessageComponentProvider(),
+            new QueueClientComponentProvider(),
             new QueueMiddlewareComponentProvider(),
             new QueueRoutingComponentProvider(),
             new QueueServerComponentProvider(),
