@@ -34,6 +34,7 @@ Do not instantiate `Valkyrja` directly. Use an entry class:
 
 - `Valkyrja\Application\Entry\Http` — PHP-FPM / CGI web applications
 - `Valkyrja\Application\Entry\Cli` — console applications
+- `Valkyrja\Application\Entry\Grpc` — a single gRPC call, and tests
 - Worker entry classes — persistent worker runtimes (see
   [Persistent Worker Lifecycle](#persistent-worker-lifecycle))
 
@@ -228,12 +229,13 @@ use, and `getThrowableHandler()` returns the debug-mode throwable handler.
 ## Configuration
 
 Configuration is a typed PHP object. There is no `.env` reader and no flat
-array registry. Three config classes exist, one per entry type. `HttpConfig`
-and `CliConfig` do not extend `Config`. Each of the two classes implements its
-own contract (`HttpConfigContract`, `CliConfigContract`) and repeats the base
-properties. Both contracts extend `ConfigContract`, and the entry classes
-discriminate on the contract: `Http::run()` requires an `HttpConfigContract`,
-and `Cli::run()` requires a `CliConfigContract`.
+array registry. Four config classes exist, one per entry type. `HttpConfig`,
+`CliConfig`, and `GrpcConfig` do not extend `Config`. Each of the three classes
+implements its own contract (`HttpConfigContract`, `CliConfigContract`,
+`GrpcConfigContract`) and repeats the base properties. Every contract extends
+`ConfigContract`, and the entry classes discriminate on the contract:
+`Http::run()` requires an `HttpConfigContract`, `Cli::run()` requires a
+`CliConfigContract`, and `Grpc::handle()` requires a `GrpcConfigContract`.
 
 Convention: hold your application's real values in the config object that the
 entry point builds. Create one config file per environment, or read the values
@@ -297,6 +299,28 @@ two names and six middleware lists:
 | `routeDispatchedMiddleware` | `[]`                                                                            |
 | `throwableCaughtMiddleware` | `[LogThrowableCaughtMiddleware::class, OutputThrowableCaughtMiddleware::class]` |
 | `processExitingMiddleware`  | `[]`                                                                            |
+
+### gRPC Properties
+
+`Valkyrja\Application\Data\GrpcConfig` repeats the base properties, changes the
+`providers` default to `[GrpcApplicationComponentProvider]`, and adds one cap
+and seven middleware lists:
+
+| Property                    | Default                                                   |
+| --------------------------- | --------------------------------------------------------- |
+| `port`                      | `50051` — the port the worker runtime listens on          |
+| `maxInboundMessages`        | `100` — the most messages one call may send inbound       |
+| `callReceivedMiddleware`    | `[]`                                                      |
+| `routeMatchedMiddleware`    | `[]`                                                      |
+| `routeNotMatchedMiddleware` | `[]`                                                      |
+| `routeDispatchedMiddleware` | `[]`                                                      |
+| `throwableCaughtMiddleware` | `[]`                                                      |
+| `sendingResponseMiddleware` | `[]`                                                      |
+| `responseSentMiddleware`    | `[]`                                                      |
+
+Warning: `maxInboundMessages` bounds the inbound direction only. The framework
+puts no bound on the outbound direction, so a worker adapter applies its own
+backpressure when the transport cannot accept another message.
 
 ### Sourcing Values From the Environment
 
@@ -635,7 +659,7 @@ list.
 
 ## Built-in Component Providers
 
-The framework ships four aggregators in `Valkyrja\Application\Provider`. Each
+The framework ships five aggregators in `Valkyrja\Application\Provider`. Each
 declares framework components through `getComponentProviders()` and returns
 `[]` from the other five methods.
 
@@ -645,6 +669,7 @@ declares framework components through `getComponentProviders()` and returns
 | `CliApplicationComponentProvider`         | `ApplicationComponentProvider` + CLI Interaction, Middleware, Routing, Server + Log                 | —            |
 | `CliWithHttpApplicationComponentProvider` | `CliApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server           | `CliConfig`  |
 | `HttpApplicationComponentProvider`        | `ApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server + Log + View | `HttpConfig` |
+| `GrpcApplicationComponentProvider`        | `ApplicationComponentProvider` + gRPC Message, Middleware, Routing, Server + Log                    | `GrpcConfig` |
 
 Choose by application shape:
 
@@ -658,6 +683,8 @@ Choose by application shape:
   a console entry is the common case.
 - `HttpApplicationComponentProvider` serves a web application; it has no CLI
   components.
+- `GrpcApplicationComponentProvider` serves a gRPC worker. It omits every HTTP
+  and CLI component, and omits View, because a gRPC call renders no template.
 
 List an aggregator alongside your own provider:
 
@@ -773,6 +800,10 @@ three concrete classes in the table above supply each runtime's request loop.
 The invariant: **the parent application and its container are frozen after
 `bootstrap()` returns.** Every request gets its own `ChildContainer` and
 `ChildApplication`, and the worker discards both when the request ends.
+
+`Valkyrja\Application\Entry\Abstract\WorkerGrpc` holds the same invariant for
+gRPC. It bootstraps once, freezes the parent, and gives every call its own child
+container. A gRPC call takes the place of a request in each step below.
 
 ```mermaid
 flowchart TD
