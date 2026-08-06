@@ -73,4 +73,13 @@ final class CliRouteComponentProviderFixture implements ComponentProviderContrac
     {
         return [];
     }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getGrpcProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }
