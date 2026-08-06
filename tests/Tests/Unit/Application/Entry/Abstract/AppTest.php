@@ -18,7 +18,9 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Valkyrja\Application\Data\CliConfig;
 use Valkyrja\Application\Data\Config;
 use Valkyrja\Application\Data\Contract\CliConfigContract;
+use Valkyrja\Application\Data\Contract\GrpcConfigContract;
 use Valkyrja\Application\Data\Contract\HttpConfigContract;
+use Valkyrja\Application\Data\GrpcConfig;
 use Valkyrja\Application\Data\HttpConfig;
 use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Application\Entry\Abstract\App;
@@ -343,6 +345,18 @@ final class AppTest extends TestCase
 
         self::assertTrue($application->getContainer()->has(HttpConfigContract::class));
         self::assertSame($config, $application->getContainer()->getSingleton(HttpConfigContract::class));
+    }
+
+    public function testBootstrapServicesRegistersGrpcConfigContract(): void
+    {
+        App::directory(Directory::$basePath);
+
+        $config = new GrpcConfig(providers: []);
+
+        $application = App::app($config);
+
+        self::assertTrue($application->getContainer()->has(GrpcConfigContract::class));
+        self::assertSame($config, $application->getContainer()->getSingleton(GrpcConfigContract::class));
     }
 
     /**
