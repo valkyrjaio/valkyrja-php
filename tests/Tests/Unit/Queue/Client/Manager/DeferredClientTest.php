@@ -24,9 +24,6 @@ use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the DeferredClient.
- */
 final class DeferredClientTest extends TestCase
 {
     #[Override]

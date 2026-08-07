@@ -17,12 +17,6 @@ use Valkyrja\Application\Entry\PullQueue;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the PullQueue entry's loop bounds.
- *
- * The bounds are what let a supervisor cycle the process for memory hygiene
- * rather than trusting it to run forever.
- */
 final class PullQueueTest extends TestCase
 {
     #[Override]

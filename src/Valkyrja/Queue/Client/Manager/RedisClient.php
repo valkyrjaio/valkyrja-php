@@ -21,14 +21,6 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 
-/**
- * Publishes to Redis.
- *
- * Redis has no native retry, so this is a re-queue processor: the framework
- * owns redelivery and the envelope's attempt count and modification time are
- * authoritative. A delayed job goes onto a sorted set keyed by the instant it
- * becomes eligible; an immediate one goes straight onto the list.
- */
 class RedisClient extends Client
 {
     /** @var non-empty-string */
@@ -73,11 +65,6 @@ class RedisClient extends Client
 
     /**
      * @inheritDoc
-     *
-     * Redis has no native retry, so this is a re-queue processor: the hold comes
-     * from the re-queuer, which keyed it to the attempt that just failed. The
-     * producer's original delay is intent recorded at first publish and never
-     * re-fires.
      *
      * @throws JsonException
      */

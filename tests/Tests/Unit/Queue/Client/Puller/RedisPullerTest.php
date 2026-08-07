@@ -22,9 +22,6 @@ use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function json_encode;
 
-/**
- * Test the RedisPuller.
- */
 final class RedisPullerTest extends TestCase
 {
     /** @var non-empty-string */

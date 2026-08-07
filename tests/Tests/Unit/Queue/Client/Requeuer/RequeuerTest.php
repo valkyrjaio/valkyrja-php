@@ -22,9 +22,6 @@ use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Fixtures\Queue\Client\RecordingClientFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the Requeuer.
- */
 final class RequeuerTest extends TestCase
 {
     /** @var non-empty-string */

@@ -27,15 +27,6 @@ use Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract;
 use Valkyrja\Queue\Server\Mapper\Contract\RequestMapperContract;
 use Valkyrja\Queue\Server\Mapper\RequestMapper;
 
-/**
- * The out-of-the-box push consumer, in CGI mode — one job per invocation.
- *
- * Push means the processor sends an HTTP request and reads the response status
- * as the settlement: 2xx acknowledges and deletes, non-2xx redelivers. Because
- * push has to *receive* requests it needs a web server, and this form uses the
- * language's built-in CGI/FPM handling so no external one is required. Only the
- * worker form needs a real runtime, and that lives in the runtime's own repo.
- */
 class PushQueue extends App
 {
     /**
