@@ -15,14 +15,6 @@ namespace Valkyrja\Grpc\Message\Cancellation\Contract;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Throwable\Exception\CancelledException;
 
-/**
- * The signal for "should this work stop?".
- *
- * Unifies two causes: client-initiated cancellation (HTTP/2 RST_STREAM) and deadline expiry.
- * Deadline expiry is modeled as a cause of cancellation; code only checks cancellation, consulting
- * `getReason()` if the distinction matters. The base contract is poll plus listener, which works in
- * every language.
- */
 interface CancellationTokenContract
 {
     /**

@@ -15,17 +15,6 @@ namespace Valkyrja\Grpc\Message\Response\Contract;
 use Valkyrja\Grpc\Message\Metadata\Contract\MetadataContract;
 use Valkyrja\Grpc\Message\Status\Contract\StatusContract;
 
-/**
- * The immutable outbound side of the wire: what the handler and pipeline produce and the adapter
- * flushes to the client.
- *
- * Messages are typed agnostically as `mixed`: unary responses use a single-element iterable,
- * streaming responses use a lazy generator. The underlying concrete message type is
- * per-application (the generated protobuf type) and never referenced by the framework.
- *
- * Initial metadata locks the moment the first message is written to the wire; trailing metadata
- * stays mutable until the handler returns and the adapter flushes the call's close.
- */
 interface ServiceResponseContract
 {
     /**

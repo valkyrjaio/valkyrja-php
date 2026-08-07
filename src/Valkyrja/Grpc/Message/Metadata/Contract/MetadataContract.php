@@ -15,14 +15,6 @@ namespace Valkyrja\Grpc\Message\Metadata\Contract;
 use IteratorAggregate;
 
 /**
- * A case-insensitive multi-map of metadata keys to lists of values.
- *
- * Represents both HTTP/2 headers (request metadata, initial response metadata) and HTTP/2 trailing
- * headers (trailing response metadata). Keys ending in `-bin` carry binary values (base64-encoded
- * on the wire, decoded at the library boundary); all other keys carry printable ASCII values. PHP
- * models both as `string`, so the kind of a value is determined by its key rather than by its type,
- * and is validated at the point of insertion.
- *
  * @extends IteratorAggregate<string, string[]>
  */
 interface MetadataContract extends IteratorAggregate

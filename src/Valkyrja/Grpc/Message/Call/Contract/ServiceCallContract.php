@@ -19,13 +19,6 @@ use Valkyrja\Grpc\Message\Peer\Contract\PeerContract;
 use Valkyrja\Grpc\Throwable\Exception\GrpcConcurrentSendException;
 use Valkyrja\Grpc\Throwable\Exception\GrpcNonStreamingSendException;
 
-/**
- * The immutable inbound side of the wire: what the worker adapter hands to the kernel.
- *
- * Messages are typed agnostically as `mixed` (a single-element iterable for unary and
- * server-streaming calls, a lazy iterable for client-streaming). The concrete message type is the
- * per-application generated protobuf type and is never referenced by the framework.
- */
 interface ServiceCallContract
 {
     /**

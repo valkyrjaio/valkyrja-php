@@ -12,9 +12,6 @@ declare(strict_types=1);
 
 namespace Valkyrja\Grpc\Message\Peer\Contract;
 
-/**
- * The authentication context of a connection's peer. Always present; its type may be `insecure`.
- */
 interface AuthContextContract
 {
     /**

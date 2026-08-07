@@ -14,12 +14,6 @@ namespace Valkyrja\Grpc\Throwable\Exception;
 
 use Valkyrja\Grpc\Throwable\Exception\Abstract\GrpcRuntimeException;
 
-/**
- * Thrown when a streaming call's sink is re-entered while a send is already in flight.
- *
- * Sends are serialized and the transport is not re-entrant, so a nested or concurrent send is
- * rejected fast rather than silently corrupting the stream's framing.
- */
 class GrpcConcurrentSendException extends GrpcRuntimeException
 {
 }
