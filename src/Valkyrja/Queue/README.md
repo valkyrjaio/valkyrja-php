@@ -112,6 +112,7 @@ overflow, and a retry answers with a nack that does requeue. A `max_attempts` of
 | `InMemoryClient` | none   | framework  |
 | `RedisClient`    | Redis  | framework  |
 | `AmqpClient`     | AMQP   | processor  |
+| `SqsClient`      | SQS    | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -366,3 +367,4 @@ A broker adapter needs its own package, and the framework does not require one:
 | ------- | ------------------------- |
 | Redis   | `predis/predis`           |
 | AMQP    | `php-amqplib/php-amqplib` |
+| SQS     | `async-aws/sqs`           |
