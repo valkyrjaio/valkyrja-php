@@ -20,11 +20,6 @@ use Valkyrja\Grpc\Middleware\Contract\RouteMatchedMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\SendingResponseMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 
-/**
- * The immutable value stored in the service map, analogous to HTTP's Route and CLI's command.
- *
- * Held in a map keyed by fully-qualified method name.
- */
 interface RouteContract
 {
     /**
