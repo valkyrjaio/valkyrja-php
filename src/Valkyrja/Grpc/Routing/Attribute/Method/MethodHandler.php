@@ -17,12 +17,6 @@ use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 
-/**
- * Overrides the handler the collector would otherwise derive from the attributed method.
- *
- * The handler is a compile-time constant callable — a `[Class::class, 'method']` pair — so the
- * attribute stays inert data that the cache generator can reproduce verbatim.
- */
 #[Attribute(Attribute::TARGET_METHOD)]
 class MethodHandler
 {

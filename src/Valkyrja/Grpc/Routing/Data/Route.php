@@ -26,9 +26,6 @@ use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingInvalidMethodException;
 use function array_merge;
 use function preg_match;
 
-/**
- * Immutable route implementation.
- */
 class Route implements RouteContract
 {
     /** @var callable(ContainerContract, RouteContract): ServiceResponseContract */

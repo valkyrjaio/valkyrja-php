@@ -19,12 +19,6 @@ use Valkyrja\Grpc\Middleware\Contract\RouteMatchedMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\SendingResponseMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 
-/**
- * Attaches a middleware to a Method route.
- *
- * The collector dispatches the class to every stage whose middleware contract it implements, so one
- * attribute serves every stage.
- */
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
 class Middleware
 {

@@ -14,10 +14,6 @@ namespace Valkyrja\Grpc\Routing\Throwable\Exception;
 
 use Valkyrja\Grpc\Routing\Throwable\Exception\Abstract\GrpcRoutingRuntimeException;
 
-/**
- * Thrown when a fully-qualified gRPC method is malformed, or when the service map holds no route
- * for it.
- */
 class GrpcRoutingInvalidMethodException extends GrpcRoutingRuntimeException
 {
 }

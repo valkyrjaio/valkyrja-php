@@ -37,12 +37,6 @@ use Valkyrja\Reflection\Reflector\Reflector;
 use function array_column;
 use function is_a;
 
-/**
- * Builds the service map by reflecting over Service-attributed controller classes.
- *
- * Each Method-attributed method becomes a route keyed by `/service/name`, with the method itself
- * wired as the handler and any Middleware dispatched to every stage whose contract it implements.
- */
 class AttributeRouteCollector implements RouteCollectorContract
 {
     public function __construct(

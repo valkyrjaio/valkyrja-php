@@ -16,13 +16,6 @@ use Attribute;
 use Valkyrja\Attribute\Contract\ReflectionAwareAttributeContract;
 use Valkyrja\Attribute\Trait\ReflectionAwareAttribute;
 
-/**
- * Marks a method as a gRPC RPC handler.
- *
- * The scan builds a route keyed by `/service/name`, the service coming from the enclosing Service
- * attribute. The attributed method is invoked as the handler with the container and the route,
- * returning a ServiceResponse.
- */
 #[Attribute(Attribute::TARGET_METHOD)]
 class Method implements ReflectionAwareAttributeContract
 {
