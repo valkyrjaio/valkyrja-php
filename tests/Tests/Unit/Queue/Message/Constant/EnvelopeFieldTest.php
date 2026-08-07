@@ -15,12 +15,6 @@ namespace Valkyrja\Tests\Unit\Queue\Message\Constant;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the EnvelopeField constant.
- *
- * The envelope is a cross-language contract, so these names are pinned rather
- * than derived: a rename here silently breaks every other port's consumer.
- */
 final class EnvelopeFieldTest extends TestCase
 {
     public function testFieldNames(): void
