@@ -18,9 +18,6 @@ use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * The Handler test case.
- */
 abstract class HandlerTestCase extends TestCase
 {
     protected Container $container;

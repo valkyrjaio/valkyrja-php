@@ -27,9 +27,6 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\ThrowableCaughtMiddlewareChangedFix
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ThrowableCaughtMiddlewareFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the Route.
- */
 final class RouteTest extends TestCase
 {
     /** @var non-empty-string */

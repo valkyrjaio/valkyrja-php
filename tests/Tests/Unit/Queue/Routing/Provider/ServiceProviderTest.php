@@ -30,9 +30,6 @@ use Valkyrja\Queue\Routing\Provider\QueueRoutingServiceProvider;
 use Valkyrja\Reflection\Reflector\Contract\ReflectorContract;
 use Valkyrja\Tests\Fixtures\Application\Provider\QueueRouteProviderFixture;
 
-/**
- * Test the ServiceProvider.
- */
 final class ServiceProviderTest extends ServiceProviderTestCase
 {
     /** @inheritDoc */

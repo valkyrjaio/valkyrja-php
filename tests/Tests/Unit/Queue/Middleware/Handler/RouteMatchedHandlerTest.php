@@ -17,9 +17,6 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\Handler\RouteMatchedHandlerFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\RouteMatchedMiddlewareChangedFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\RouteMatchedMiddlewareFixture;
 
-/**
- * Test the RouteMatched handler.
- */
 final class RouteMatchedHandlerTest extends HandlerTestCase
 {
     /**

@@ -25,9 +25,6 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\ThrowableCaughtMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\JobControllerFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the AttributeRouteCollector.
- */
 final class AttributeRouteCollectorTest extends TestCase
 {
     protected AttributeRouteCollector $collector;

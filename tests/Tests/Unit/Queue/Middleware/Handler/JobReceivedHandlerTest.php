@@ -17,9 +17,6 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\Handler\JobReceivedHandlerFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\JobReceivedMiddlewareChangedFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\JobReceivedMiddlewareFixture;
 
-/**
- * Test the JobReceived handler.
- */
 final class JobReceivedHandlerTest extends HandlerTestCase
 {
     /**
