@@ -15,15 +15,6 @@ namespace Valkyrja\Queue\Server\Handler\Contract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 
-/**
- * The kernel entry point, analogous to Http's RequestHandler and Cli's
- * InputHandler.
- *
- * The kernel is deliberately split so the adapter's settlement with the broker
- * happens *between* two stages: `run` (handle + settlingResult) → the adapter
- * settles → `resultSettled`. Nothing else could sit in that gap, which is why
- * settlement is not simply folded into one call.
- */
 interface JobHandlerContract
 {
     /**
