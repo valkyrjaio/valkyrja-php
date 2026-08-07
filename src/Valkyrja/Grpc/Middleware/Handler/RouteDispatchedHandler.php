@@ -21,8 +21,6 @@ use Valkyrja\Grpc\Middleware\Handler\Contract\RouteDispatchedHandlerContract;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 
 /**
- * Walks the RouteDispatched chain with the two-question cancellation check bracketing each step.
- *
  * @extends Handler<RouteDispatchedMiddlewareContract>
  */
 class RouteDispatchedHandler extends Handler implements RouteDispatchedHandlerContract

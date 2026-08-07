@@ -31,14 +31,6 @@ use Valkyrja\Grpc\Middleware\Handler\RouteNotMatchedHandler;
 use Valkyrja\Grpc\Middleware\Handler\SendingResponseHandler;
 use Valkyrja\Grpc\Middleware\Handler\ThrowableCaughtHandler;
 
-/**
- * Publishes the seven gRPC stage handlers as container singletons, each seeded with the middleware
- * from the gRPC config.
- *
- * Because they are singletons, the Router and the ServiceHandler resolve the same instances, so
- * per-route middleware the router registers onto the SendingResponse, ResponseSent, and
- * ThrowableCaught stages actually fires when the kernel later runs them.
- */
 class GrpcMiddlewareServiceProvider implements ServiceProviderContract
 {
     /**

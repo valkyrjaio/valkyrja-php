@@ -23,13 +23,6 @@ use Valkyrja\Grpc\Middleware\Contract\RouteNotMatchedMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\SendingResponseMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 
-/**
- * A gRPC config carrying only what a component under test needs.
- *
- * The middleware component reads its stage lists from the config contract, so its provider is
- * tested against this rather than the application layer's concrete config — the component does not
- * depend on that, and neither should its test.
- */
 final class GrpcConfigFixture implements GrpcConfigContract
 {
     /**

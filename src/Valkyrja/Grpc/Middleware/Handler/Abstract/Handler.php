@@ -30,18 +30,6 @@ use Valkyrja\Grpc\Support\Cancellation;
 use function array_merge;
 
 /**
- * The middleware-chain orchestrator base, shared by every stage handler.
- *
- * Holds the ordered middleware for a stage and walks the chain: each call to `getMiddleware()`
- * resolves the next middleware from the container and advances the cursor, so a middleware that
- * returns without re-invoking its handler structurally short-circuits the remainder.
- *
- * The two-question cancellation check lives here in `checkCancellation()` so every
- * request-processing stage inherits it — the pre-check runs before delegating to the wrapped
- * middleware and the post-check on its return. The always-run stages (SendingResponse,
- * ResponseSent) deliberately skip the check: per the fast-exit path they run even for cancelled
- * calls.
- *
  * @template Middleware of CallReceivedMiddlewareContract|RouteMatchedMiddlewareContract|RouteNotMatchedMiddlewareContract|RouteDispatchedMiddlewareContract|ThrowableCaughtMiddlewareContract|SendingResponseMiddlewareContract|ResponseSentMiddlewareContract
  *
  * @implements HandlerContract<Middleware>

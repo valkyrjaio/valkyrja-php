@@ -20,8 +20,6 @@ use Valkyrja\Grpc\Middleware\Handler\Abstract\Handler;
 use Valkyrja\Grpc\Middleware\Handler\Contract\CallReceivedHandlerContract;
 
 /**
- * Walks the CallReceived chain with the two-question cancellation check bracketing each step.
- *
  * @extends Handler<CallReceivedMiddlewareContract>
  */
 class CallReceivedHandler extends Handler implements CallReceivedHandlerContract

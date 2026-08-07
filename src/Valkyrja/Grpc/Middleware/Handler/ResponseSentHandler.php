@@ -20,11 +20,6 @@ use Valkyrja\Grpc\Middleware\Handler\Abstract\Handler;
 use Valkyrja\Grpc\Middleware\Handler\Contract\ResponseSentHandlerContract;
 
 /**
- * Walks the ResponseSent chain after the response has been written to the wire.
- *
- * This stage always runs — including on the cancellation fast-exit path — so it does not apply the
- * cancellation short-circuit.
- *
  * @extends Handler<ResponseSentMiddlewareContract>
  */
 class ResponseSentHandler extends Handler implements ResponseSentHandlerContract
