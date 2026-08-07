@@ -22,9 +22,6 @@ use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function json_encode;
 
-/**
- * Test the RequestMapper.
- */
 final class RequestMapperTest extends TestCase
 {
     public function testMapsTheBodyIntoAJob(): void

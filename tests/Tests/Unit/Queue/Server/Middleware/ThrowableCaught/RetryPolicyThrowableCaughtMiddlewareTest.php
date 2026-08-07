@@ -24,9 +24,6 @@ use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNonRetryableJobExceptio
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerWorkerShutdownException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the RetryPolicyThrowableCaughtMiddleware.
- */
 final class RetryPolicyThrowableCaughtMiddlewareTest extends TestCase
 {
     /** @var non-empty-string */

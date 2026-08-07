@@ -27,9 +27,6 @@ use Valkyrja\Queue\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddlewar
 use Valkyrja\Queue\Server\Middleware\ThrowableCaught\RetryPolicyThrowableCaughtMiddleware;
 use Valkyrja\Queue\Server\Provider\QueueServerServiceProvider;
 
-/**
- * Test the ServiceProvider.
- */
 final class ServiceProviderTest extends ServiceProviderTestCase
 {
     /** @inheritDoc */
