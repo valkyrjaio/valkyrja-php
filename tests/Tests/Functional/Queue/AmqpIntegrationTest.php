@@ -125,13 +125,7 @@ final class AmqpIntegrationTest extends TestCase
         $client->declareQueue();
         $client->push($job);
 
-        PullQueue::run(
-            config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
-            maxJobs: 1,
-            requeuer: $puller,
-        );
+        $this->consumeOne($client);
 
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
         self::assertSame(0, $this->depth());
@@ -145,13 +139,7 @@ final class AmqpIntegrationTest extends TestCase
         $client->declareQueue();
         $client->push($job);
 
-        PullQueue::run(
-            config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
-            maxJobs: 1,
-            requeuer: $puller,
-        );
+        $this->consumeOne($client);
 
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
         // The broker holds it again — nothing was published, it was nacked back
@@ -168,13 +156,7 @@ final class AmqpIntegrationTest extends TestCase
         $client->declareQueue();
         $client->push($job);
 
-        PullQueue::run(
-            config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
-            maxJobs: 1,
-            requeuer: $puller,
-        );
+        $this->consumeOne($client);
 
         self::assertSame([JobResult::FAIL], ResultLogMiddlewareFixture::getResults($job->getId()));
         // Dropped rather than requeued: with no dead-letter exchange bound, the
@@ -208,6 +190,20 @@ final class AmqpIntegrationTest extends TestCase
         $this->channel = $this->connection->channel();
 
         self::assertSame(1, $this->depth());
+    }
+
+    /**
+     * Run one job through the worker, with the puller settling its own outcome.
+     */
+    private function consumeOne(AmqpClient $client): void
+    {
+        PullQueue::run(
+            config: $this->config(),
+            puller: $puller = $this->puller(),
+            client: $client,
+            maxJobs: 1,
+            requeuer: $puller,
+        );
     }
 
     private function client(): AmqpClient
