@@ -46,20 +46,6 @@ class Requeuer implements RequeuerContract
     {
         return $job
             ->withAttempts($job->getAttempts() + 1)
-            ->withModifiedAtMs($this->now());
-    }
-
-    /**
-     * Get the current time in epoch milliseconds.
-     *
-     * @return int<0, max>
-     */
-    protected function now(): int
-    {
-        $now = (int) (Microtime::get() * 1000.0);
-
-        return $now > 0
-            ? $now
-            : 0;
+            ->withModifiedAtMs(Microtime::now());
     }
 }
