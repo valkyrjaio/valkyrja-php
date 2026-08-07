@@ -355,6 +355,7 @@ quorum queue, or give the job a `max_attempts` of 2.
 | `SqsClient`        | SQS        | processor  |
 | `BeanstalkdClient` | beanstalkd | processor  |
 | `DatabaseClient`   | a database | framework  |
+| `PubSubClient`     | Pub/Sub    | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -853,6 +854,7 @@ A broker adapter needs its own package, and the framework does not require one:
 | AMQP       | `php-amqplib/php-amqplib` |
 | SQS        | `async-aws/sqs`           |
 | beanstalkd | `pda/pheanstalk`          |
+| Pub/Sub    | `google/cloud-pubsub`     |
 
 `RedisQueue` moves an envelope between two lists in one step with `BLMOVE` and
 `LMOVE`, so a redis server of 6.2 or newer is required to consume. `RedisClient`
