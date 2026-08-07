@@ -35,9 +35,6 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\SettlingResultMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ThrowableCaughtMiddlewareFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the Router.
- */
 final class RouterTest extends TestCase
 {
     /** @var non-empty-string */

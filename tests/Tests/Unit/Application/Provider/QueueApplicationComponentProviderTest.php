@@ -21,9 +21,6 @@ use Valkyrja\Queue\Middleware\Provider\QueueMiddlewareComponentProvider;
 use Valkyrja\Queue\Routing\Provider\QueueRoutingComponentProvider;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the QueueApplicationComponentProvider.
- */
 final class QueueApplicationComponentProviderTest extends TestCase
 {
     public function testGetComponentProviders(): void

@@ -17,9 +17,6 @@ use Valkyrja\Queue\Middleware\Provider\QueueMiddlewareComponentProvider;
 use Valkyrja\Queue\Middleware\Provider\QueueMiddlewareServiceProvider;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the Component service.
- */
 final class ComponentProviderTest extends TestCase
 {
     public function testGetComponentProviders(): void
