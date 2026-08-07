@@ -20,8 +20,6 @@ use Valkyrja\Grpc\Middleware\Handler\Abstract\Handler;
 use Valkyrja\Grpc\Middleware\Handler\Contract\RouteNotMatchedHandlerContract;
 
 /**
- * Walks the RouteNotMatched chain with the two-question cancellation check bracketing each step.
- *
  * @extends Handler<RouteNotMatchedMiddlewareContract>
  */
 class RouteNotMatchedHandler extends Handler implements RouteNotMatchedHandlerContract

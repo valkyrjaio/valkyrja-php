@@ -20,11 +20,6 @@ use Valkyrja\Grpc\Middleware\Handler\Abstract\Handler;
 use Valkyrja\Grpc\Middleware\Handler\Contract\SendingResponseHandlerContract;
 
 /**
- * Walks the SendingResponse chain.
- *
- * This stage always runs — including on the cancellation fast-exit path — so it does not apply the
- * cancellation short-circuit.
- *
  * @extends Handler<SendingResponseMiddlewareContract>
  */
 class SendingResponseHandler extends Handler implements SendingResponseHandlerContract

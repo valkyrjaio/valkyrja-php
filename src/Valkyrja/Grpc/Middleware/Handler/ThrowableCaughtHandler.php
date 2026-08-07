@@ -21,8 +21,6 @@ use Valkyrja\Grpc\Middleware\Handler\Abstract\Handler;
 use Valkyrja\Grpc\Middleware\Handler\Contract\ThrowableCaughtHandlerContract;
 
 /**
- * Walks the ThrowableCaught chain with the two-question cancellation check bracketing each step.
- *
  * @extends Handler<ThrowableCaughtMiddlewareContract>
  */
 class ThrowableCaughtHandler extends Handler implements ThrowableCaughtHandlerContract
