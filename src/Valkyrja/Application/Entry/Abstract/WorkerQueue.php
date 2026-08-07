@@ -20,7 +20,6 @@ use Valkyrja\Container\Manager\ChildContainer;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
-use Valkyrja\Queue\Client\Requeuer\Requeuer;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract;
@@ -57,7 +56,7 @@ abstract class WorkerQueue extends App
         ContainerData $data,
         JobContract $job,
         ClientContract $client,
-        RequeuerContract $requeuer = new Requeuer(),
+        RequeuerContract $requeuer,
     ): void {
         $childContainer = static::getChildContainer($app, $data);
         $childApp       = static::getChildApplication($app, $childContainer);
@@ -101,7 +100,7 @@ abstract class WorkerQueue extends App
         ContainerContract $container,
         JobContract $job,
         ClientContract $client,
-        RequeuerContract $requeuer = new Requeuer(),
+        RequeuerContract $requeuer,
     ): void {
         $handler = $container->getSingleton(JobHandlerContract::class);
 
