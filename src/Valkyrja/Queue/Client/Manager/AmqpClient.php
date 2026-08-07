@@ -22,15 +22,6 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 
-/**
- * Publishes to an AMQP broker.
- *
- * AMQP owns redelivery natively, so this is a processor-owned adapter: a retry
- * is a nack on the consumer side rather than a fresh publish, which is why
- * `republish` here is deliberately not a publish. That asymmetry is the whole
- * difference between the two redelivery models, and it lives in the adapter so
- * the handler and middleware never see it.
- */
 class AmqpClient extends Client
 {
     /**
@@ -87,12 +78,6 @@ class AmqpClient extends Client
 
     /**
      * @inheritDoc
-     *
-     * The broker owns redelivery, so a retry is signalled by the consumer's
-     * nack rather than by publishing the job again. Publishing here would
-     * duplicate the message: the original delivery is still unacknowledged. The
-     * hold is ignored for the same reason — the broker owns its own backoff, so
-     * the framework's ramp does not apply to a processor-owned adapter.
      */
     #[Override]
     protected function republish(JobContract $job, int $delayMs = 0): void

@@ -26,9 +26,6 @@ use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function json_encode;
 
-/**
- * Test the AmqpPuller.
- */
 final class AmqpPullerTest extends TestCase
 {
     /** @var non-empty-string */
