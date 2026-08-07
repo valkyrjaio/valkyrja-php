@@ -23,9 +23,6 @@ use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 use Valkyrja\Type\Vlid\Factory\VlidV1Factory;
 
-/**
- * Test the Job.
- */
 final class JobTest extends TestCase
 {
     /** @var non-empty-string */

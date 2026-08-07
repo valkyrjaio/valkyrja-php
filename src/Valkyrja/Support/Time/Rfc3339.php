@@ -16,14 +16,6 @@ use function gmdate;
 use function intdiv;
 use function sprintf;
 
-/**
- * Renders an instant as RFC 3339 text.
- *
- * A wire envelope carries a time twice: once as epoch milliseconds, which is
- * authoritative, and once as text, which a person reads. The text form is a
- * rendering of the number, so it belongs next to the clock rather than on each
- * message that carries one.
- */
 class Rfc3339
 {
     /**

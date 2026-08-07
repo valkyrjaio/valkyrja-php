@@ -17,9 +17,6 @@ use Valkyrja\Queue\Message\Attributes\Attributes;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidAttributeNameException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the Attributes.
- */
 final class AttributesTest extends TestCase
 {
     public function testDefaults(): void

@@ -18,9 +18,6 @@ use Valkyrja\Queue\Message\Payload\Payload;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the Payload.
- */
 final class PayloadTest extends TestCase
 {
     public function testDefaults(): void

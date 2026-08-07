@@ -20,9 +20,6 @@ use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeExcept
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the JobFactory.
- */
 final class JobFactoryTest extends TestCase
 {
     /** @var non-empty-string */

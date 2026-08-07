@@ -15,9 +15,6 @@ namespace Valkyrja\Tests\Unit\Support\Time;
 use Valkyrja\Support\Time\Rfc3339;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the Rfc3339 support class.
- */
 final class Rfc3339Test extends TestCase
 {
     public function testRendersAUtcInstant(): void
