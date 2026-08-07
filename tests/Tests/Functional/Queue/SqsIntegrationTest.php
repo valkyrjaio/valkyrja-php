@@ -32,18 +32,6 @@ use function class_exists;
 use function getenv;
 use function is_string;
 
-/**
- * Exercise the SQS processor against a real queue.
- *
- * SQS owns redelivery through the visibility timeout, so a retry is a
- * visibility change rather than a fresh publish. These tests prove that the
- * queue redelivers a job the framework made visible again, that a deleted one
- * is gone for good, and that the envelope survives the round trip — none of
- * which a recording double can tell you.
- *
- * `SQS_ENDPOINT` names an SQS-compatible endpoint, such as ElasticMQ or
- * LocalStack. `SQS_QUEUE_URL` names the queue on it.
- */
 final class SqsIntegrationTest extends TestCase
 {
     private Sqs $sqs;
