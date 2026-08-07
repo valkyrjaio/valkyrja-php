@@ -57,6 +57,14 @@ own signal. Redis and a database have no native retry, so their entry calls
 hold comes from the job that was dispatched, read before the increment, so the
 ramp is keyed to the attempt that just failed.
 
+A broker that redelivers a job itself owns the retry counter instead. A retry is
+signalled by the consumer — a nack, a shortened visibility timeout, a release —
+and never by publishing the job again. Publishing again would duplicate the
+message, because the original delivery is still unacknowledged. The broker owns
+its own backoff, so the framework's ramp does not apply. A puller for one of
+these brokers implements both `PullerContract` and `RequeuerContract`, which is
+what lets the processor answer the broker directly.
+
 ## Clients
 
 | Client           | Broker | Redelivery |
@@ -65,6 +73,7 @@ ramp is keyed to the attempt that just failed.
 | `DeferredClient` | none   | framework  |
 | `InMemoryClient` | none   | framework  |
 | `RedisClient`    | Redis  | framework  |
+| `AmqpClient`     | AMQP   | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -242,6 +251,7 @@ names.
 
 A broker adapter needs its own package, and the framework does not require one:
 
-| Adapter | Package         |
-| ------- | --------------- |
-| Redis   | `predis/predis` |
+| Adapter | Package                   |
+| ------- | ------------------------- |
+| Redis   | `predis/predis`           |
+| AMQP    | `php-amqplib/php-amqplib` |
