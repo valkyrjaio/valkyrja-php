@@ -17,9 +17,6 @@ use Valkyrja\Queue\Message\Provider\QueueMessageComponentProvider;
 use Valkyrja\Queue\Message\Provider\QueueMessageServiceProvider;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the Component service.
- */
 final class ComponentProviderTest extends TestCase
 {
     public function testGetComponentProviders(): void
