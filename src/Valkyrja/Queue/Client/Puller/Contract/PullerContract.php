@@ -14,14 +14,6 @@ namespace Valkyrja\Queue\Client\Puller\Contract;
 
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 
-/**
- * The pull-side mapper: the connect-and-poll client.
- *
- * Pull means the framework polls the processor — an SQS long-poll, an AMQP
- * consumer, a Redis blocking pop, a database poll. That is just a loop, so the
- * framework never ships a server for it; this contract is only the piece that
- * knows how to talk to one processor, and the entry owns the loop around it.
- */
 interface PullerContract
 {
     /**

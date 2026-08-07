@@ -14,16 +14,6 @@ namespace Valkyrja\Queue\Client\Manager\Contract;
 
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 
-/**
- * The producer.
- *
- * Producing is the one place the queue has no natural analog in the sibling
- * protocols, so it is modeled on Http's client: a container service with a
- * per-processor adapter whose only job is to hand a job to the processor.
- *
- * There is deliberately no `push(name, payload)` convenience — ergonomic
- * construction lives on the job, so the client stays single-purpose.
- */
 interface ClientContract
 {
     /**

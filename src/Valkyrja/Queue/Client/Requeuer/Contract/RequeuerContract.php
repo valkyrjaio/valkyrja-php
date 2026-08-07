@@ -16,14 +16,6 @@ use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 
-/**
- * Turns an outcome into a processor action.
- *
- * This is extracted from the entry points on purpose: the per-processor
- * settlement logic is server-agnostic, so a push entry composes it rather than
- * reimplementing it. That keeps the totals at M entries plus N re-queuers
- * rather than M by N.
- */
 interface RequeuerContract
 {
     /**
