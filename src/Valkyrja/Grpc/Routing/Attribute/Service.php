@@ -14,16 +14,6 @@ namespace Valkyrja\Grpc\Routing\Attribute;
 
 use Attribute;
 
-/**
- * Marks a class as a gRPC service controller.
- *
- * The scan populates the service map from its Method-attributed methods, keyed by
- * `/service/methodName`.
- *
- * The attribute drops the `Grpc` prefix: it is controller-facing and lives in the protocol's own
- * attribute namespace, and a gRPC controller never imports the HTTP or CLI equivalents, so the
- * short name never collides.
- */
 #[Attribute(Attribute::TARGET_CLASS)]
 class Service
 {

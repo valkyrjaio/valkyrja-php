@@ -21,12 +21,6 @@ use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingInvalidMethodException;
 
 use function array_map;
 
-/**
- * The service map keyed by fully-qualified method name.
- *
- * A direct map lookup resolves an inbound call to its route — no pattern matching, the same shape
- * CLI uses for commands.
- */
 class RouteCollection implements RouteCollectionContract
 {
     /** @var array<string, Closure():RouteContract> */

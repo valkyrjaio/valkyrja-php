@@ -36,14 +36,6 @@ use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Routing\Dispatcher\Contract\RouterContract;
 use Valkyrja\Grpc\Support\Cancellation;
 
-/**
- * Resolves an inbound call via a direct service-map lookup and dispatches it through the per-route
- * middleware stages.
- *
- * A missing entry routes to RouteNotMatched, whose default terminal is UNIMPLEMENTED. The
- * two-question cancellation check runs before delegating to RouteMatched and after the user handler
- * returns, so a cancelled call fast-exits the request-processing stages.
- */
 class Router implements RouterContract
 {
     public function __construct(
