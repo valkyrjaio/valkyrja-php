@@ -34,16 +34,6 @@ use function getenv;
 use function is_string;
 use function usleep;
 
-/**
- * Exercise the database processor against a real database.
- *
- * A database has no native retry, so this is the second framework-owned
- * re-queue adapter after Redis, and the only one of the four processors where
- * the framework's ramp applies. These tests prove that a held job stays
- * invisible until its instant passes, that a retry arrives as a fresh row with
- * an incremented attempt count, and that a settled row leaves the table — none
- * of which a recording double can tell you.
- */
 final class DatabaseIntegrationTest extends TestCase
 {
     /** @var non-empty-string */

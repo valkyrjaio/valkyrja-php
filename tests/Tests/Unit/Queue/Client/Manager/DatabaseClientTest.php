@@ -23,9 +23,6 @@ use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function json_decode;
 
-/**
- * Test the DatabaseClient.
- */
 final class DatabaseClientTest extends TestCase
 {
     /** @var non-empty-string */
