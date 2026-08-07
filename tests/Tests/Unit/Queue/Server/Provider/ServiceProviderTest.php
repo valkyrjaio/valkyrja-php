@@ -23,6 +23,8 @@ use Valkyrja\Queue\Routing\Dispatcher\Contract\RouterContract;
 use Valkyrja\Queue\Routing\Dispatcher\Router;
 use Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract;
 use Valkyrja\Queue\Server\Handler\JobHandler;
+use Valkyrja\Queue\Server\Mapper\Contract\RequestMapperContract;
+use Valkyrja\Queue\Server\Mapper\RequestMapper;
 use Valkyrja\Queue\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddleware;
 use Valkyrja\Queue\Server\Middleware\ThrowableCaught\RetryPolicyThrowableCaughtMiddleware;
 use Valkyrja\Queue\Server\Provider\QueueServerServiceProvider;
@@ -46,6 +48,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $publishers = new QueueServerServiceProvider()->publishers();
 
         self::assertArrayHasKey(JobHandlerContract::class, $publishers);
+        self::assertArrayHasKey(RequestMapperContract::class, $publishers);
         self::assertArrayHasKey(LogThrowableCaughtMiddleware::class, $publishers);
         self::assertArrayHasKey(RetryPolicyThrowableCaughtMiddleware::class, $publishers);
     }
@@ -61,6 +64,13 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $this->publish(JobHandlerContract::class);
 
         self::assertInstanceOf(JobHandler::class, $this->container->getSingleton(JobHandlerContract::class));
+    }
+
+    public function testPublishRequestMapper(): void
+    {
+        $this->publish(RequestMapperContract::class);
+
+        self::assertInstanceOf(RequestMapper::class, $this->container->getSingleton(RequestMapperContract::class));
     }
 
     public function testPublishLogThrowableCaughtMiddleware(): void
