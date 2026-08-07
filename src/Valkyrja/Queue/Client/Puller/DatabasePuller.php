@@ -143,7 +143,7 @@ class DatabasePuller implements PullerContract, RequeuerContract
      */
     protected function findEligible(): array|null
     {
-        $now = $this->now();
+        $now = Microtime::now();
 
         $statement = $this->manager->prepare(
             "SELECT id, envelope FROM $this->table"
@@ -179,7 +179,7 @@ class DatabasePuller implements PullerContract, RequeuerContract
      */
     protected function claim(int $id): bool
     {
-        $now = $this->now();
+        $now = Microtime::now();
 
         $statement = $this->manager->prepare(
             "UPDATE $this->table SET reserved_at_ms = :now"
@@ -222,19 +222,5 @@ class DatabasePuller implements PullerContract, RequeuerContract
 
         $statement->bindValue(new Value('id', $id));
         $statement->execute();
-    }
-
-    /**
-     * Get the current time in epoch milliseconds.
-     *
-     * @return int<0, max>
-     */
-    protected function now(): int
-    {
-        $now = (int) (Microtime::get() * 1000.0);
-
-        return $now > 0
-            ? $now
-            : 0;
     }
 }
