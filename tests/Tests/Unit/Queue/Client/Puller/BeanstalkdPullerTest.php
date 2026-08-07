@@ -24,9 +24,6 @@ use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Fixtures\Queue\Client\BeanstalkdFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the BeanstalkdPuller.
- */
 final class BeanstalkdPullerTest extends TestCase
 {
     /** @var non-empty-string */
