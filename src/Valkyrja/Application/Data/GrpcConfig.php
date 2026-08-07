@@ -36,7 +36,6 @@ class GrpcConfig implements GrpcConfigContract
      * @param non-empty-string                                  $key
      * @param non-empty-string                                  $dataPath
      * @param non-empty-string                                  $dataNamespace
-     * @param positive-int                                      $port
      * @param positive-int                                      $maxInboundMessages
      * @param ComponentProviderContract[]                       $providers
      * @param array<callable(ApplicationContract):void>         $callbacks
@@ -58,7 +57,6 @@ class GrpcConfig implements GrpcConfigContract
         public readonly string $key = 'some_secret_app_key',
         public readonly string $dataPath = 'App/Provider/Data',
         public readonly string $dataNamespace = 'App\\Provider\\Data',
-        public readonly int $port = 50051,
         public readonly int $maxInboundMessages = GrpcConfigContract::DEFAULT_MAX_INBOUND_MESSAGES,
         public readonly array $providers = [
             new GrpcApplicationComponentProvider(),
