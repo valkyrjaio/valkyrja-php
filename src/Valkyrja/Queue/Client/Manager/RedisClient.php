@@ -20,6 +20,7 @@ use Valkyrja\Queue\Client\Manager\Abstract\Client;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Support\Time\Microtime;
 
 class RedisClient extends Client
 {
@@ -91,7 +92,7 @@ class RedisClient extends Client
     {
         $this->redis->zadd(
             $this->getDelayedQueue(),
-            [$this->factory->toJson($job) => $this->now() + $delayMs]
+            [$this->factory->toJson($job) => Microtime::now() + $delayMs]
         );
     }
 

@@ -93,7 +93,7 @@ abstract class Client implements ClientContract
      */
     protected function stamp(JobContract $job): JobContract
     {
-        $now = $this->now();
+        $now = Microtime::now();
 
         return $job
             ->withProducer($this->getProducer())
@@ -108,20 +108,6 @@ abstract class Client implements ClientContract
     protected function getProducer(): string
     {
         return $this->applicationName . ' ' . static::LANGUAGE . '/' . $this->version;
-    }
-
-    /**
-     * Get the current time in epoch milliseconds.
-     *
-     * @return int<0, max>
-     */
-    protected function now(): int
-    {
-        $now = (int) (Microtime::get() * 1000.0);
-
-        return $now > 0
-            ? $now
-            : 0;
     }
 
     /**
