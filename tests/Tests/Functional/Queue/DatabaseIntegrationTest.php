@@ -76,7 +76,7 @@ final class DatabaseIntegrationTest extends TestCase
     protected function tearDown(): void
     {
         if (isset($this->manager)) {
-            $this->manager->query('DROP TABLE IF EXISTS ' . self::TABLE)->execute();
+            $this->manager->query('DROP TABLE IF EXISTS ' . self::TABLE);
         }
 
         ResultLogMiddlewareFixture::reset();
@@ -262,14 +262,13 @@ final class DatabaseIntegrationTest extends TestCase
     private function rowCount(): int
     {
         $statement = $this->manager->query('SELECT COUNT(*) AS total FROM ' . self::TABLE);
-        $statement->execute();
 
         return (int) $statement->fetch()['total'];
     }
 
     private function createTable(): void
     {
-        $this->manager->query('DROP TABLE IF EXISTS ' . self::TABLE)->execute();
+        $this->manager->query('DROP TABLE IF EXISTS ' . self::TABLE);
         $this->manager->query(
             'CREATE TABLE ' . self::TABLE . ' ('
             . 'id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,'
@@ -280,6 +279,6 @@ final class DatabaseIntegrationTest extends TestCase
             . 'reserved_at_ms BIGINT NULL,'
             . 'INDEX queue_jobs_claim (queue, reserved_at_ms, available_at_ms, priority)'
             . ')'
-        )->execute();
+        );
     }
 }
