@@ -18,9 +18,6 @@ use Valkyrja\Application\Provider\QueueApplicationComponentProvider;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the QueueConfig.
- */
 final class QueueConfigTest extends TestCase
 {
     public function testDefaults(): void

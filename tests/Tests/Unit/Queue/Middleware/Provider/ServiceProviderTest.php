@@ -33,9 +33,6 @@ use Valkyrja\Queue\Middleware\Handler\SettlingResultHandler;
 use Valkyrja\Queue\Middleware\Handler\ThrowableCaughtHandler;
 use Valkyrja\Queue\Middleware\Provider\QueueMiddlewareServiceProvider;
 
-/**
- * Test the ServiceProvider.
- */
 final class ServiceProviderTest extends ServiceProviderTestCase
 {
     /** @inheritDoc */

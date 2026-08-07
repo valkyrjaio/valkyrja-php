@@ -17,9 +17,6 @@ use Valkyrja\Queue\Routing\Provider\QueueRoutingComponentProvider;
 use Valkyrja\Queue\Routing\Provider\QueueRoutingServiceProvider;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the Component service.
- */
 final class ComponentProviderTest extends TestCase
 {
     public function testGetComponentProviders(): void

@@ -18,9 +18,6 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\Handler\ThrowableCaughtHandlerFixtu
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ThrowableCaughtMiddlewareChangedFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ThrowableCaughtMiddlewareFixture;
 
-/**
- * Test the ThrowableCaught handler.
- */
 final class ThrowableCaughtHandlerTest extends HandlerTestCase
 {
     /**

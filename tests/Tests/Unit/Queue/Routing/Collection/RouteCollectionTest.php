@@ -22,9 +22,6 @@ use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function array_keys;
 
-/**
- * Test the RouteCollection.
- */
 final class RouteCollectionTest extends TestCase
 {
     public function testDefaults(): void

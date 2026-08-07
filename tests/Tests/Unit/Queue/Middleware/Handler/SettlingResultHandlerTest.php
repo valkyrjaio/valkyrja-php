@@ -17,9 +17,6 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\Handler\SettlingResultHandlerFixtur
 use Valkyrja\Tests\Fixtures\Queue\Middleware\SettlingResultMiddlewareChangedFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\SettlingResultMiddlewareFixture;
 
-/**
- * Test the SettlingResult handler.
- */
 final class SettlingResultHandlerTest extends HandlerTestCase
 {
     /**
