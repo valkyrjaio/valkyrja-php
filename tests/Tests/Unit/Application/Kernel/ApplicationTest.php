@@ -44,6 +44,8 @@ use Valkyrja\Tests\Fixtures\Application\Provider\HttpContainerDataProviderFixtur
 use Valkyrja\Tests\Fixtures\Application\Provider\HttpRouteComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\HttpRouteProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\HttpRoutingDataProviderFixture;
+use Valkyrja\Tests\Fixtures\Application\Provider\QueueRouteComponentProviderFixture;
+use Valkyrja\Tests\Fixtures\Application\Provider\QueueRouteProviderFixture;
 use Valkyrja\Tests\Fixtures\Event\Provider\ListenerProviderFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
@@ -282,6 +284,20 @@ final class ApplicationTest extends TestCase
     }
 
     /**
+     * Test that getQueueProviders collects results from all expanded providers.
+     */
+    public function testGetQueueProviders(): void
+    {
+        $config      = new Config(providers: [new QueueRouteComponentProviderFixture()]);
+        $application = new Valkyrja(container: new Container(), config: $config);
+
+        self::assertSame(
+            [QueueRouteProviderFixture::class],
+            $application->getQueueProviders(),
+        );
+    }
+
+    /**
      * Test that getHttpProviders populates the internal cache and subsequent calls use it.
      */
     public function testGetHttpProvidersIsCached(): void
@@ -298,6 +314,25 @@ final class ApplicationTest extends TestCase
         self::assertSame([HttpRouteProviderFixture::class], $result);
         self::assertSame($result, $property->getValue($application));
         self::assertSame($result, $application->getHttpProviders());
+    }
+
+    /**
+     * Test that getQueueProviders populates the internal cache and subsequent calls use it.
+     */
+    public function testGetQueueProvidersIsCached(): void
+    {
+        $config      = new Config(providers: [new QueueRouteComponentProviderFixture()]);
+        $application = new Valkyrja(container: new Container(), config: $config);
+        $reflection  = new ReflectionClass($application);
+        $property    = $reflection->getProperty('queueRouteProviders');
+
+        self::assertSame([], $property->getValue($application));
+
+        $result = $application->getQueueProviders();
+
+        self::assertSame([QueueRouteProviderFixture::class], $result);
+        self::assertSame($result, $property->getValue($application));
+        self::assertSame($result, $application->getQueueProviders());
     }
 
     /**
@@ -340,6 +375,7 @@ final class ApplicationTest extends TestCase
         self::assertSame([], $application->getEventProviders());
         self::assertSame([], $application->getCliProviders());
         self::assertSame([], $application->getHttpProviders());
+        self::assertSame([], $application->getQueueProviders());
     }
 
     /**
