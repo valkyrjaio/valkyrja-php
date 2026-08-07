@@ -354,6 +354,7 @@ quorum queue, or give the job a `max_attempts` of 2.
 | `AmqpClient`       | AMQP       | processor  |
 | `SqsClient`        | SQS        | processor  |
 | `BeanstalkdClient` | beanstalkd | processor  |
+| `DatabaseClient`   | a database | framework  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
