@@ -22,18 +22,6 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 
-/**
- * Publishes to Google Cloud Pub/Sub.
- *
- * Pub/Sub owns redelivery through the acknowledgement deadline, so this is a
- * processor-owned adapter: a retry is a deadline change on the consumer side
- * rather than a fresh publish, which is why `republish` here is deliberately
- * not a publish.
- *
- * Pub/Sub has no per-message delay, so a producer's `delay_ms` cannot be
- * honoured here. The value still travels in the envelope, and it is the
- * subscriber's own retry policy that decides when a nacked message comes back.
- */
 class PubSubClient extends Client
 {
     /**
@@ -55,9 +43,6 @@ class PubSubClient extends Client
     /**
      * @inheritDoc
      *
-     * The job name travels as an attribute as well as inside the envelope, so a
-     * subscription filter can route on it without reading the body.
-     *
      * @throws JsonException
      */
     #[Override]
@@ -74,13 +59,6 @@ class PubSubClient extends Client
 
     /**
      * @inheritDoc
-     *
-     * The acknowledgement deadline owns redelivery, so a retry is signalled by
-     * the consumer shortening that deadline rather than by publishing the job
-     * again. Publishing here would duplicate it: the original delivery is still
-     * unacknowledged. The hold is ignored for the same reason — Pub/Sub owns its
-     * own backoff, so the framework's ramp does not apply to a processor-owned
-     * adapter.
      */
     #[Override]
     protected function republish(JobContract $job, int $delayMs = 0): void
