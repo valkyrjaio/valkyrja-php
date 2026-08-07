@@ -24,9 +24,6 @@ use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function json_decode;
 
-/**
- * Test the AmqpClient.
- */
 final class AmqpClientTest extends TestCase
 {
     /** @var non-empty-string */

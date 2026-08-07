@@ -34,15 +34,6 @@ use function getenv;
 use function is_string;
 use function parse_url;
 
-/**
- * Exercise the AMQP processor against a real broker.
- *
- * AMQP owns redelivery, so this is the first adapter where a retry is a *nack*
- * rather than a fresh publish. That is what these tests are for: proving the
- * broker redelivers an unacknowledged job, that an acknowledged one is gone for
- * good, and that a dead-lettered one is not handed back — none of which a
- * recording double can tell you.
- */
 final class AmqpIntegrationTest extends TestCase
 {
     /** @var non-empty-string */

@@ -30,18 +30,6 @@ use function is_int;
 use function max;
 use function sleep;
 
-/**
- * Consumes from an AMQP broker, and settles with it.
- *
- * This is both the puller and the re-queuer because a processor-owned adapter
- * cannot separate them: settling means acting on the *native delivery* — the
- * unacknowledged message the broker is still holding — and only the thing that
- * received it knows its delivery tag. Keeping both ends in one object is what
- * QUEUE.md means by the adapter owning both ends of a delivery.
- *
- * The framework never sees a delivery tag: it hands over an outcome enum and
- * this translates it into an ack or a nack.
- */
 class AmqpPuller implements PullerContract, RequeuerContract
 {
     /**
