@@ -23,13 +23,6 @@ use function preg_match;
 use function str_ends_with;
 use function strtolower;
 
-/**
- * Immutable metadata implementation backed by an insertion-ordered map of lower-cased keys to value
- * lists.
- *
- * Keys are compared case-insensitively; the `-bin` suffix convention marks binary values. Every
- * `with*`/`without` operation returns a fresh instance.
- */
 class Metadata implements MetadataContract
 {
     /** @var non-empty-string */

@@ -17,12 +17,6 @@ use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Message\Enum\StatusCode;
 use Valkyrja\Grpc\Message\Status\Contract\StatusContract;
 
-/**
- * Immutable status implementation.
- *
- * Instances are created via the per-code factory methods (`ok()`, `notFound()`, …) or the `with*`
- * copy methods. The message defaults from the code when not supplied.
- */
 class Status implements StatusContract
 {
     /** @var non-empty-string */

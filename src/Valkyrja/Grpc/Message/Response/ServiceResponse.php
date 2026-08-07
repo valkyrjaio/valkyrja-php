@@ -20,12 +20,6 @@ use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Message\Status\Contract\StatusContract;
 use Valkyrja\Grpc\Message\Status\Status;
 
-/**
- * Immutable service response implementation.
- *
- * Built via the static factories (`ok()`, `cancelled()`, `unimplemented()`, …) and refined with the
- * `with*` copy methods. Messages are held as an iterable of agnostic payloads.
- */
 class ServiceResponse implements ServiceResponseContract
 {
     /**

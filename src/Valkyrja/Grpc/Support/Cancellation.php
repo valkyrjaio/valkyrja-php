@@ -17,18 +17,6 @@ use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Message\Response\ServiceResponse;
 use Valkyrja\Grpc\Message\Status\Status;
 
-/**
- * The shared cancellation check applied at every orchestrator boundary — the "two-question
- * pattern".
- *
- * Asks: (1) has cancellation fired on the call, or the deadline elapsed? (2) does the response in
- * hand already carry a cancellation status? If either is true, a cancellation response is returned
- * to fast-exit up the stack; otherwise null signals "continue normally".
- *
- * Pre-check (before delegation): a fired cancellation either overlays the existing response's
- * status (preserving accumulated metadata) or, when no response exists yet, builds a fresh one.
- * Post-check (after delegation): a returned cancellation response passes through unchanged.
- */
 class Cancellation
 {
     /**

@@ -18,12 +18,6 @@ use Valkyrja\Support\Time\Microtime;
 
 use const PHP_FLOAT_MAX;
 
-/**
- * Immutable deadline implementation.
- *
- * Holds an absolute expiry time and consults the framework's freezable microtime source for
- * `getRemaining()` and `isExpired()`, so tests can pin the clock with `Microtime::freeze()`.
- */
 class Deadline implements DeadlineContract
 {
     /**

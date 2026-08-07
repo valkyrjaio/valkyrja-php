@@ -16,9 +16,6 @@ use Override;
 use Valkyrja\Grpc\Message\Peer\Contract\AuthContextContract;
 use Valkyrja\Grpc\Message\Peer\Contract\CertificateContract;
 
-/**
- * Immutable auth context implementation.
- */
 class AuthContext implements AuthContextContract
 {
     /** @var non-empty-string */

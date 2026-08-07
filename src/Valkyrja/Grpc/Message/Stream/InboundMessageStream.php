@@ -19,23 +19,6 @@ use Override;
 use function array_shift;
 
 /**
- * A live inbound message stream for a streaming-model (bidirectional) call.
- *
- * The transport feeds decoded messages with `offer()` and signals half-close (or cancellation) with
- * `complete()`, while the handler drains them by iterating. When the buffer runs dry before the
- * stream completes, iteration calls the adapter-supplied `awaitNext` callback — the point at which
- * a coroutine runtime yields to the transport — and then re-checks, so a handler reads messages as
- * they arrive without polling itself.
- *
- * Single-consumer: one handler execution unit iterates; the transport side may feed it from
- * anywhere. The buffer is unbounded here — flow control (the `maxInboundMessages` high-water mark)
- * is enforced by the adapter, which only requests more from the transport as the handler drains, so
- * the buffer never grows past the configured bound in practice.
- *
- * With no `awaitNext` callback the stream is a plain buffer: iteration ends as soon as it runs dry.
- * That is the correct degenerate behavior for a runtime with no way to suspend, and it is what the
- * buffered dispatch path uses.
- *
  * @implements IteratorAggregate<array-key, mixed>
  */
 class InboundMessageStream implements IteratorAggregate
