@@ -26,20 +26,6 @@ use Valkyrja\Grpc\Message\Stream\Contract\OutboundStreamContract;
 use Valkyrja\Grpc\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
 
-/**
- * gRPC entry point for persistent worker runtimes (RoadRunner, OpenSwoole, etc.).
- *
- * Usage:
- *   $app = WorkerGrpc::bootstrap($config);  // once — at worker startup
- *
- *   // Per call (inside the worker loop):
- *   WorkerGrpc::dispatch($app, $data, $call, $writer);
- *
- * bootstrap() performs the full bootstrap and force-resolves the service map so it lives in the
- * frozen parent container. dispatch() creates an isolated child per call so state never bleeds
- * between calls; the adapter's writer runs between SendingResponse and ResponseSent, matching the
- * wire order.
- */
 abstract class WorkerGrpc extends App
 {
     /**

@@ -19,16 +19,6 @@ use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
 
-/**
- * gRPC entry point for single-call use — bootstraps the application and dispatches one call.
- *
- * Suitable for embedding or tests. For persistent server runtimes (RoadRunner, OpenSwoole, etc.)
- * use WorkerGrpc or one of its concrete subclasses instead, which bootstraps once and reuses the
- * frozen container per call.
- *
- * gRPC has no in-core, zero-dependency server the way HTTP does: gRPC mandates HTTP/2 with
- * trailers, so actually serving calls always requires an external transport.
- */
 class Grpc extends App
 {
     /**
