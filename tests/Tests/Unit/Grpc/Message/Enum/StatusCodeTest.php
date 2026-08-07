@@ -13,7 +13,10 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Grpc\Message\Enum;
 
 use Valkyrja\Grpc\Message\Enum\StatusCode;
+use Valkyrja\Grpc\Message\Enum\StatusText;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
+
+use function array_map;
 
 final class StatusCodeTest extends TestCase
 {
@@ -71,5 +74,13 @@ final class StatusCodeTest extends TestCase
         self::assertTrue(StatusCode::DEADLINE_EXCEEDED->isCancellation());
         self::assertFalse(StatusCode::OK->isCancellation());
         self::assertFalse(StatusCode::INTERNAL->isCancellation());
+    }
+
+    public function testEveryCodeHasMatchingText(): void
+    {
+        $codes = array_map(static fn (StatusCode $case): string => $case->name, StatusCode::cases());
+        $texts = array_map(static fn (StatusText $case): string => $case->name, StatusText::cases());
+
+        self::assertSame($codes, $texts);
     }
 }

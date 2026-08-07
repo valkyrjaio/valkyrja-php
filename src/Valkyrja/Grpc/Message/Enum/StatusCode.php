@@ -42,25 +42,11 @@ enum StatusCode: int
      */
     public function getDefaultMessage(): string
     {
-        return match ($this) {
-            self::OK                  => 'OK',
-            self::CANCELLED           => 'The operation was cancelled',
-            self::UNKNOWN             => 'Unknown error',
-            self::INVALID_ARGUMENT    => 'Invalid argument',
-            self::DEADLINE_EXCEEDED   => 'Deadline exceeded',
-            self::NOT_FOUND           => 'Not found',
-            self::ALREADY_EXISTS      => 'Already exists',
-            self::PERMISSION_DENIED   => 'Permission denied',
-            self::RESOURCE_EXHAUSTED  => 'Resource exhausted',
-            self::FAILED_PRECONDITION => 'Failed precondition',
-            self::ABORTED             => 'Aborted',
-            self::OUT_OF_RANGE        => 'Out of range',
-            self::UNIMPLEMENTED       => 'Unimplemented',
-            self::INTERNAL            => 'Internal error',
-            self::UNAVAILABLE         => 'Unavailable',
-            self::DATA_LOSS           => 'Data loss',
-            self::UNAUTHENTICATED     => 'Unauthenticated',
-        };
+        /** @var StatusText $enum */
+        $enum = StatusText::{$this->name};
+
+        /** @var non-empty-string */
+        return $enum->value;
     }
 
     /**
