@@ -12,13 +12,6 @@ declare(strict_types=1);
 
 namespace Valkyrja\Queue\Message\Constant;
 
-/**
- * The wire envelope's field names.
- *
- * The envelope is the cross-language interop contract: a job published by this
- * port must run unchanged on every other port, so these keys are `snake_case`
- * on the wire regardless of each port's native casing.
- */
 final class EnvelopeField
 {
     /** @var non-empty-string */
