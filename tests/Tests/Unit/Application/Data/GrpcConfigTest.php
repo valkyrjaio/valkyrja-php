@@ -34,7 +34,6 @@ final class GrpcConfigTest extends TestCase
         self::assertSame('UTC', $config->timezone);
         self::assertSame('App/Provider/Data', $config->dataPath);
         self::assertSame('App\\Provider\\Data', $config->dataNamespace);
-        self::assertSame(50051, $config->port);
         self::assertSame(GrpcConfigContract::DEFAULT_MAX_INBOUND_MESSAGES, $config->maxInboundMessages);
         self::assertCount(1, $config->providers);
         self::assertInstanceOf(GrpcApplicationComponentProvider::class, $config->providers[0]);
@@ -59,14 +58,12 @@ final class GrpcConfigTest extends TestCase
             namespace: 'My',
             debugMode: true,
             environment: 'testing',
-            port: 60000,
             maxInboundMessages: 25,
         );
 
         self::assertSame('My', $config->namespace);
         self::assertTrue($config->debugMode);
         self::assertSame('testing', $config->environment);
-        self::assertSame(60000, $config->port);
         self::assertSame(25, $config->maxInboundMessages);
     }
 }
