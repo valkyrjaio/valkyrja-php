@@ -25,18 +25,14 @@ interface GrpcConfigContract extends ConfigContract
     /** The default cap on messages buffered per call before it is rejected. */
     public const int DEFAULT_MAX_INBOUND_MESSAGES = 1000;
 
-    /** @var positive-int */
-    public int $port {
-        get;
-    }
     /**
      * The upper bound on inbound messages per call.
      *
-     * Under the buffered model (unary, server- and client-streaming) it caps the total messages
-     * buffered before dispatch, rejecting an over-limit call with RESOURCE_EXHAUSTED. Under the
-     * streaming (bidirectional) model it instead bounds the in-flight window — the high-water mark
-     * for flow-control back-pressure, not the total message count — so raising it there raises
-     * per-call memory pressure without ever rejecting.
+     * The buffered model caps the total messages buffered before dispatch. An over-limit call is
+     * rejected with RESOURCE_EXHAUSTED.
+     *
+     * The streaming model bounds the in-flight window instead, as the high-water mark for
+     * backpressure. A larger window raises per-call memory, and it rejects no call.
      *
      * @var positive-int
      */
