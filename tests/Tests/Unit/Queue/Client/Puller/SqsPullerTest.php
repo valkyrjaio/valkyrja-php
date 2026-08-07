@@ -23,9 +23,6 @@ use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Fixtures\Queue\Client\SqsFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the SqsPuller.
- */
 final class SqsPullerTest extends TestCase
 {
     /** @var non-empty-string */
