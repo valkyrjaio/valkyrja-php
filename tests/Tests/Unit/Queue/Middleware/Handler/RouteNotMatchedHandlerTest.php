@@ -17,9 +17,6 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\Handler\RouteNotMatchedHandlerFixtu
 use Valkyrja\Tests\Fixtures\Queue\Middleware\RouteNotMatchedMiddlewareChangedFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\RouteNotMatchedMiddlewareFixture;
 
-/**
- * Test the RouteNotMatched handler.
- */
 final class RouteNotMatchedHandlerTest extends HandlerTestCase
 {
     /**

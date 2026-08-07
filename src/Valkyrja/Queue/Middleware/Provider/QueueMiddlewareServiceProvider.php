@@ -31,10 +31,6 @@ use Valkyrja\Queue\Middleware\Handler\RouteNotMatchedHandler;
 use Valkyrja\Queue\Middleware\Handler\SettlingResultHandler;
 use Valkyrja\Queue\Middleware\Handler\ThrowableCaughtHandler;
 
-/**
- * Publishes the stage handlers as shared singletons, so the Router and the
- * JobHandler register onto and invoke the same instances.
- */
 class QueueMiddlewareServiceProvider implements ServiceProviderContract
 {
     /**
