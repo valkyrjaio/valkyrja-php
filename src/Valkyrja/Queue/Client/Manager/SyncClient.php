@@ -28,22 +28,6 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use function array_shift;
 use function sprintf;
 
-/**
- * The zero-config default: run the job inline, now, blocking.
- *
- * It runs the job to completion, retries and all. There is no durable place to
- * hold a retry delay, so the delay is skipped and the incremented job re-runs
- * immediately until it acknowledges or exhausts its attempts. Only the *timing*
- * differs from production; the retry *count* is identical.
- *
- * A terminal failure throws at the call site, which no other client does. The
- * caller is still blocked on the push, so it is still there to be told.
- *
- * Everything goes through the queue entry point, never the handler directly, so
- * the same routes, middleware, and config apply — swapping this for a real
- * broker is a config change with no code change, and the caller cannot tell
- * where a job ran.
- */
 class SyncClient extends Client implements RequeuerContract
 {
     /** @var JobContract[] */
@@ -78,10 +62,6 @@ class SyncClient extends Client implements RequeuerContract
 
     /**
      * @inheritDoc
-     *
-     * The sync client settles its own outcomes so that it sees a terminal
-     * failure. A retry still goes to the composed re-queuer, which hands the
-     * incremented job back through push and so continues the loop above.
      */
     #[Override]
     public function settle(JobContract $job, JobResult $result, ClientContract $client): void
@@ -96,12 +76,6 @@ class SyncClient extends Client implements RequeuerContract
 
     /**
      * @inheritDoc
-     *
-     * The re-runs are looped rather than nested. A retry re-enters this method
-     * from inside the entry, so recursing would both grow the stack with the
-     * chain and finish each delivery inside-out — the last redelivery would
-     * settle before the first. Buffering and looping keeps a job's outcomes in
-     * the order they actually happened, which is what the result log reads.
      */
     #[Override]
     protected function publish(JobContract $job): void

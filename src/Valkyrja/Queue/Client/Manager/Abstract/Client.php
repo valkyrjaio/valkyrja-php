@@ -18,14 +18,6 @@ use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Support\Time\Microtime;
 
-/**
- * Shared produce-side behavior: stamping the framework-owned fields and
- * recording what was handed over.
- *
- * Producing is a thin service straight over the adapter's publish — the entire
- * middleware pipeline runs on consume. Cross-cutting attributes are stamped as
- * producer-service defaults, not via a produce-side middleware stage.
- */
 abstract class Client implements ClientContract
 {
     /** @var non-empty-string */

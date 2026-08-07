@@ -25,14 +25,6 @@ use Valkyrja\Support\Time\Microtime;
 use function is_array;
 use function is_string;
 
-/**
- * Polls Redis with a blocking pop.
- *
- * Each receive first promotes any delayed job whose hold has elapsed onto the
- * ready list, then blocks on that list for up to the configured timeout. The
- * timeout is what makes the entry's loop bounds and graceful shutdown work at
- * all — an unbounded block would never return to check them.
- */
 class RedisPuller implements PullerContract
 {
     /**

@@ -22,19 +22,6 @@ use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
 use Valkyrja\Queue\Client\Requeuer\Requeuer;
 use Valkyrja\Support\Time\Microtime;
 
-/**
- * The out-of-the-box default consumer: a plain long-running loop.
- *
- * It needs no server. Pull actively polls, so it is inherently persistent — a
- * plain process kept alive by the loop and run under the dev's own process
- * manager (systemd, supervisor, a Docker CMD, a k8s Deployment), exactly as
- * Laravel's queue:work runs, minus the CLI-command wrapper. That is why this is
- * single and built-in while push needs both a CGI and a per-runtime worker
- * form.
- *
- * The bounded lifetime (max jobs / max seconds) exists so a supervisor can
- * cycle the process for memory hygiene rather than trusting it to run forever.
- */
 class PullQueue extends WorkerQueue
 {
     /**

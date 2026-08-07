@@ -34,16 +34,6 @@ use function getenv;
 use function is_string;
 use function usleep;
 
-/**
- * Exercise the Redis processor against a real server.
- *
- * The unit tests drive a recording double, which proves the adapter's own
- * branching but says nothing about whether the commands it issues are the right
- * ones. This is the only place the actual Redis semantics are checked: that a
- * pushed envelope round-trips byte-for-byte, that a delayed job is genuinely
- * withheld until it is due, and that a retry is held for its own delay rather
- * than the producer's.
- */
 final class RedisIntegrationTest extends TestCase
 {
     /** @var non-empty-string */

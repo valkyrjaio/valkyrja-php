@@ -33,9 +33,6 @@ use Valkyrja\Tests\Functional\Abstract\TestCase;
 
 use function json_encode;
 
-/**
- * Exercise the pull and push entry points.
- */
 final class QueueEntryTest extends TestCase
 {
     #[Override]

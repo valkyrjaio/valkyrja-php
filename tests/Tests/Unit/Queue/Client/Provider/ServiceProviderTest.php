@@ -22,9 +22,6 @@ use Valkyrja\Queue\Client\Provider\QueueClientServiceProvider;
 use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
 use Valkyrja\Queue\Client\Requeuer\Requeuer;
 
-/**
- * Test the ServiceProvider.
- */
 final class ServiceProviderTest extends ServiceProviderTestCase
 {
     /** @inheritDoc */

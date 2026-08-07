@@ -19,9 +19,6 @@ use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the InMemoryClient.
- */
 final class InMemoryClientTest extends TestCase
 {
     /** @var non-empty-string */

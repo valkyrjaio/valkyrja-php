@@ -25,24 +25,6 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract;
 
-/**
- * Queue entry point for anything that consumes more than one job.
- *
- * Where Queue is single-shot, this bootstraps the application and container
- * once and then takes jobs one at a time, each in a fresh child container — the
- * same shape a real broker worker loops over. "Bootstrap once, child container
- * per job" is a property of this class, not something Queue does on its own,
- * which is why an internally-pushing host bootstraps one of these per lifecycle
- * rather than paying a full boot per push.
- *
- * Usage:
- *   $app = PullQueue::bootstrap($config);  // once — at worker startup
- *
- *   // Per job:
- *   PullQueue::handle($app, $data, $job, $client);
- *
- * Mirrors Http's single-shot handler versus WorkerHttp.
- */
 abstract class WorkerQueue extends App
 {
     /**
