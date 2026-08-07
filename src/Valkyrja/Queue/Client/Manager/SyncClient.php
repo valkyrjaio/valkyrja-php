@@ -68,7 +68,9 @@ class SyncClient extends Client implements RequeuerContract
     {
         $this->requeuer->settle($job, $result, $client);
 
-        if ($result === JobResult::FAIL || $result === JobResult::DEAD_LETTER) {
+        // The first failure is the one the caller pushed, so a later failure
+        // from a job that this one pushed must not replace it
+        if ($result->isDeadLettered() && $this->failedResult === null) {
             $this->failedJob    = $job;
             $this->failedResult = $result;
         }
