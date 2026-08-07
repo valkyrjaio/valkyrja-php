@@ -15,9 +15,6 @@ namespace Valkyrja\Queue\Routing\Collection\Contract;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 use Valkyrja\Queue\Routing\Data\QueueRoutingData;
 
-/**
- * The flat job map — there is no routing logic, only a lookup by name.
- */
 interface RouteCollectionContract
 {
     /**

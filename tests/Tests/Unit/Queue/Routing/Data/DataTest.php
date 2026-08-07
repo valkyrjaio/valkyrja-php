@@ -15,9 +15,6 @@ namespace Valkyrja\Tests\Unit\Queue\Routing\Data;
 use Valkyrja\Queue\Routing\Data\QueueRoutingData;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the Data service.
- */
 final class DataTest extends TestCase
 {
     public function testDefault(): void

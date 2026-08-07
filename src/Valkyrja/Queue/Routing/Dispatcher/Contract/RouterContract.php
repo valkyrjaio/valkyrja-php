@@ -16,14 +16,6 @@ use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 
-/**
- * Resolves a job to its route via the flat map and dispatches it through the
- * per-route middleware.
- *
- * There is no routing logic — just a map lookup, the same shape Cli and gRPC
- * use. A missing entry routes to the RouteNotMatched stage, whose default
- * terminal fails the job to the dead-letter destination.
- */
 interface RouterContract
 {
     /**

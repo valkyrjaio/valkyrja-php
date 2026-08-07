@@ -20,13 +20,6 @@ use Valkyrja\Queue\Middleware\Contract\RouteNotMatchedMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\SettlingResultMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 
-/**
- * The consume-side queue configuration.
- *
- * It carries its own providers, as every Valkyrja config does, so handing it
- * over brings the whole queue wiring — routes, middleware, data-cache classes.
- * The produce side only borrows it, through the internal adapters.
- */
 interface QueueConfigContract extends ConfigContract
 {
     /** @var non-empty-string */
