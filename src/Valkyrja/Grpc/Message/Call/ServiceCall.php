@@ -144,10 +144,7 @@ class ServiceCall implements ServiceCallContract
             );
         }
 
-        // The transport sink is not re-entrant; a nested send would interleave with the frame
-        // already being written and corrupt the stream silently. Fail fast and loud instead so a
-        // handler emitting from within an emit learns immediately, rather than debugging an
-        // intermittent broken stream.
+        // The transport sink is not re-entrant, so a nested send corrupts the frame in flight.
         if ($this->sending) {
             throw new GrpcConcurrentSendException(
                 'Concurrent send() on a streaming call: a streaming handler must emit one message at a time — sends are serialized and the transport is not re-entrant.'
@@ -200,10 +197,8 @@ class ServiceCall implements ServiceCallContract
     #[Override]
     public function cancellable(iterable $source): iterable
     {
-        // Exit iteration early once the call is cancelled rather than throwing: the outbound drain
-        // then simply stops yielding and the call is closed normally, instead of a cancellation
-        // exception escaping the transport listener. Checking before the first pull and again
-        // after each yield means a cancelled call never advances the source another step.
+        // Stop yielding rather than throw, so a cancelled call closes normally instead of raising
+        // through the transport listener. The check runs before the first pull and after each yield.
         if ($this->cancellation->isCancelled()) {
             return;
         }
