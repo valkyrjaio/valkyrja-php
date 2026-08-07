@@ -111,6 +111,9 @@ final class GrpcWiringTest extends TestCase
         $app       = $this->bootstrap();
         $container = $app->getContainer();
 
+        // An application binds the middleware it schedules, so the test binds this one too.
+        $container->bindSingleton(AllMiddlewareFixture::class, static fn (): AllMiddlewareFixture => new AllMiddlewareFixture());
+
         $handler = $container->getSingleton(ServiceHandlerContract::class);
 
         $call = ServiceCall::unary('/pkg.Greeter/Guarded', 'ping');
