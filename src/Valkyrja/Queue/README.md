@@ -120,6 +120,7 @@ overflow, and a retry answers with a nack that does requeue. A `max_attempts` of
 | `SqsClient`        | SQS        | processor  |
 | `BeanstalkdClient` | beanstalkd | processor  |
 | `DatabaseClient`   | a database | framework  |
+| `PubSubClient`     | Pub/Sub    | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -483,3 +484,4 @@ A broker adapter needs its own package, and the framework does not require one:
 | AMQP       | `php-amqplib/php-amqplib` |
 | SQS        | `async-aws/sqs`           |
 | beanstalkd | `pda/pheanstalk`          |
+| Pub/Sub    | `google/cloud-pubsub`     |
