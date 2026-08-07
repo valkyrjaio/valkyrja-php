@@ -15,14 +15,6 @@ namespace Valkyrja\Grpc\Server\Handler\Contract;
 use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 
-/**
- * The gRPC kernel entry point, analogous to HTTP's RequestHandler and CLI's InputHandler.
- *
- * Orchestrates the pipeline — CallReceived, Router, ThrowableCaught (via `handle()`), then
- * SendingResponse (via `sending()`) and ResponseSent (via `terminate()`). The wire write itself is
- * the adapter's job and happens between `sending()` and `terminate()`; `run()` bundles handle and
- * sending so the adapter can write the returned response and then call `terminate()`.
- */
 interface ServiceHandlerContract
 {
     /**
