@@ -119,6 +119,7 @@ overflow, and a retry answers with a nack that does requeue. A `max_attempts` of
 | `AmqpClient`       | AMQP       | processor  |
 | `SqsClient`        | SQS        | processor  |
 | `BeanstalkdClient` | beanstalkd | processor  |
+| `DatabaseClient`   | a database | framework  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
