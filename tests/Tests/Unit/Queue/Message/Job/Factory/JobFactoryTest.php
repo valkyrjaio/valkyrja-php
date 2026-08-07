@@ -168,6 +168,18 @@ final class JobFactoryTest extends TestCase
         self::assertFalse($job->getRetryDelayMultiplyByAttempt());
     }
 
+    public function testFromArrayReadsAnExplicitFalseFlag(): void
+    {
+        // A wire `false` is a boolean the guard accepts, so it reaches the
+        // second half of the test. Every other case fails the first half
+        $job = $this->factory->fromArray([
+            EnvelopeField::NAME                            => self::NAME,
+            EnvelopeField::RETRY_DELAY_MULTIPLY_BY_ATTEMPT => false,
+        ]);
+
+        self::assertFalse($job->getRetryDelayMultiplyByAttempt());
+    }
+
     public function testFromArrayDefaultsAnEmptyId(): void
     {
         $job = $this->factory->fromArray([EnvelopeField::NAME => self::NAME, EnvelopeField::ID => '']);
