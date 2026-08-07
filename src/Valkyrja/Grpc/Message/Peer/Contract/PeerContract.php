@@ -14,10 +14,6 @@ namespace Valkyrja\Grpc\Message\Peer\Contract;
 
 use Valkyrja\Grpc\Message\Enum\AddressType;
 
-/**
- * Information about the connection's other end, derived from the transport rather than a single
- * header. Never null on a service call; its auth context may be `insecure`.
- */
 interface PeerContract
 {
     /**

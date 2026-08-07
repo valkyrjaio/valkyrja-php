@@ -12,16 +12,6 @@ declare(strict_types=1);
 
 namespace Valkyrja\Grpc\Message\Deadline\Contract;
 
-/**
- * The absolute time at which a call's budget expires.
- *
- * Computed once at call receipt from the inbound `grpc-timeout` header and propagated as an
- * absolute time so every downstream layer agrees on the same reference point. Never null on a
- * service call; `Deadline::none()` is the sentinel for "no deadline set by the client".
- *
- * Times are unix timestamps in seconds, with microsecond precision, read through the framework's
- * freezable time source so tests are deterministic.
- */
 interface DeadlineContract
 {
     /**

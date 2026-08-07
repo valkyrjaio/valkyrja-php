@@ -13,12 +13,6 @@ declare(strict_types=1);
 namespace Valkyrja\Grpc\Message\Enum;
 
 /**
- * The canonical gRPC status codes.
- *
- * These are gRPC-specific and intentionally distinct from HTTP status codes: the ranges, names, and
- * semantics differ, and reusing HTTP's would accept values with no meaning on the wire. The backing
- * value is the integer carried in the `grpc-status` trailer (0–16).
- *
  * @see https://grpc.github.io/grpc/core/md_doc_statuscodes.html
  */
 enum StatusCode: int
