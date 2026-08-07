@@ -59,6 +59,13 @@ final class ServiceHandlerTest extends TestCase
     protected function setUp(): void
     {
         $this->container              = new Container();
+
+        // Every middleware a stage schedules is bound, the same way an application binds its own.
+        $this->container->bindSingleton(CallReceivedMiddlewareChangedFixture::class, static fn (): CallReceivedMiddlewareChangedFixture => new CallReceivedMiddlewareChangedFixture());
+        $this->container->bindSingleton(CallReceivedMiddlewareFixture::class, static fn (): CallReceivedMiddlewareFixture => new CallReceivedMiddlewareFixture());
+        $this->container->bindSingleton(ResponseSentMiddlewareFixture::class, static fn (): ResponseSentMiddlewareFixture => new ResponseSentMiddlewareFixture());
+        $this->container->bindSingleton(SendingResponseMiddlewareFixture::class, static fn (): SendingResponseMiddlewareFixture => new SendingResponseMiddlewareFixture());
+        $this->container->bindSingleton(ThrowableCaughtMiddlewareFixture::class, static fn (): ThrowableCaughtMiddlewareFixture => new ThrowableCaughtMiddlewareFixture());
         $this->collection             = new RouteCollection();
         $this->callReceivedHandler    = new CallReceivedHandler($this->container);
         $this->throwableCaughtHandler = new ThrowableCaughtHandler($this->container);
