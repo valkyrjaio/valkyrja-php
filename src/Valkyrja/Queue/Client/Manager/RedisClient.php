@@ -53,15 +53,7 @@ class RedisClient extends Client
     #[Override]
     protected function publish(JobContract $job): void
     {
-        $delay = $job->getDelayMs();
-
-        if ($delay > 0) {
-            $this->publishDelayed($job, $delay);
-
-            return;
-        }
-
-        $this->redis->rpush($this->queue, [$this->factory->toJson($job)]);
+        $this->enqueue($job, $job->getDelayMs());
     }
 
     /**
@@ -72,28 +64,27 @@ class RedisClient extends Client
     #[Override]
     protected function republish(JobContract $job, int $delayMs = 0): void
     {
-        if ($delayMs > 0) {
-            $this->publishDelayed($job, $delayMs);
-
-            return;
-        }
-
-        $this->redis->rpush($this->queue, [$this->factory->toJson($job)]);
+        $this->enqueue($job, $delayMs);
     }
 
     /**
-     * Hold a job on the delayed set until it becomes eligible.
+     * Put a job on the ready list, or on the delayed set when it has a hold.
      *
      * @param int<0, max> $delayMs The hold in milliseconds
      *
      * @throws JsonException
      */
-    protected function publishDelayed(JobContract $job, int $delayMs): void
+    protected function enqueue(JobContract $job, int $delayMs): void
     {
-        $this->redis->zadd(
-            $this->getDelayedQueue(),
-            [$this->factory->toJson($job) => Microtime::now() + $delayMs]
-        );
+        $encoded = $this->factory->toJson($job);
+
+        if ($delayMs > 0) {
+            $this->redis->zadd($this->getDelayedQueue(), [$encoded => Microtime::now() + $delayMs]);
+
+            return;
+        }
+
+        $this->redis->rpush($this->queue, [$encoded]);
     }
 
     /**
