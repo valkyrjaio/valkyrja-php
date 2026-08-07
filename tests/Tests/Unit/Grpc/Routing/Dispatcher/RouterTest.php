@@ -62,6 +62,13 @@ final class RouterTest extends TestCase
     protected function setUp(): void
     {
         $this->container              = new Container();
+
+        // Every middleware a route schedules is bound, the same way an application binds its own.
+        $this->container->bindSingleton(AllMiddlewareFixture::class, static fn (): AllMiddlewareFixture => new AllMiddlewareFixture());
+        $this->container->bindSingleton(RouteDispatchedMiddlewareFixture::class, static fn (): RouteDispatchedMiddlewareFixture => new RouteDispatchedMiddlewareFixture());
+        $this->container->bindSingleton(RouteMatchedMiddlewareChangedFixture::class, static fn (): RouteMatchedMiddlewareChangedFixture => new RouteMatchedMiddlewareChangedFixture());
+        $this->container->bindSingleton(RouteMatchedMiddlewareFixture::class, static fn (): RouteMatchedMiddlewareFixture => new RouteMatchedMiddlewareFixture());
+        $this->container->bindSingleton(RouteNotMatchedMiddlewareFixture::class, static fn (): RouteNotMatchedMiddlewareFixture => new RouteNotMatchedMiddlewareFixture());
         $this->collection             = new RouteCollection();
         $this->routeMatchedHandler    = new RouteMatchedHandler($this->container);
         $this->routeNotMatchedHandler = new RouteNotMatchedHandler($this->container);
