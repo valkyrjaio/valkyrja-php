@@ -30,19 +30,6 @@ use Valkyrja\Support\Time\Microtime;
 use function is_int;
 use function is_string;
 
-/**
- * Polls a database table, and settles against the reserved row.
- *
- * This is both the puller and the re-queuer, but for the opposite reason to the
- * AMQP and SQS adapters. Those own redelivery; a database does not. Here the
- * two are joined only because the reserved *row* must be removed on any
- * outcome, and only the object that claimed it knows its id. The retry itself
- * stays framework-owned: on a retry this hands straight over to the re-queuer,
- * which increments the attempt and applies the ramp, exactly as it does for
- * Redis.
- *
- * The table and its columns are described on the client.
- */
 class DatabasePuller implements PullerContract, RequeuerContract
 {
     /**
@@ -82,8 +69,6 @@ class DatabasePuller implements PullerContract, RequeuerContract
 
     /**
      * @inheritDoc
-     *
-     * The manager owns the connection, so there is nothing to open.
      */
     #[Override]
     public function connect(): void

@@ -24,9 +24,6 @@ use Valkyrja\Tests\Fixtures\Queue\Client\DatabaseManagerFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\RecordingClientFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the DatabasePuller.
- */
 final class DatabasePullerTest extends TestCase
 {
     /** @var non-empty-string */
