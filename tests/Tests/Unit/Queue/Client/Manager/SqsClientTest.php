@@ -22,9 +22,6 @@ use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function json_decode;
 
-/**
- * Test the SqsClient.
- */
 final class SqsClientTest extends TestCase
 {
     /** @var non-empty-string */

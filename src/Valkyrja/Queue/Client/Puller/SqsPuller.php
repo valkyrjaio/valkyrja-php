@@ -23,17 +23,6 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 
-/**
- * Consumes from Amazon SQS, and settles with it.
- *
- * This is both the puller and the re-queuer, for the same reason the AMQP
- * adapter is: settling means acting on the native delivery, and only the thing
- * that received it holds the receipt handle. The framework never sees a receipt
- * handle — it hands over an outcome enum and this translates it.
- *
- * SQS needs no separate wait. A receive is a long poll, so an empty queue
- * already blocks for the wait time and then returns nothing.
- */
 class SqsPuller implements PullerContract, RequeuerContract
 {
     /**
@@ -60,8 +49,6 @@ class SqsPuller implements PullerContract, RequeuerContract
 
     /**
      * @inheritDoc
-     *
-     * SQS is a managed service, so there is no connection to open.
      */
     #[Override]
     public function connect(): void

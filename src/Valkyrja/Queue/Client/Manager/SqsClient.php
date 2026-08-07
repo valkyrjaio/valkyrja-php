@@ -25,14 +25,6 @@ use function intdiv;
 use function max;
 use function min;
 
-/**
- * Publishes to Amazon SQS.
- *
- * SQS owns redelivery through the visibility timeout, so this is a
- * processor-owned adapter: a retry is a visibility change on the consumer side
- * rather than a fresh publish, which is why `republish` here is deliberately
- * not a publish.
- */
 class SqsClient extends Client
 {
     /**
@@ -78,13 +70,6 @@ class SqsClient extends Client
 
     /**
      * @inheritDoc
-     *
-     * The visibility timeout owns redelivery, so a retry is signalled by the
-     * consumer making the message visible again rather than by publishing the
-     * job. Publishing here would duplicate it: the original delivery is still
-     * in flight. The hold is ignored for the same reason — SQS owns its own
-     * backoff, so the framework's ramp does not apply to a processor-owned
-     * adapter.
      */
     #[Override]
     protected function republish(JobContract $job, int $delayMs = 0): void
