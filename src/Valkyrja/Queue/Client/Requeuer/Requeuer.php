@@ -19,15 +19,6 @@ use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Support\Time\Microtime;
 
-/**
- * Framework-owned redelivery, for processors with no native retry.
- *
- * On a retry the re-queuer still holds the job it dispatched, so it builds a
- * modified copy — attempts incremented, modified-at stamped — and hands it back
- * to the client. Here the attempt count and modification time are
- * envelope-authoritative; a processor-owned adapter overrides this and lets the
- * processor own the counter instead.
- */
 class Requeuer implements RequeuerContract
 {
     /**

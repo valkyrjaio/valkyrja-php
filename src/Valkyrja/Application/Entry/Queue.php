@@ -20,21 +20,6 @@ use Valkyrja\Queue\Client\Requeuer\Requeuer;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract;
 
-/**
- * The one consume entry — it runs a job in an isolated queue application and container.
- *
- * Both external delivery and an internal push funnel through here, so the same
- * routes, middleware, and config apply no matter how a job arrived.
- *
- * The isolation is the point, not a side effect: a job cannot reach a host's
- * request-scoped state, so an embedded dev run behaves identically to a
- * standalone production worker and to a test run. Routing through this entry
- * rather than the handler directly is what buys that.
- *
- * This is single-shot — it builds an application, handles one job, and exits. A
- * host pushing repeatedly pays a full boot per push; use WorkerQueue to
- * amortize that.
- */
 class Queue extends App
 {
     /**

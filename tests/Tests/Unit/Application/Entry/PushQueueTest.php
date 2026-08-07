@@ -18,9 +18,6 @@ use Valkyrja\Http\Message\Enum\StatusCode;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the PushQueue entry.
- */
 final class PushQueueTest extends TestCase
 {
     /**

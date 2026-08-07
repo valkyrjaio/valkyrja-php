@@ -24,9 +24,6 @@ use Valkyrja\Tests\Unit\Abstract\TestCase;
 use function array_key_first;
 use function json_decode;
 
-/**
- * Test the RedisClient.
- */
 final class RedisClientTest extends TestCase
 {
     /** @var non-empty-string */

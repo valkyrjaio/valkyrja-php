@@ -27,13 +27,6 @@ use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Functional\Abstract\TestCase;
 
-/**
- * Exercise a job's whole life through the sync client.
- *
- * The outcome is never returned to the caller, so the assertions read the
- * per-job result log — which is exactly why a retry chain is distinguishable
- * from an acknowledgement without a return value.
- */
 final class QueueLifecycleTest extends TestCase
 {
     #[Override]

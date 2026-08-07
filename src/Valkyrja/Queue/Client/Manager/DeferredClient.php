@@ -20,16 +20,6 @@ use Valkyrja\Application\Entry\Queue;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 
-/**
- * The latency upgrade: buffer on push, run after the response.
- *
- * A per-host terminate bridge drains the buffer once the response is out. Two
- * caveats come with that: it is **not durable** — a crash after the response
- * loses the jobs — and it is runtime-dependent. True "after the client has the
- * response" needs the host to finish the response and keep working
- * (PHP-FPM's fastcgi_finish_request, Swoole, RoadRunner, Node); where that is
- * unavailable it degrades to "batched at end of request, client still waits".
- */
 class DeferredClient extends Client
 {
     /** @var JobContract[] */
