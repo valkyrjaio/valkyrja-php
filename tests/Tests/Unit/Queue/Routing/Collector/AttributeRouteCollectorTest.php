@@ -23,6 +23,7 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\RouteMatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\SettlingResultMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ThrowableCaughtMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\JobControllerFixture;
+use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\UnnamedJobControllerFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class AttributeRouteCollectorTest extends TestCase
@@ -57,6 +58,16 @@ final class AttributeRouteCollectorTest extends TestCase
         $route = $this->routeFor('acme.SendWelcomeEmail');
 
         self::assertSame('Send the welcome email', $route->getDescription());
+    }
+
+    public function testKeepsTheRouteNameWithoutAClassName(): void
+    {
+        // A controller with no class-level Name gets no prefix, so the route
+        // name is what the Route attribute declared
+        $routes = $this->collector->getRoutes(UnnamedJobControllerFixture::class);
+
+        self::assertCount(1, $routes);
+        self::assertSame('RebuildIndex', $routes[0]->getName());
     }
 
     public function testAppliesTheMethodNameSuffix(): void
