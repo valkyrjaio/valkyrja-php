@@ -91,6 +91,15 @@ class ChildApplication implements ApplicationContract
      * @inheritDoc
      */
     #[Override]
+    public function getQueueProviders(): array
+    {
+        return $this->parent->getQueueProviders();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
     public function getDebugMode(): bool
     {
         return $this->parent->getDebugMode();
