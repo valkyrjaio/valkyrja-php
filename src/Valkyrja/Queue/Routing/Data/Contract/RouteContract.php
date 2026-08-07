@@ -20,13 +20,6 @@ use Valkyrja\Queue\Middleware\Contract\RouteMatchedMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\SettlingResultMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 
-/**
- * The value stored in the job map, keyed by job name.
- *
- * A route answers only "for this name, here is the handler". It holds no
- * retry or attempts policy: those ride on the job, because the producer
- * decides them, not the consumer.
- */
 interface RouteContract
 {
     /**
