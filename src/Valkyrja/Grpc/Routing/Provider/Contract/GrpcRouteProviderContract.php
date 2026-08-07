@@ -14,10 +14,6 @@ namespace Valkyrja\Grpc\Routing\Provider\Contract;
 
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 
-/**
- * Supplies gRPC service controllers and/or pre-built routes for the service map, mirroring HTTP's
- * HttpRouteProviderContract and CLI's CliRouteProviderContract.
- */
 interface GrpcRouteProviderContract
 {
     /**
