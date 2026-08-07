@@ -15,9 +15,6 @@ namespace Valkyrja\Grpc\Routing\Collection\Contract;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Routing\Data\GrpcRoutingData;
 
-/**
- * The service map: fully-qualified method name to route.
- */
 interface RouteCollectionContract
 {
     /**
