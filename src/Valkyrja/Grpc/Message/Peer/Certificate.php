@@ -15,9 +15,6 @@ namespace Valkyrja\Grpc\Message\Peer;
 use Override;
 use Valkyrja\Grpc\Message\Peer\Contract\CertificateContract;
 
-/**
- * Immutable certificate implementation wrapping encoded (DER) bytes.
- */
 class Certificate implements CertificateContract
 {
     public function __construct(

@@ -17,13 +17,6 @@ use Valkyrja\Grpc\Message\Cancellation\Contract\CancellationTokenContract;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Throwable\Exception\CancelledException;
 
-/**
- * Mutable cancellation token implementation.
- *
- * Adapters wire the token: they listen to the library's native cancellation signal and to the
- * deadline timer, calling `cancel()` when either fires. Framework and user code only ever read the
- * token (poll or listener). `never()` is the sentinel used when a call has no cancellation source.
- */
 class CancellationToken implements CancellationTokenContract
 {
     /** @var array<array-key, callable():void> */

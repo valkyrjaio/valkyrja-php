@@ -17,9 +17,6 @@ use Valkyrja\Grpc\Message\Enum\AddressType;
 use Valkyrja\Grpc\Message\Peer\Contract\AuthContextContract;
 use Valkyrja\Grpc\Message\Peer\Contract\PeerContract;
 
-/**
- * Immutable peer implementation.
- */
 class Peer implements PeerContract
 {
     /**

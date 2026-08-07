@@ -26,12 +26,6 @@ use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Throwable\Exception\GrpcConcurrentSendException;
 use Valkyrja\Grpc\Throwable\Exception\GrpcNonStreamingSendException;
 
-/**
- * Immutable service call implementation.
- *
- * Built by the worker adapter from a native call and enriched with the resolved route by the router
- * via `withRoute()`. Messages are held as an agnostic iterable.
- */
 class ServiceCall implements ServiceCallContract
 {
     /**
