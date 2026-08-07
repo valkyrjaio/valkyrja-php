@@ -109,14 +109,15 @@ overflow, and a retry answers with a nack that does requeue. A `max_attempts` of
 
 ## Clients
 
-| Client           | Broker | Redelivery |
-| ---------------- | ------ | ---------- |
-| `SyncClient`     | none   | framework  |
-| `DeferredClient` | none   | framework  |
-| `InMemoryClient` | none   | framework  |
-| `RedisClient`    | Redis  | framework  |
-| `AmqpClient`     | AMQP   | processor  |
-| `SqsClient`      | SQS    | processor  |
+| Client             | Broker     | Redelivery |
+| ------------------ | ---------- | ---------- |
+| `SyncClient`       | none       | framework  |
+| `DeferredClient`   | none       | framework  |
+| `InMemoryClient`   | none       | framework  |
+| `RedisClient`      | Redis      | framework  |
+| `AmqpClient`       | AMQP       | processor  |
+| `SqsClient`        | SQS        | processor  |
+| `BeanstalkdClient` | beanstalkd | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -383,8 +384,9 @@ names.
 
 A broker adapter needs its own package, and the framework does not require one:
 
-| Adapter | Package                   |
-| ------- | ------------------------- |
-| Redis   | `predis/predis`           |
-| AMQP    | `php-amqplib/php-amqplib` |
-| SQS     | `async-aws/sqs`           |
+| Adapter    | Package                   |
+| ---------- | ------------------------- |
+| Redis      | `predis/predis`           |
+| AMQP       | `php-amqplib/php-amqplib` |
+| SQS        | `async-aws/sqs`           |
+| beanstalkd | `pda/pheanstalk`          |
