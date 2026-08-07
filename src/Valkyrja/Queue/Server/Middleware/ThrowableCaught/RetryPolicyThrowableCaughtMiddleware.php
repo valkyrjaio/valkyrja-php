@@ -21,13 +21,6 @@ use Valkyrja\Queue\Middleware\Handler\Contract\ThrowableCaughtHandlerContract;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerWorkerShutdownException;
 use Valkyrja\Queue\Throwable\Contract\QueueNonRetryableThrowable;
 
-/**
- * Translates a caught throwable into a settlement outcome.
- *
- * This is the framework's default policy; an application overrides it per
- * config and a route overrides it per route, because whether a given failure
- * is worth retrying is a domain decision the framework cannot make.
- */
 class RetryPolicyThrowableCaughtMiddleware implements ThrowableCaughtMiddlewareContract
 {
     /**

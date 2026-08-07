@@ -35,9 +35,6 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\SettlingResultMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ThrowableCaughtMiddlewareChangedFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the JobHandler.
- */
 final class JobHandlerTest extends TestCase
 {
     /** @var non-empty-string */

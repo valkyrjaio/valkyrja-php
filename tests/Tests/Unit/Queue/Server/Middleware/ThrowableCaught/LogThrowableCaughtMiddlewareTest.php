@@ -21,9 +21,6 @@ use Valkyrja\Queue\Middleware\Handler\ThrowableCaughtHandler;
 use Valkyrja\Queue\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddleware;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the LogThrowableCaughtMiddleware.
- */
 final class LogThrowableCaughtMiddlewareTest extends TestCase
 {
     public function testLogsTheThrowableWithTheJobIdentityAndPassesTheResultThrough(): void
