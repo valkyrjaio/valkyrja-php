@@ -26,18 +26,6 @@ use function intdiv;
 use function max;
 use function min;
 
-/**
- * Publishes to beanstalkd.
- *
- * beanstalkd owns redelivery through the reserve-and-release cycle, so this is
- * a processor-owned adapter: a retry is a release on the consumer side rather
- * than a fresh publish, which is why `republish` here is deliberately not a
- * publish.
- *
- * beanstalkd counts priority the other way round from the envelope: 0 is the
- * most urgent. The client inverts the job's priority so a higher number means
- * more urgent on both sides.
- */
 class BeanstalkdClient extends Client
 {
     /**
@@ -90,13 +78,6 @@ class BeanstalkdClient extends Client
 
     /**
      * @inheritDoc
-     *
-     * The reserve-and-release cycle owns redelivery, so a retry is signalled by
-     * the consumer releasing the job rather than by publishing it again.
-     * Publishing here would duplicate it: the original job is still reserved.
-     * The hold is ignored for the same reason — beanstalkd owns its own
-     * backoff, so the framework's ramp does not apply to a processor-owned
-     * adapter.
      */
     #[Override]
     protected function republish(JobContract $job, int $delayMs = 0): void

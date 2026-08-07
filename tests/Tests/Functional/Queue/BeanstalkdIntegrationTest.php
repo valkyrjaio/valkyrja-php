@@ -36,15 +36,6 @@ use function getenv;
 use function is_string;
 use function parse_url;
 
-/**
- * Exercise the beanstalkd processor against a real server.
- *
- * beanstalkd owns redelivery through the reserve-and-release cycle, so a retry
- * is a release rather than a fresh publish. These tests prove that the server
- * redelivers a released job, that a deleted one is gone for good, and that a
- * dead-lettered one is buried rather than dropped — none of which a recording
- * double can tell you.
- */
 final class BeanstalkdIntegrationTest extends TestCase
 {
     /** @var non-empty-string */
