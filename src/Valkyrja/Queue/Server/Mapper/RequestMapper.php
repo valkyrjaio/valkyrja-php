@@ -20,12 +20,6 @@ use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Server\Mapper\Contract\RequestMapperContract;
 
-/**
- * Maps a pushed request's body into a job.
- *
- * A push is a normal HTTP request, so only the body matters — the headers are
- * the processor's business, not the envelope's.
- */
 class RequestMapper implements RequestMapperContract
 {
     public function __construct(

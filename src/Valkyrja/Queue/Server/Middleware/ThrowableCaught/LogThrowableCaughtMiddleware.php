@@ -20,12 +20,6 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 use Valkyrja\Queue\Middleware\Handler\Contract\ThrowableCaughtHandlerContract;
 
-/**
- * Records the failure detail.
- *
- * The outcome enum carries no detail by design, so this is where the throwable
- * and the job's identity are preserved for a human reading a dead-letter queue.
- */
 class LogThrowableCaughtMiddleware implements ThrowableCaughtMiddlewareContract
 {
     public function __construct(
