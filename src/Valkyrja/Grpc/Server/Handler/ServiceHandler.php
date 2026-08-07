@@ -34,18 +34,6 @@ use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
 use Valkyrja\Grpc\Support\Cancellation;
 use Valkyrja\Grpc\Throwable\Exception\CancelledException;
 
-/**
- * The gRPC kernel entry point.
- *
- * Modeled on HTTP's RequestHandler: `handle()` dispatches the router inside a top-level try/catch
- * that maps a thrown throwable to a response and runs it through ThrowableCaught. The one
- * gRPC-specific addition is the entry-point cancellation pre-check in `dispatchRouter()` — the only
- * location where no response yet exists.
- *
- * The SendingResponse and ResponseSent handlers are shared with the Router (both resolve the same
- * container singletons) so per-route middleware the router registers onto those stages actually
- * fires here.
- */
 class ServiceHandler implements ServiceHandlerContract
 {
     public function __construct(

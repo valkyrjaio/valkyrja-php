@@ -24,9 +24,6 @@ use Valkyrja\Grpc\Routing\Dispatcher\Contract\RouterContract;
 use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
 use Valkyrja\Grpc\Server\Handler\ServiceHandler;
 
-/**
- * Publishes the gRPC ServiceHandler, wired to the shared stage-handler singletons.
- */
 class GrpcServerServiceProvider implements ServiceProviderContract
 {
     /**
