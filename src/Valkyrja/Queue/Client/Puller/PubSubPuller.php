@@ -27,19 +27,6 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 
-/**
- * Consumes from a Google Cloud Pub/Sub subscription, and settles with it.
- *
- * This is both the puller and the re-queuer, for the same reason the AMQP and
- * SQS adapters are: settling means acting on the native delivery, and only the
- * thing that received it holds the acknowledgement id. The framework never sees
- * an ack id — it hands over an outcome enum and this translates it.
- *
- * A pull holds the connection open until a message arrives or the deadline
- * passes, so it needs a deadline of its own. Without one a worker on an empty
- * subscription would block for ever and never reach the entry's loop bounds or
- * its graceful shutdown.
- */
 class PubSubPuller implements PullerContract, RequeuerContract
 {
     /**
@@ -67,8 +54,6 @@ class PubSubPuller implements PullerContract, RequeuerContract
 
     /**
      * @inheritDoc
-     *
-     * Pub/Sub is a managed service, so there is no connection to open.
      */
     #[Override]
     public function connect(): void

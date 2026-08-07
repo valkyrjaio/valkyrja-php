@@ -27,9 +27,6 @@ use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Fixtures\Queue\Client\PubSubSubscriptionFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-/**
- * Test the PubSubPuller.
- */
 final class PubSubPullerTest extends TestCase
 {
     /** @var non-empty-string */

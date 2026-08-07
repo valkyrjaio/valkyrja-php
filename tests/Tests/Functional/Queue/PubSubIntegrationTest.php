@@ -38,18 +38,6 @@ use function is_string;
 use function preg_replace;
 use function strtolower;
 
-/**
- * Exercise the Pub/Sub processor against a real endpoint.
- *
- * Pub/Sub owns redelivery through the acknowledgement deadline, so a retry is a
- * deadline change rather than a fresh publish. These tests prove that the
- * subscription redelivers a nacked message, that an acknowledged one is gone
- * for good, and that the envelope survives the round trip — none of which a
- * recording double can tell you.
- *
- * `PUBSUB_EMULATOR_HOST` points the client at the Google Cloud Pub/Sub
- * emulator, which needs no credentials.
- */
 final class PubSubIntegrationTest extends TestCase
 {
     /** @var non-empty-string */

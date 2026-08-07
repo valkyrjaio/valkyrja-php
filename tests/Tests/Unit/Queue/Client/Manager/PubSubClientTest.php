@@ -22,9 +22,6 @@ use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function json_decode;
 
-/**
- * Test the PubSubClient.
- */
 final class PubSubClientTest extends TestCase
 {
     /** @var non-empty-string */
