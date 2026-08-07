@@ -344,14 +344,15 @@ quorum queue, or give the job a `max_attempts` of 2.
 
 ## Clients
 
-| Client           | Broker | Redelivery |
-| ---------------- | ------ | ---------- |
-| `SyncClient`     | none   | framework  |
-| `DeferredClient` | none   | framework  |
-| `InMemoryClient` | none   | framework  |
-| `RedisClient`    | Redis  | framework  |
-| `AmqpClient`     | AMQP   | processor  |
-| `SqsClient`      | SQS    | processor  |
+| Client             | Broker     | Redelivery |
+| ------------------ | ---------- | ---------- |
+| `SyncClient`       | none       | framework  |
+| `DeferredClient`   | none       | framework  |
+| `InMemoryClient`   | none       | framework  |
+| `RedisClient`      | Redis      | framework  |
+| `AmqpClient`       | AMQP       | processor  |
+| `SqsClient`        | SQS        | processor  |
+| `BeanstalkdClient` | beanstalkd | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -710,11 +711,12 @@ names.
 
 A broker adapter needs its own package, and the framework does not require one:
 
-| Adapter | Package                   |
-| ------- | ------------------------- |
-| Redis   | `predis/predis`           |
-| AMQP    | `php-amqplib/php-amqplib` |
-| SQS     | `async-aws/sqs`           |
+| Adapter    | Package                   |
+| ---------- | ------------------------- |
+| Redis      | `predis/predis`           |
+| AMQP       | `php-amqplib/php-amqplib` |
+| SQS        | `async-aws/sqs`           |
+| beanstalkd | `pda/pheanstalk`          |
 
 `RedisQueue` moves an envelope between two lists in one step with `BLMOVE` and
 `LMOVE`, so a redis server of 6.2 or newer is required to consume. `RedisClient`
