@@ -25,17 +25,6 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 
-/**
- * Consumes from beanstalkd, and settles with it.
- *
- * This is both the puller and the re-queuer, for the same reason the AMQP
- * adapter is: settling means acting on the reserved job, and only the thing
- * that reserved it holds the job id. The framework never sees a job id — it
- * hands over an outcome enum and this translates it.
- *
- * beanstalkd needs no separate wait. A reserve blocks for the timeout and then
- * returns nothing, so an empty tube already yields the process.
- */
 class BeanstalkdPuller implements PullerContract, RequeuerContract
 {
     /**
