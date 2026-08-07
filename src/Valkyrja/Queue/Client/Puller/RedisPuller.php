@@ -85,7 +85,7 @@ class RedisPuller implements PullerContract
         $delayedQueue = $this->queue . RedisClient::DELAYED_SUFFIX;
 
         /** @var mixed $due */
-        $due = $this->redis->zrangebyscore($delayedQueue, '-inf', (string) $this->now());
+        $due = $this->redis->zrangebyscore($delayedQueue, '-inf', (string) Microtime::now());
 
         if (! is_array($due)) {
             return;
@@ -103,19 +103,5 @@ class RedisPuller implements PullerContract
                 $this->redis->rpush($this->queue, [$envelope]);
             }
         }
-    }
-
-    /**
-     * Get the current time in epoch milliseconds.
-     *
-     * @return int<0, max>
-     */
-    protected function now(): int
-    {
-        $now = (int) (Microtime::get() * 1000.0);
-
-        return $now > 0
-            ? $now
-            : 0;
     }
 }
