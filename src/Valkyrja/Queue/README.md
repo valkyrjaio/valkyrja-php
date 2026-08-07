@@ -75,6 +75,10 @@ difference between the clients.
 `DeferredClient` buffers the job and drains it after the response. It is not
 durable, and it needs a host runtime that can keep working after the response.
 
+Warning: a client scopes `getPushed` to one request, one command, or one job. A
+client that keeps a process-global record leaks in a long-running server, and it
+gives one request the deferred jobs of the request before it.
+
 ## Entry Points
 
 | Entry       | Runs                                     |
