@@ -1,0 +1,31 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the Valkyrja Framework package.
+ *
+ * Copyright (c) 2016-present Melech Mizrachi
+ *
+ * Released under the MIT License. See LICENSE.md for details.
+ */
+
+namespace Valkyrja\Tests\Fixtures\Grpc\Middleware;
+
+use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
+use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
+use Valkyrja\Grpc\Middleware\Contract\CallReceivedMiddlewareContract;
+use Valkyrja\Grpc\Middleware\Handler\Contract\CallReceivedHandlerContract;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\Trait\MiddlewareCounterTrait;
+
+final class CallReceivedMiddlewareFixture implements CallReceivedMiddlewareContract
+{
+    use MiddlewareCounterTrait;
+
+    public function callReceived(ServiceCallContract $call, CallReceivedHandlerContract $handler): ServiceCallContract|ServiceResponseContract
+    {
+        $this->updateCounter();
+
+        return $handler->callReceived($call);
+    }
+}
