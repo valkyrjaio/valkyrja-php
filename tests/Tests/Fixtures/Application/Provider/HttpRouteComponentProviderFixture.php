@@ -64,4 +64,13 @@ final class HttpRouteComponentProviderFixture implements ComponentProviderContra
             HttpRouteProviderFixture::class,
         ];
     }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getGrpcProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }
