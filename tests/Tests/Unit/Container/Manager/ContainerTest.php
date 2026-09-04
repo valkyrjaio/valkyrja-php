@@ -14,8 +14,10 @@ namespace Valkyrja\Tests\Unit\Container\Manager;
 
 use Throwable;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Container\Manager\Container;
 use Valkyrja\Container\Throwable\Exception\Abstract\ContainerInvalidArgumentException;
+use Valkyrja\Container\Throwable\Exception\ContainerCyclicAliasException;
 use Valkyrja\Container\Throwable\Exception\ContainerInvalidReferenceException;
 use Valkyrja\Tests\Fixtures\Container\Provider\ProvidedFixture;
 use Valkyrja\Tests\Fixtures\Container\Provider\PublishingProviderFixture;
@@ -118,6 +120,89 @@ final class ContainerTest extends TestCase
         $container->bindAlias('first', 'second');
 
         self::assertSame('second', $container->getAliasedId('first'));
+    }
+
+    public function testBindAliasRejectsAnAliasOfItself(): void
+    {
+        $container = $this->container;
+
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        $container->bindAlias(ServiceFixture::class, ServiceFixture::class);
+    }
+
+    public function testSetFromDataRejectsACyclicAliasMap(): void
+    {
+        $container = $this->container;
+
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        // setFromData() is an entry point for aliases, so it validates them too
+        $container->setFromData(new ContainerData(aliases: ['first' => 'second', 'second' => 'first']));
+    }
+
+    public function testConstructorRejectsACyclicAliasMapAnAliasIsNoPartOf(): void
+    {
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        // 'third' sits outside the cycle and is swept first, so its walk needs a bound
+        new Container(new ContainerData(aliases: [
+            'third'  => 'first',
+            'first'  => 'second',
+            'second' => 'first',
+        ]));
+    }
+
+    public function testConstructorAcceptsAMapOfAliasesThatDoNotReturn(): void
+    {
+        $container = new Container(new ContainerData(aliases: [
+            'first'  => 'second',
+            'second' => ServiceFixture::class,
+        ]));
+
+        self::assertSame('second', $container->getAliasedId('first'));
+        self::assertSame(ServiceFixture::class, $container->getAliasedId('second'));
+    }
+
+    public function testConstructorRejectsACyclicAliasMap(): void
+    {
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        new Container(new ContainerData(aliases: ['first' => 'second', 'second' => 'first']));
+    }
+
+    public function testBindAliasRejectsAChainThatReturnsToTheAlias(): void
+    {
+        $container = $this->container;
+
+        $container->bindAlias('first', 'second');
+
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        $container->bindAlias('second', 'first');
+    }
+
+    public function testBindAliasRejectsALongerChainThatReturnsToTheAlias(): void
+    {
+        $container = $this->container;
+
+        $container->bindAlias('first', 'second');
+        $container->bindAlias('second', 'third');
+
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        $container->bindAlias('third', 'first');
+    }
+
+    public function testBindAliasAllowsAChainThatDoesNotReturn(): void
+    {
+        $container = $this->container;
+
+        $container->bindAlias('first', 'second');
+        $container->bindAlias('second', ServiceFixture::class);
+
+        self::assertSame('second', $container->getAliasedId('first'));
+        self::assertSame(ServiceFixture::class, $container->getAliasedId('second'));
     }
 
     public function testBindSingleton(): void

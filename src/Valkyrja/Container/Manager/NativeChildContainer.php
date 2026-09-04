@@ -14,8 +14,6 @@ namespace Valkyrja\Container\Manager;
 
 use Override;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
-use Valkyrja\Container\Throwable\Exception\ContainerInvalidReferenceException;
-use Valkyrja\Container\Throwable\Exception\ContainerUnresolvedParentAliasException;
 
 class NativeChildContainer extends Container
 {
@@ -123,63 +121,20 @@ class NativeChildContainer extends Container
             return parent::getAliasedWithoutChecks($id, $arguments);
         }
 
-        if (! isset($this->parent->aliases[$id])) {
+        $target = $this->getParentAliasTarget($id);
+
+        if ($target === null) {
             return null;
         }
 
-        $this->validateParentAliasResolution($id);
+        // The parent would resolve this target for the first time, and the child holds
+        // the same registration, so letting the parent do it would leave the request
+        // with one copy for the alias and another for the id.
+        if ($this->isUnbuiltInParent($target)) {
+            return $this->get($target, $arguments);
+        }
 
         return $this->parent->getAliased($id, $arguments);
-    }
-
-    /**
-     * Validate that the parent answers an alias without caching anything new.
-     *
-     * @param class-string $id The alias
-     */
-    protected function validateParentAliasResolution(string $id): void
-    {
-        $seen    = [];
-        $current = $id;
-
-        while (($aliasedId = $this->parent->aliases[$current] ?? null) !== null) {
-            if (isset($seen[$aliasedId])) {
-                throw new ContainerInvalidReferenceException($id);
-            }
-
-            $seen[$aliasedId] = true;
-            $current          = $aliasedId;
-
-            if ($this->isUnresolvedInParent($current)) {
-                throw new ContainerUnresolvedParentAliasException($id, $current);
-            }
-
-            // The parent answers a singleton or a service before it follows an
-            // alias, so it never reaches the rest of the chain.
-            if (isset($this->parent->instances[$current]) || isset($this->parent->services[$current])) {
-                return;
-            }
-        }
-    }
-
-    /**
-     * Check whether the parent would cache a given id for the first time.
-     *
-     * @param class-string $id The service id
-     */
-    protected function isUnresolvedInParent(string $id): bool
-    {
-        // The parent publishes before it reads any map, so this test comes first.
-        // It is the same test publishUnpublishedProvided() makes.
-        if (isset($this->parent->callbacks[$id]) && ! isset($this->parent->published[$id])) {
-            return true;
-        }
-
-        if (isset($this->parent->instances[$id])) {
-            return false;
-        }
-
-        return isset($this->parent->singletons[$id]);
     }
 
     /**
@@ -223,5 +178,54 @@ class NativeChildContainer extends Container
         return $this->services[$id]
             ?? $this->parent->services[$id]
             ?? null;
+    }
+
+    /**
+     * Walk the parent's chain of aliases to the id the parent would answer.
+     *
+     * @param class-string $id The alias
+     *
+     * @return class-string|null
+     */
+    private function getParentAliasTarget(string $id): string|null
+    {
+        $current = $id;
+        $target  = null;
+
+        while (($aliasedId = $this->parent->aliases[$current] ?? null) !== null) {
+            $target  = $aliasedId;
+            $current = $aliasedId;
+
+            // The parent publishes, then reads its maps, and only then follows an
+            // alias, so it never reaches the rest of the chain from any of these.
+            if (isset($this->parent->callbacks[$current])
+                || isset($this->parent->singletons[$current])
+                || isset($this->parent->instances[$current])
+                || isset($this->parent->services[$current])
+            ) {
+                break;
+            }
+        }
+
+        return $target;
+    }
+
+    /**
+     * Check whether the parent would resolve an id for the first time.
+     *
+     * @param class-string $id The target id
+     */
+    private function isUnbuiltInParent(string $id): bool
+    {
+        // The parent publishes before it reads any map, so this test comes first.
+        if ($this->parent->isDeferred($id) && ! $this->parent->isPublished($id)) {
+            return true;
+        }
+
+        if (isset($this->parent->instances[$id])) {
+            return false;
+        }
+
+        return $this->parent->isSingletonBinding($id);
     }
 }

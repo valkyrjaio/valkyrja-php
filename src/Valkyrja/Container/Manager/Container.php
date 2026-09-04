@@ -16,6 +16,7 @@ use Override;
 use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Manager\Trait\ProvidersAware;
+use Valkyrja\Container\Throwable\Exception\ContainerCyclicAliasException;
 use Valkyrja\Container\Throwable\Exception\ContainerInvalidReferenceException;
 
 use function array_merge;
@@ -60,6 +61,8 @@ class Container implements ContainerContract
         $this->callbacks        = $data->callbacks;
         $this->services         = $data->services;
         $this->singletons       = $data->singletons;
+
+        $this->validateAliasesAreNotCyclic();
     }
 
     /**
@@ -82,10 +85,21 @@ class Container implements ContainerContract
     #[Override]
     public function setFromData(ContainerData $data): void
     {
+        $originalAliases = $this->aliases;
+
         $this->aliases          = array_merge($this->aliases, $data->aliases);
         $this->callbacks        = array_merge($this->callbacks, $data->callbacks);
         $this->services         = array_merge($this->services, $data->services);
         $this->singletons       = array_merge($this->singletons, $data->singletons);
+
+        try {
+            $this->validateAliasesAreNotCyclic();
+        } catch (ContainerCyclicAliasException $exception) {
+            // A caller that catches this keeps the container it had, not a cyclic map
+            $this->aliases = $originalAliases;
+
+            throw $exception;
+        }
     }
 
     /**
@@ -128,6 +142,8 @@ class Container implements ContainerContract
     #[Override]
     public function bindAlias(string $alias, string $id): static
     {
+        $this->validateAliasIsNotCyclic($alias, $id);
+
         $this->aliases[$alias] = $id;
 
         return $this;
@@ -357,6 +373,49 @@ class Container implements ContainerContract
 
         // Make the object by dispatching the service
         return $service($this, $arguments);
+    }
+
+    /**
+     * Validate that an alias does not point at a chain that returns to it.
+     *
+     * @param class-string $alias The alias being bound
+     * @param class-string $id    The id the alias points at
+     */
+    protected function validateAliasIsNotCyclic(string $alias, string $id): void
+    {
+        if ($alias === $id) {
+            throw new ContainerCyclicAliasException($alias, $id);
+        }
+
+        $seen    = [];
+        $current = $id;
+
+        while (($aliasedId = $this->getAliasedId($current)) !== null) {
+            if ($aliasedId === $alias) {
+                throw new ContainerCyclicAliasException($alias, $id);
+            }
+
+            // A cycle this alias is no part of would spin here. The sweep below reaches
+            // every alias, so the walk that starts inside that cycle throws for it.
+            if (isset($seen[$aliasedId])) {
+                return;
+            }
+
+            $seen[$aliasedId] = true;
+            $current          = $aliasedId;
+        }
+    }
+
+    /**
+     * Validate that no alias in the map points at a chain that returns to it.
+     */
+    protected function validateAliasesAreNotCyclic(): void
+    {
+        foreach ($this->aliases as $alias => $id) {
+            /** @var class-string $alias */
+            /** @var class-string $id */
+            $this->validateAliasIsNotCyclic($alias, $id);
+        }
     }
 
     /**
