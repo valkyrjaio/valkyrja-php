@@ -14,6 +14,7 @@ namespace Valkyrja\Tests\Fixtures\Application\Provider;
 
 use Override;
 use Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract;
+use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\JobControllerFixture;
 
 final class QueueRouteProviderFixture implements QueueRouteProviderContract
 {
@@ -27,7 +28,9 @@ final class QueueRouteProviderFixture implements QueueRouteProviderContract
     {
         self::$called = true;
 
-        return [];
+        return [
+            JobControllerFixture::class,
+        ];
     }
 
     /**
