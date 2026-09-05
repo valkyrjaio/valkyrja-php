@@ -74,4 +74,13 @@ class CliWithHttpApplicationComponentProvider implements ComponentProviderContra
     {
         return [];
     }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getQueueProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }

@@ -56,4 +56,11 @@ final class ComponentProviderTest extends TestCase
 
         self::assertEmpty(new ReflectionComponentProvider()->getHttpProviders($app));
     }
+
+    public function testGetQueueProviders(): void
+    {
+        $app = self::createStub(ApplicationContract::class);
+
+        self::assertEmpty(new ReflectionComponentProvider()->getQueueProviders($app));
+    }
 }
