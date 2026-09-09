@@ -87,6 +87,9 @@
         <testsuite name="Orm">
             <directory suffix="Test.php">../../../tests/Tests/Unit/Orm</directory>
         </testsuite>
+        <testsuite name="Queue">
+            <directory suffix="Test.php">../../../tests/Tests/Unit/Queue</directory>
+        </testsuite>
         <testsuite name="Reflection">
             <directory suffix="Test.php">../../../tests/Tests/Unit/Reflection</directory>
         </testsuite>
