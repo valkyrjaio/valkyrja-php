@@ -19,7 +19,9 @@ use Valkyrja\Application\Data\CliConfig;
 use Valkyrja\Application\Data\Config;
 use Valkyrja\Application\Data\Contract\CliConfigContract;
 use Valkyrja\Application\Data\Contract\HttpConfigContract;
+use Valkyrja\Application\Data\Contract\QueueConfigContract;
 use Valkyrja\Application\Data\HttpConfig;
+use Valkyrja\Application\Data\QueueConfig;
 use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Application\Entry\Abstract\App;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
@@ -343,6 +345,21 @@ final class AppTest extends TestCase
 
         self::assertTrue($application->getContainer()->has(HttpConfigContract::class));
         self::assertSame($config, $application->getContainer()->getSingleton(HttpConfigContract::class));
+    }
+
+    /**
+     * Test bootstrapServices registers the QueueConfigContract when a queue config is given.
+     */
+    public function testBootstrapServicesRegistersQueueConfigContract(): void
+    {
+        App::directory(Directory::$basePath);
+
+        $config = new QueueConfig(providers: []);
+
+        $application = App::app($config);
+
+        self::assertTrue($application->getContainer()->has(QueueConfigContract::class));
+        self::assertSame($config, $application->getContainer()->getSingleton(QueueConfigContract::class));
     }
 
     /**
