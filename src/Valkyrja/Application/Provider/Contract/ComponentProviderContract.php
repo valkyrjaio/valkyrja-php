@@ -16,6 +16,7 @@ use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Cli\Routing\Provider\Contract\CliRouteProviderContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
 use Valkyrja\Event\Provider\Contract\ListenerProviderContract;
+use Valkyrja\Grpc\Routing\Provider\Contract\GrpcRouteProviderContract;
 use Valkyrja\Http\Routing\Provider\Contract\HttpRouteProviderContract;
 
 interface ComponentProviderContract
@@ -54,4 +55,11 @@ interface ComponentProviderContract
      * @return HttpRouteProviderContract[]
      */
     public function getHttpProviders(ApplicationContract $app): array;
+
+    /**
+     * Get the component's gRPC route providers.
+     *
+     * @return GrpcRouteProviderContract[]
+     */
+    public function getGrpcProviders(ApplicationContract $app): array;
 }

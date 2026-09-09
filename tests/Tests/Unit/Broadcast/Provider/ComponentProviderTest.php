@@ -56,4 +56,11 @@ final class ComponentProviderTest extends TestCase
 
         self::assertEmpty(new BroadcastComponentProvider()->getHttpProviders($app));
     }
+
+    public function testGetGrpcProviders(): void
+    {
+        $app = self::createStub(ApplicationContract::class);
+
+        self::assertEmpty(new BroadcastComponentProvider()->getGrpcProviders($app));
+    }
 }
