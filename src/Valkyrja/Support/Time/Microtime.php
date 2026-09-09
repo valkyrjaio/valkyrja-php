@@ -43,6 +43,25 @@ class Microtime
     }
 
     /**
+     * Get the frozen, or unfrozen microtime, in epoch milliseconds.
+     *
+     * A caller that stamps a wire field wants a whole number of milliseconds,
+     * not a float of seconds, so the conversion lives here rather than in each
+     * caller. The floor keeps the value unsigned: a frozen time before the
+     * epoch would otherwise give a negative stamp.
+     *
+     * @return int<0, max>
+     */
+    public static function now(): int
+    {
+        $now = (int) (static::get() * 1000.0);
+
+        return $now > 0
+            ? $now
+            : 0;
+    }
+
+    /**
      * Get the microtime.
      */
     protected static function microtime(): float
