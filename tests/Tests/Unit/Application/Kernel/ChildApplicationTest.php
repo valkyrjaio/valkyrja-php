@@ -106,6 +106,11 @@ final class ChildApplicationTest extends TestCase
         self::assertSame($this->parent->getHttpProviders(), $this->child->getHttpProviders());
     }
 
+    public function testGetGrpcProvidersDelegatesToParent(): void
+    {
+        self::assertSame($this->parent->getGrpcProviders(), $this->child->getGrpcProviders());
+    }
+
     public function testGetDebugModeDelegatesToParent(): void
     {
         self::assertSame($this->parent->getDebugMode(), $this->child->getDebugMode());
