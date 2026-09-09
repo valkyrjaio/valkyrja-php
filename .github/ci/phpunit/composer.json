@@ -3,7 +3,7 @@
     "php" : ">=8.4"
   },
   "require-dev"       : {
-    "valkyrja/ci-phpunit" : "^26.6.31"
+    "valkyrja/ci-phpunit" : "^26.6.32"
   },
   "scripts"           : {
     "check"                  : "vendor/bin/phpunit --no-coverage --display-all-issues",
