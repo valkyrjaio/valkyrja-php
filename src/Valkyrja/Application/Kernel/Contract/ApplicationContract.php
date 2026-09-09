@@ -18,6 +18,7 @@ use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
 use Valkyrja\Event\Provider\Contract\ListenerProviderContract;
 use Valkyrja\Http\Routing\Provider\Contract\HttpRouteProviderContract;
+use Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract;
 
 interface ApplicationContract
 {
@@ -65,6 +66,13 @@ interface ApplicationContract
      * @return HttpRouteProviderContract[]
      */
     public function getHttpProviders(): array;
+
+    /**
+     * Get all the registered components' queue providers.
+     *
+     * @return QueueRouteProviderContract[]
+     */
+    public function getQueueProviders(): array;
 
     /**
      * Whether the application is running in debug mode or not.

@@ -64,4 +64,13 @@ final class CliRouteComponentProviderFixture implements ComponentProviderContrac
     {
         return [];
     }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getQueueProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }
