@@ -14,7 +14,7 @@
     "league/flysystem"           : "^3.36.0",
     "league/flysystem-aws-s3-v3" : "^3.35.3",
     "mailgun/mailgun-php"        : "^4.5.2",
-    "monolog/monolog"            : "^3.11.0",
+    "monolog/monolog"            : "^3.12.0",
     "openswoole/core"            : "^26.2.1",
     "phpmailer/phpmailer"        : "^7.1.1",
     "predis/predis"              : "^3.6.0",
