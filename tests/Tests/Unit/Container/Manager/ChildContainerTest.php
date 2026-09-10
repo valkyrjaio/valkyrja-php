@@ -631,6 +631,30 @@ final class ChildContainerTest extends TestCase
         $child->setFromData(new ContainerData(aliases: ['second' => 'first']));
     }
 
+    public function testGetAliasedAnswersFromTheParentWhenTheChildHoldsTheTarget(): void
+    {
+        $this->parent->setSingleton(SingletonFixture::class, $shared = new SingletonFixture());
+        $this->parent->bindAlias('parentAlias', SingletonFixture::class);
+        $child = $this->createChild();
+        $child->setSingleton(SingletonFixture::class, $scoped = new SingletonFixture());
+
+        // The alias belongs to the parent, so the parent answers it from its own maps
+        self::assertSame($shared, $child->getAliased('parentAlias'));
+        self::assertSame($scoped, $child->get(SingletonFixture::class));
+    }
+
+    public function testGetAliasedThrowsWhenOnlyTheChildHoldsTheTarget(): void
+    {
+        $this->parent->bindAlias('parentAlias', SingletonFixture::class);
+        $child = $this->createChild();
+        $child->setSingleton(SingletonFixture::class, new SingletonFixture());
+
+        // The parent reads none of the child's maps, so it has nothing to answer with
+        $this->expectException(ContainerInvalidReferenceException::class);
+
+        $child->getAliased('parentAlias');
+    }
+
     /**
      * Create a ChildContainer from the current parent state.
      * The ContainerData is built from the parent and passed explicitly.

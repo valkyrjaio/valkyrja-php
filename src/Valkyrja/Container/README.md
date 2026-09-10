@@ -872,10 +872,33 @@ parent a singleton the parent never builds, and a child that shadows the target
 gets its **own** binding through the alias, because the child resolves the
 target itself.
 
-Warning: a **parent-declared** alias onto a target the parent has already
-resolved hands the call to the parent in both implementations, so a parent-bound
-factory receives the parent. This is the one path where `NativeChildContainer`
-gives the parent for a lookup it could have answered itself.
+Warning: outside that exception, a **parent-declared** alias hands the call to
+the parent in both implementations, so a parent-bound factory receives the
+parent. A `bind()` service is outside it, whether the parent built one or not.
+This is the one path where `NativeChildContainer` gives the parent for a lookup
+it could have answered itself.
+
+Warning: on that path the parent reads none of the child's maps. An instance the
+child holds for the target does not answer the alias. The alias returns the
+parent's copy, or throws `ContainerInvalidReferenceException` when the parent
+holds none. To reach the child's copy through an alias, declare the alias on the
+child:
+
+```php
+// Once, at bootstrap.
+$parent->setSingleton(ClockContract::class, $bootClock);
+$parent->bindAlias(TimeSourceContract::class, ClockContract::class);
+
+// Per request.
+$child->setSingleton(ClockContract::class, $requestClock);
+
+$child->get(ClockContract::class);       // $requestClock
+$child->get(TimeSourceContract::class);  // $bootClock, answered by the parent
+
+$child->bindAlias(TimeSourceContract::class, ClockContract::class);
+
+$child->get(TimeSourceContract::class);  // $requestClock
+```
 
 Off that path the receiver follows the implementation, not the alias.
 `NativeChildContainer` invokes a parent-bound factory itself and gives it the
