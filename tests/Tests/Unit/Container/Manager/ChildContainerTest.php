@@ -655,6 +655,18 @@ final class ChildContainerTest extends TestCase
         $child->getAliased('parentAlias');
     }
 
+    public function testGetSingletonBuildsAParentBindingTakenAfterTheSnapshot(): void
+    {
+        $child = $this->createChild();
+        // A snapshot copies the parent's bindings, so only a later one reaches the fallback
+        $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
+
+        $instance = $child->getSingleton(SingletonFixture::class);
+
+        self::assertSame($instance, $child->getSingleton(SingletonFixture::class));
+        self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
+    }
+
     /**
      * Create a ChildContainer from the current parent state.
      * The ContainerData is built from the parent and passed explicitly.
