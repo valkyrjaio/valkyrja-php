@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Valkyrja\Container\Manager;
 
+use Closure;
 use Override;
 use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
@@ -57,7 +58,8 @@ class Container implements ContainerContract
     public function __construct(
         protected ContainerData $data = new ContainerData()
     ) {
-        $this->validateAliasMapIsNotCyclic($data->aliases);
+        // Nothing is installed yet, so past the map there is nothing to read
+        $this->validateAliasMapIsNotCyclic($data->aliases, static fn (): null => null);
 
         $this->aliases          = $data->aliases;
         $this->callbacks        = $data->callbacks;
@@ -89,7 +91,7 @@ class Container implements ContainerContract
 
         // The whole merged map is validated before any of the four is installed, so a
         // caller that catches the throw keeps every map the container already had.
-        $this->validateAliasMapIsNotCyclic($aliases);
+        $this->validateAliasMapIsNotCyclic($aliases, $this->getAliasedId(...));
 
         $this->aliases          = $aliases;
         $this->callbacks        = array_merge($this->callbacks, $data->callbacks);
@@ -404,9 +406,10 @@ class Container implements ContainerContract
     /**
      * Validate that no alias in the map points at a chain that returns to it.
      *
-     * @param array<class-string, class-string> $aliases The alias map
+     * @param array<class-string, class-string>          $aliases   The alias map
+     * @param Closure(class-string): (class-string|null) $installed The read for an id the map does not hold
      */
-    protected function validateAliasMapIsNotCyclic(array $aliases): void
+    protected function validateAliasMapIsNotCyclic(array $aliases, Closure $installed): void
     {
         foreach ($aliases as $alias => $id) {
             $seen    = [$alias => true];
@@ -414,7 +417,7 @@ class Container implements ContainerContract
 
             // Past the map, the walk reads what the container answers already. The map
             // holds every alias the container declares, so that adds only a parent's.
-            while (($aliasedId = $aliases[$current] ?? $this->getAliasedId($current)) !== null) {
+            while (($aliasedId = $aliases[$current] ?? $installed($current)) !== null) {
                 // The walk reached this id once already, so the edge that closes the
                 // chain is the one it just took. Name that pair.
                 if (isset($seen[$aliasedId])) {
