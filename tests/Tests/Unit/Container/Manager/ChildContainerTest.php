@@ -592,15 +592,25 @@ final class ChildContainerTest extends TestCase
 
     public function testBindAliasEndsTheWalkOnACycleAcrossTheTwoContainers(): void
     {
-        // Each map is validated alone, so the two together can still close a chain
-        $this->parent->bindAlias('first', 'second');
         $child = $this->createChild();
         $child->setFromData(new ContainerData(aliases: ['second' => 'first']));
+        // The parent checks only its own map, so a later binding can still close a chain
+        $this->parent->bindAlias('first', 'second');
 
         // The pair is no part of that chain, so the walk ends rather than spinning
         $child->bindAlias('third', 'first');
 
         self::assertSame('first', $child->getAliasedId('third'));
+    }
+
+    public function testSetFromDataRejectsAChainThatReturnsThroughTheParent(): void
+    {
+        $this->parent->bindAlias('first', 'second');
+        $child = $this->createChild();
+
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        $child->setFromData(new ContainerData(aliases: ['second' => 'first']));
     }
 
     /**

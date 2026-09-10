@@ -390,8 +390,8 @@ class Container implements ContainerContract
                 throw new ContainerCyclicAliasException($alias, $id);
             }
 
-            // A cycle this alias is no part of would spin here. The sweep below reaches
-            // every alias, so the walk that starts inside that cycle throws for it.
+            // A parent that binds an alias after a child is built checks only its own map,
+            // so the two can hold a cycle this alias is no part of. End the walk there.
             if (isset($seen[$aliasedId])) {
                 return;
             }
@@ -412,7 +412,9 @@ class Container implements ContainerContract
             $seen    = [$alias => true];
             $current = $alias;
 
-            while (($aliasedId = $aliases[$current] ?? null) !== null) {
+            // Past the map, the walk reads what the container answers already. The map
+            // holds every alias the container declares, so that adds only a parent's.
+            while (($aliasedId = $aliases[$current] ?? $this->getAliasedId($current)) !== null) {
                 // The walk reached this id once already, so the edge that closes the
                 // chain is the one it just took. Name that pair.
                 if (isset($seen[$aliasedId])) {

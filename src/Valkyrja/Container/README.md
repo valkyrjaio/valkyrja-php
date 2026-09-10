@@ -932,8 +932,9 @@ type. It extends the SPL `InvalidArgumentException`.
 **`ContainerCyclicAliasException`** — an alias points at a chain that returns
 to it, so the chain has no end. Every entry point checks: `bindAlias()` for the
 pair it is asked to store, and the constructor and `setFromData()` for the map
-they receive. The check runs at registration, not at resolution. It extends the
-SPL `InvalidArgumentException`.
+they receive. A child also follows each chain through its parent. The check runs
+at registration, not at resolution. It extends the SPL
+`InvalidArgumentException`.
 
 All three implement `Valkyrja\Container\Throwable\Contract\ContainerThrowable`,
 so one catch covers everything the container throws:

@@ -588,4 +588,13 @@ final class NativeChildContainerTest extends TestCase
         self::assertSame(ServiceFixture::class, $this->parent->getAliasedId('kept'));
         self::assertNull($this->parent->getAliasedId('first'));
     }
+
+    public function testSetFromDataRejectsAChainThatReturnsThroughTheParent(): void
+    {
+        $this->parent->bindAlias('first', 'second');
+
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        $this->child->setFromData(new ContainerData(aliases: ['second' => 'first']));
+    }
 }
