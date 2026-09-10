@@ -603,6 +603,24 @@ final class ChildContainerTest extends TestCase
         self::assertSame('first', $child->getAliasedId('third'));
     }
 
+    public function testGetAliasedWalksPastAHopTheParentPublishedWithoutBindingIt(): void
+    {
+        // The publisher binds nothing for its own id, so the parent reads on past it
+        $this->parent->setFromData(new ContainerData(
+            callbacks: [ProvidedFixture::class => static function (ContainerContract $container): void {
+            }],
+        ));
+        $this->parent->publish(ProvidedFixture::class);
+        $this->parent->bindAlias('outer', ProvidedFixture::class);
+        $this->parent->bindAlias(ProvidedFixture::class, SingletonFixture::class);
+        $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
+        $child = $this->createChild();
+
+        self::assertInstanceOf(SingletonFixture::class, $child->getAliased('outer'));
+        // The walk reaches the unbuilt singleton, so the child builds it
+        self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
+    }
+
     public function testSetFromDataRejectsAChainThatReturnsThroughTheParent(): void
     {
         $this->parent->bindAlias('first', 'second');
