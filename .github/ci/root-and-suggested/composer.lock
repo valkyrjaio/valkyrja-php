@@ -2769,16 +2769,16 @@
         },
         {
             "name": "roadrunner-php/roadrunner-api-dto",
-            "version": "v1.15.0",
+            "version": "v1.16.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/roadrunner-php/roadrunner-api-dto.git",
-                "reference": "dd936d06246e50215bf9cd21cbcecfd6ad15a73e"
+                "reference": "0f155a68da2e928649a63bf8318a7a9e22878978"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/roadrunner-php/roadrunner-api-dto/zipball/dd936d06246e50215bf9cd21cbcecfd6ad15a73e",
-                "reference": "dd936d06246e50215bf9cd21cbcecfd6ad15a73e",
+                "url": "https://api.github.com/repos/roadrunner-php/roadrunner-api-dto/zipball/0f155a68da2e928649a63bf8318a7a9e22878978",
+                "reference": "0f155a68da2e928649a63bf8318a7a9e22878978",
                 "shasum": ""
             },
             "require": {
@@ -2824,7 +2824,7 @@
                 "docs": "https://docs.roadrunner.dev",
                 "forum": "https://forum.roadrunner.dev",
                 "issues": "https://github.com/roadrunner-server/roadrunner/issues",
-                "source": "https://github.com/roadrunner-php/roadrunner-api-dto/tree/v1.15.0"
+                "source": "https://github.com/roadrunner-php/roadrunner-api-dto/tree/v1.16.0"
             },
             "funding": [
                 {
@@ -2832,7 +2832,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-08-20T11:07:41+00:00"
+            "time": "2026-09-12T08:26:26+00:00"
         },
         {
             "name": "spiral/goridge",
