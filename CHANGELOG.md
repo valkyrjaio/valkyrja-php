@@ -1,6 +1,12 @@
 # Release Notes for 26.x
 
-## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.15.7...26.x)
+## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.15.8...26.x)
+
+## [v26.15.8](https://github.com/valkyrjaio/valkyrja/compare/v26.15.7...v26.15.8) - 2026-09-12
+
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1292
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1293
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1294
 
 ## [v26.15.7](https://github.com/valkyrjaio/valkyrja/compare/v26.15.6...v26.15.7) - 2026-09-11
 
