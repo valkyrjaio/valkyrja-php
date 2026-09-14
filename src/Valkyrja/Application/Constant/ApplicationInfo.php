@@ -19,14 +19,14 @@ final class ApplicationInfo
      *
      * @var non-empty-string
      */
-    public const string VERSION = '26.15.9';
+    public const string VERSION = '26.15.10';
 
     /**
      * The Application framework version build datetime.
      *
      * @var non-empty-string
      */
-    public const string VERSION_BUILD_DATE_TIME = 'September 13 2026 09:01:32 MST';
+    public const string VERSION_BUILD_DATE_TIME = 'September 14 2026 10:59:28 MST';
 
     /**
      * The valkyrja framework ascii art.
