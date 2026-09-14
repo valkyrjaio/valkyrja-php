@@ -24,7 +24,7 @@
   },
   "require-dev"       : {
     "filp/whoops"                : "^2.18.4",
-    "firebase/php-jwt"           : "^7.1.0",
+    "firebase/php-jwt"           : "^7.1.1",
     "guzzlehttp/guzzle"          : "^7.15.5",
     "league/flysystem"           : "^3.36.0",
     "league/flysystem-aws-s3-v3" : "^3.35.3",
@@ -38,7 +38,7 @@
   },
   "conflict"          : {
     "filp/whoops"                : "<2.18.4",
-    "firebase/php-jwt"           : "<7.1.0",
+    "firebase/php-jwt"           : "<7.1.1",
     "guzzlehttp/guzzle"          : "<7.15.5",
     "league/flysystem"           : "<3.36.0",
     "league/flysystem-aws-s3-v3" : "<3.35.3",
@@ -65,7 +65,7 @@
   },
   "suggest"           : {
     "filp/whoops"                : "Required to use the default Throwable handler (^2.18.4)",
-    "firebase/php-jwt"           : "Required to use the default Jwt adapter (^7.1.0)",
+    "firebase/php-jwt"           : "Required to use the default Jwt adapter (^7.1.1)",
     "guzzlehttp/guzzle"          : "Required to use the default Client adapter (^7.15.5).",
     "league/flysystem"           : "Required to use the default Filesystem adapter (^3.36.0).",
     "league/flysystem-aws-s3-v3" : "Required to use the s3 Filesystem adapter (^3.35.3)",
