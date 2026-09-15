@@ -17,7 +17,6 @@ use Valkyrja\Application\Data\Contract\QueueConfigContract;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Application\Provider\Contract\ComponentProviderContract;
 use Valkyrja\Application\Provider\QueueApplicationComponentProvider;
-use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Queue\Middleware\Contract\JobReceivedMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\ResultSettledMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\RouteDispatchedMiddlewareContract;
@@ -38,8 +37,6 @@ class QueueConfig implements QueueConfigContract
      * @param non-empty-string                                  $dataPath
      * @param non-empty-string                                  $dataNamespace
      * @param non-empty-string                                  $applicationName
-     * @param positive-int                                      $defaultMaxAttempts
-     * @param int<0, max>                                       $defaultRetryDelayMs
      * @param ComponentProviderContract[]                       $providers
      * @param array<callable(ApplicationContract):void>         $callbacks
      * @param class-string<JobReceivedMiddlewareContract>[]     $jobReceivedMiddleware
@@ -61,9 +58,6 @@ class QueueConfig implements QueueConfigContract
         public readonly string $dataPath = 'App/Provider/Data',
         public readonly string $dataNamespace = 'App\\Provider\\Data',
         public readonly string $applicationName = 'valkyrja',
-        public readonly int $defaultMaxAttempts = Job::DEFAULT_MAX_ATTEMPTS,
-        public readonly int $defaultRetryDelayMs = Job::DEFAULT_RETRY_DELAY_MS,
-        public readonly bool $defaultRetryDelayMultiplyByAttempt = false,
         public readonly array $providers = [
             new QueueApplicationComponentProvider(),
         ],
