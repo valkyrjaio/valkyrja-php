@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Valkyrja\Queue\Client\Provider;
 
+use AsyncAws\Sqs\SqsClient as Sqs;
 use Override;
 use PhpAmqpLib\Connection\AMQPLazyConnection;
 use Predis\Client;
@@ -22,18 +23,22 @@ use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
 use Valkyrja\Queue\Client\Data\QueueAmqpClientConfig;
 use Valkyrja\Queue\Client\Data\QueueClientConfig;
 use Valkyrja\Queue\Client\Data\QueueRedisClientConfig;
+use Valkyrja\Queue\Client\Data\QueueSqsClientConfig;
 use Valkyrja\Queue\Client\Manager\AmqpClient;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Manager\DeferredClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Client\Manager\RedisClient;
+use Valkyrja\Queue\Client\Manager\SqsClient;
 use Valkyrja\Queue\Client\Manager\SyncClient;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientConfigNotFoundException;
 
+use function array_filter;
 use function sprintf;
 
 class QueueClientServiceProvider implements ServiceProviderContract
@@ -128,6 +133,25 @@ class QueueClientServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             QueueAmqpClientConfigContract::class,
             new QueueAmqpClientConfig()
+        );
+    }
+
+    /**
+     * Publish the SQS client config service.
+     */
+    public static function publishSqsConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof QueueSqsClientConfigContract) {
+            $container->setSingleton(QueueSqsClientConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(
+            QueueSqsClientConfigContract::class,
+            new QueueSqsClientConfig()
         );
     }
 
@@ -238,6 +262,34 @@ class QueueClientServiceProvider implements ServiceProviderContract
     }
 
     /**
+     * Publish the SQS client service.
+     */
+    public static function publishSqsClient(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(QueueSqsClientConfigContract::class);
+
+        $container->setSingleton(
+            SqsClient::class,
+            new SqsClient(
+                sqs: new Sqs(
+                    array_filter(
+                        [
+                            'region'          => $config->sqsRegion,
+                            'endpoint'        => $config->sqsEndpoint,
+                            'accessKeyId'     => $config->sqsAccessKeyId,
+                            'accessKeySecret' => $config->sqsAccessKeySecret,
+                        ],
+                        // A null option falls back to the default of the SDK
+                        static fn (string|null $value): bool => $value !== null
+                    )
+                ),
+                queueUrl: $config->sqsQueueUrl,
+                applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
+            )
+        );
+    }
+
+    /**
      * Get the exception for an application config that does not implement a contract.
      *
      * @param class-string $contract The contract the application config must implement
@@ -261,12 +313,14 @@ class QueueClientServiceProvider implements ServiceProviderContract
             QueueDeferredClientConfigContract::class => [self::class, 'publishDeferredConfig'],
             QueueRedisClientConfigContract::class    => [self::class, 'publishRedisConfig'],
             QueueAmqpClientConfigContract::class     => [self::class, 'publishAmqpConfig'],
+            QueueSqsClientConfigContract::class      => [self::class, 'publishSqsConfig'],
             ClientContract::class                    => [self::class, 'publishClient'],
             SyncClient::class                        => [self::class, 'publishSyncClient'],
             DeferredClient::class                    => [self::class, 'publishDeferredClient'],
             InMemoryClient::class                    => [self::class, 'publishInMemoryClient'],
             RedisClient::class                       => [self::class, 'publishRedisClient'],
             AmqpClient::class                        => [self::class, 'publishAmqpClient'],
+            SqsClient::class                         => [self::class, 'publishSqsClient'],
         ];
     }
 }
