@@ -15,6 +15,7 @@ namespace Valkyrja\Queue\Client\Manager;
 use JsonException;
 use Override;
 use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
@@ -24,6 +25,8 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 
 class AmqpClient extends Client
 {
+    protected AMQPChannel|null $channel = null;
+
     /**
      * @param non-empty-string $queue           The queue jobs are published to
      * @param string           $exchange        The exchange to publish through; empty for the default
@@ -31,7 +34,7 @@ class AmqpClient extends Client
      * @param non-empty-string $version         The framework version stamped into the provenance
      */
     public function __construct(
-        protected AMQPChannel $channel,
+        protected AbstractConnection $connection,
         protected string $queue = 'queues.default',
         protected string $exchange = '',
         string $applicationName = 'valkyrja',
@@ -52,7 +55,7 @@ class AmqpClient extends Client
      */
     public function declareQueue(): void
     {
-        $this->channel->queue_declare($this->queue, false, true, false, false);
+        $this->getChannel()->queue_declare($this->queue, false, true, false, false);
     }
 
     /**
@@ -73,7 +76,7 @@ class AmqpClient extends Client
             ]
         );
 
-        $this->channel->basic_publish($message, $this->exchange, $this->queue);
+        $this->getChannel()->basic_publish($message, $this->exchange, $this->queue);
     }
 
     /**
@@ -82,6 +85,17 @@ class AmqpClient extends Client
     #[Override]
     protected function republish(JobContract $job, int $delayMs = 0): void
     {
+    }
+
+    /**
+     * Get the channel, opening it on first use.
+     *
+     * Opening a channel connects to the broker, so a client that publishes
+     * nothing never connects.
+     */
+    protected function getChannel(): AMQPChannel
+    {
+        return $this->channel ??= $this->connection->channel();
     }
 
     /**
