@@ -310,6 +310,16 @@ that case. A non-empty `amqpExchange` with no binding for the queue's name has
 the same effect, so an application that sets it declares and binds the exchange
 itself.
 
+#### `QueueSqsClientConfigContract`
+
+| Property             | Default                                                      | Description                                                      |
+| :------------------- | :----------------------------------------------------------- | :--------------------------------------------------------------- |
+| `sqsRegion`          | `'us-east-1'`                                                | The AWS region                                                   |
+| `sqsEndpoint`        | `null`                                                       | The endpoint to send to; null for the AWS endpoint of the region |
+| `sqsAccessKeyId`     | `null`                                                       | The access key id; null for the AWS credential chain             |
+| `sqsAccessKeySecret` | `null`                                                       | The access key secret; null for the AWS credential chain         |
+| `sqsQueueUrl`        | `'https://sqs.us-east-1.amazonaws.com/000000000000/default'` | The URL of the queue that jobs are sent to                       |
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
