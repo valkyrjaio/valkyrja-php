@@ -17,6 +17,7 @@ use Valkyrja\Application\Data\Contract\QueueConfigContract;
 use Valkyrja\Application\Data\QueueConfig;
 use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Application\Entry\PullQueue;
+use Valkyrja\Application\Entry\Queue;
 use Valkyrja\Http\Message\Enum\StatusCode;
 use Valkyrja\Http\Message\Request\ServerRequest;
 use Valkyrja\Http\Message\Stream\Stream;
@@ -182,6 +183,27 @@ final class QueueEntryTest extends TestCase
         // The status is the retry signal, so nothing is re-queued here
         self::assertNotNull(PushQueueFixture::$sent);
         self::assertSame(StatusCode::SERVICE_UNAVAILABLE, PushQueueFixture::$sent->getStatusCode());
+    }
+
+    public function testTheSingleShotEntryRunsOneJob(): void
+    {
+        $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
+
+        Queue::run(config: $this->config(), job: $job, client: new InMemoryClient());
+
+        self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
+    }
+
+    public function testTheSingleShotEntrySettlesARetryThroughTheClient(): void
+    {
+        $client = new InMemoryClient();
+        $job    = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 3);
+
+        Queue::run(config: $this->config(), job: $job, client: $client);
+
+        // The entry runs one job, so the incremented job waits in the client
+        self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
+        self::assertSame(2, $client->getBuffered()[0]->getAttempts());
     }
 
     protected function loop(
