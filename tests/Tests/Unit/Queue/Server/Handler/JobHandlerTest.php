@@ -57,7 +57,15 @@ final class JobHandlerTest extends TestCase
     {
         parent::setUp();
 
-        $this->container              = new Container();
+        $this->container = new Container();
+
+        // Every middleware the job handler tests schedule is bound, the same way an application binds its own.
+        $this->container->bindSingleton(JobReceivedMiddlewareChangedFixture::class, static fn (): JobReceivedMiddlewareChangedFixture => new JobReceivedMiddlewareChangedFixture());
+        $this->container->bindSingleton(JobReceivedMiddlewareFixture::class, static fn (): JobReceivedMiddlewareFixture => new JobReceivedMiddlewareFixture());
+        $this->container->bindSingleton(ResultSettledMiddlewareFixture::class, static fn (): ResultSettledMiddlewareFixture => new ResultSettledMiddlewareFixture());
+        $this->container->bindSingleton(SettlingResultMiddlewareFixture::class, static fn (): SettlingResultMiddlewareFixture => new SettlingResultMiddlewareFixture());
+        $this->container->bindSingleton(ThrowableCaughtMiddlewareChangedFixture::class, static fn (): ThrowableCaughtMiddlewareChangedFixture => new ThrowableCaughtMiddlewareChangedFixture());
+
         $this->collection             = new RouteCollection();
         $this->jobReceivedHandler     = new JobReceivedHandler($this->container);
         $this->throwableCaughtHandler = new ThrowableCaughtHandler($this->container);
