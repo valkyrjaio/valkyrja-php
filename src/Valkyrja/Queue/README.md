@@ -331,6 +331,15 @@ Warning: the long-poll wait is also how long a worker can overrun `maxSeconds`,
 because the loop reads its bounds only between receives. Lower it when a worker
 has to stop promptly, and pay for the extra receives.
 
+#### `QueueBeanstalkdClientConfigContract`
+
+| Property                  | Default       | Description                                                    |
+| :------------------------ | :------------ | :------------------------------------------------------------- |
+| `beanstalkdHost`          | `'127.0.0.1'` | The host to connect to                                         |
+| `beanstalkdPort`          | `11300`       | The port to connect to                                         |
+| `beanstalkdTube`          | `'default'`   | The tube that jobs are put on                                  |
+| `beanstalkdTimeToRelease` | `60`          | The seconds a worker holds a job before beanstalkd releases it |
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
