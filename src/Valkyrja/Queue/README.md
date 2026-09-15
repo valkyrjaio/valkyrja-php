@@ -795,6 +795,13 @@ still going, and both settle it. The first worker's delete is fenced on its own
 claim stamp, so it takes nothing the second one owns, but the job has run twice
 by then. Set the value above the longest job the table carries.
 
+#### `QueuePubSubClientConfigContract`
+
+| Property          | Default      | Description                          |
+| :---------------- | :----------- | :----------------------------------- |
+| `pubSubProjectId` | `'valkyrja'` | The Google Cloud project             |
+| `pubSubTopic`     | `'default'`  | The topic that jobs are published to |
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
