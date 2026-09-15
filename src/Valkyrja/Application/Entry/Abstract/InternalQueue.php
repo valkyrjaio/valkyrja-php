@@ -97,12 +97,13 @@ abstract class InternalQueue extends WorkerQueue
      * Set the process-wide state that an application reads.
      *
      * @param non-empty-string $basePath The base path of the application
-     * @param non-empty-string $timezone The default timezone
+     * @param string           $timezone The default timezone
      */
     protected static function setProcessState(string $basePath, string $timezone): void
     {
         Directory::$basePath = $basePath;
 
+        /** @psalm-suppress ArgumentTypeCoercion The value comes from a config or from date_default_timezone_get(), and neither is empty */
         date_default_timezone_set($timezone);
     }
 }
