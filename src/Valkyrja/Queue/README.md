@@ -62,10 +62,14 @@ the increment, so the ramp is keyed to the attempt that just failed.
 | `InMemoryClient` | none   | framework  |
 | `RedisClient`    | Redis  | framework  |
 
-`SyncClient` is the zero-config default. It runs the job inline and blocks, and
-it runs the whole retry chain. There is no durable place to hold a retry delay,
-so the delay is skipped and the incremented job runs again at once. Only the
-timing differs from production; the retry count is identical.
+`SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
+the application. The entry runs a separate queue application, so the job runs
+the same way that a job from a broker runs.
+
+`SyncClient` runs the job inline and blocks, and it runs the whole retry chain.
+There is no durable place to hold a retry delay, so the delay is skipped and the
+incremented job runs again at once. Only the timing differs from production, and
+the retry count is identical.
 
 Warning: a `SyncClient` push throws on a terminal `FAIL` or `DEAD_LETTER`. The
 caller blocks until the job finishes, so the caller is still there to be told.
@@ -81,19 +85,40 @@ gives one request the deferred jobs of the request before it.
 
 ## Entry Points
 
-| Entry       | Runs                                     |
-| ----------- | ---------------------------------------- |
-| `Queue`     | one job, then exits                      |
-| `PullQueue` | a worker that takes jobs from a broker   |
-| `PushQueue` | one job that a broker delivers over HTTP |
+| Entry           | Runs                                                  |
+| --------------- | ----------------------------------------------------- |
+| `Queue`         | one job, then exits                                   |
+| `PullQueue`     | a worker that takes jobs from a broker                |
+| `PushQueue`     | one job that a broker delivers over HTTP              |
+| `InternalQueue` | each job that `SyncClient` or `DeferredClient` pushes |
 
 `Queue` is single-shot, so a host that pushes repeatedly pays a full boot per
 push. `WorkerQueue` boots the application once and then gives each job a fresh
 child container, which is the shape a real broker worker loops over.
 
 Every job runs through an entry point, never through `JobHandler` directly. The
-entry gives the job an isolated container, so an embedded development run
+entry gives the job an isolated container, so an in-process development run
 behaves the same as a standalone production worker.
+
+An application extends `InternalQueue` and returns its queue config from
+`getConfig()`. The client boots the queue application on the first job, and it
+runs every later job in a fresh child container. The entry restores the base
+path and the timezone of the host after each step, and it leaves the exception
+handler of the host in place.
+
+```php
+use App\Queue\Config;
+use Valkyrja\Application\Data\Contract\QueueConfigContract;
+use Valkyrja\Application\Entry\Abstract\InternalQueue;
+
+final class InternalApp extends InternalQueue
+{
+    public static function getConfig(): QueueConfigContract
+    {
+        return new Config();
+    }
+}
+```
 
 ## Routing
 
@@ -106,23 +131,49 @@ The same route runs a job that arrives from an external broker, an in-process
 
 ## Configuration
 
-`Valkyrja\Application\Data\Contract\QueueConfigContract` holds the settings that
-apply to the whole component:
+`Valkyrja\Application\Data\Contract\QueueConfigContract` holds the middleware
+for each of the seven pipeline stages. `QueueConfig` is the framework default,
+and an application config that implements `QueueConfigContract` replaces it.
 
-| Property                             | Holds                                   |
-| ------------------------------------ | --------------------------------------- |
-| `applicationName`                    | the producer name stamped on each job   |
-| `defaultMaxAttempts`                 | the attempt ceiling                     |
-| `defaultRetryDelayMs`                | the base hold between attempts          |
-| `defaultRetryDelayMultiplyByAttempt` | whether the hold ramps with the attempt |
-| the seven `*Middleware` properties   | the middleware for each pipeline stage  |
+A client stamps the `applicationName` of the application that pushes the job
+into the producer field of the job.
 
-`QueueConfig` is the framework default. An application config that implements
-`QueueConfigContract` replaces it.
+### Client Configuration
 
-An application config implements `QueueConfigProvidedContract` to embed a queue
-in an HTTP, CLI, or gRPC application. The contract returns the queue config that
-the host application runs jobs against.
+The service provider binds `ClientContract` to the client that
+`QueueClientConfigContract::$defaultQueueClient` names, and the default is
+`RedisClient`. Each client reads its own config contract:
+
+| Contract                            | Properties                             | Default                                   |
+| ----------------------------------- | -------------------------------------- | ----------------------------------------- |
+| `QueueClientConfigContract`         | `defaultQueueClient`                   | `RedisClient::class`                      |
+| `QueueRedisClientConfigContract`    | `redisHost`, `redisPort`, `redisQueue` | `'127.0.0.1'`, `6379`, `'queues:default'` |
+| `QueueSyncClientConfigContract`     | `syncEntry`                            | none                                      |
+| `QueueDeferredClientConfigContract` | `deferredEntry`                        | none                                      |
+
+An application config implements the contract of each client that the
+application uses. `SyncClient` and `DeferredClient` have no default, because the
+entry names the queue config of the application. The service provider throws
+`QueueClientConfigNotFoundException` when it builds one of the two clients for an
+application config that does not implement its contract.
+
+```php
+use App\Queue\InternalApp;
+use Valkyrja\Application\Data\HttpConfig;
+use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
+use Valkyrja\Queue\Client\Manager\SyncClient;
+
+final class AppHttpConfig extends HttpConfig implements QueueClientConfigContract, QueueSyncClientConfigContract
+{
+    public string $defaultQueueClient = SyncClient::class;
+
+    public string $syncEntry = InternalApp::class;
+}
+```
+
+An application that uses a second client binds its own contract, which extends
+`ClientContract`, to that client in its own service provider.
 
 ## Service Registration
 
@@ -132,6 +183,10 @@ the host application runs jobs against.
 
 Each middleware stage handler is a shared singleton, so the `Router` and the
 `JobHandler` register and invoke the same instance.
+
+`QueueClientServiceProvider` publishes each client config contract and each
+client class. It binds `ClientContract` to the client that `defaultQueueClient`
+names.
 
 ## Optional Dependencies
 
