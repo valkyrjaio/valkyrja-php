@@ -22,10 +22,6 @@ use Valkyrja\Queue\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 
 interface QueueConfigContract extends ConfigContract
 {
-    /** @var non-empty-string */
-    public string $applicationName {
-        get;
-    }
     /** @var class-string<JobReceivedMiddlewareContract>[] */
     public array $jobReceivedMiddleware {
         get;
