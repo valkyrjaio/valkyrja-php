@@ -802,6 +802,10 @@ by then. Set the value above the longest job the table carries.
 | `pubSubProjectId` | `'valkyrja'` | The Google Cloud project             |
 | `pubSubTopic`     | `'default'`  | The topic that jobs are published to |
 
+Warning: the Google client reads Application Default Credentials as it is built. An
+application that resolves `PubSubClient` needs credentials in its environment, such as
+`GOOGLE_APPLICATION_CREDENTIALS`.
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
