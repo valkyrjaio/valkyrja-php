@@ -537,6 +537,18 @@ across, so one redis serves the cache and the queue without being named twice.
 The worker name does not come across, because it names a slot rather than a
 connection.
 
+#### `QueueAmqpClientConfigContract`
+
+| Property       | Default            | Description                                            |
+| :------------- | :----------------- | :----------------------------------------------------- |
+| `amqpHost`     | `'127.0.0.1'`      | AMQP host                                              |
+| `amqpPort`     | `5672`             | AMQP port                                              |
+| `amqpUser`     | `'guest'`          | The user to connect as                                 |
+| `amqpPassword` | `'guest'`          | The password of the user                               |
+| `amqpVhost`    | `'/'`              | The virtual host to connect to                         |
+| `amqpQueue`    | `'queues.default'` | The queue jobs are published to                        |
+| `amqpExchange` | `''`               | The exchange to publish through; empty for the default |
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
