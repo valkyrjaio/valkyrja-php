@@ -142,20 +142,39 @@ into the producer field of the job.
 
 The service provider binds `ClientContract` to the client that
 `QueueClientConfigContract::$defaultQueueClient` names, and the default is
-`RedisClient`. Each client reads its own config contract:
+`RedisClient`. Each client reads its own config contract, and an application
+config implements the contract of each client that the application uses.
 
-| Contract                            | Properties                             | Default                                   |
-| ----------------------------------- | -------------------------------------- | ----------------------------------------- |
-| `QueueClientConfigContract`         | `defaultQueueClient`                   | `RedisClient::class`                      |
-| `QueueRedisClientConfigContract`    | `redisHost`, `redisPort`, `redisQueue` | `'127.0.0.1'`, `6379`, `'queues:default'` |
-| `QueueSyncClientConfigContract`     | `syncEntry`                            | none                                      |
-| `QueueDeferredClientConfigContract` | `deferredEntry`                        | none                                      |
-
-An application config implements the contract of each client that the
-application uses. `SyncClient` and `DeferredClient` have no default, because the
-entry names the queue config of the application. The service provider throws
+`SyncClient` and `DeferredClient` have no default, because the entry names the
+queue config of the application. The service provider throws
 `QueueClientConfigNotFoundException` when it builds one of the two clients for an
 application config that does not implement its contract.
+
+#### `QueueClientConfigContract`
+
+| Property             | Default              | Description                               |
+| :------------------- | :------------------- | :---------------------------------------- |
+| `defaultQueueClient` | `RedisClient::class` | The client that `ClientContract` binds to |
+
+#### `QueueSyncClientConfigContract`
+
+| Property    | Default | Description                                  |
+| :---------- | :------ | :------------------------------------------- |
+| `syncEntry` | none    | The `InternalQueue` entry that runs each job |
+
+#### `QueueDeferredClientConfigContract`
+
+| Property        | Default | Description                                  |
+| :-------------- | :------ | :------------------------------------------- |
+| `deferredEntry` | none    | The `InternalQueue` entry that runs each job |
+
+#### `QueueRedisClientConfigContract`
+
+| Property     | Default            | Description                       |
+| :----------- | :----------------- | :-------------------------------- |
+| `redisHost`  | `'127.0.0.1'`      | Redis host                        |
+| `redisPort`  | `6379`             | Redis port                        |
+| `redisQueue` | `'queues:default'` | The list key jobs are pushed onto |
 
 ```php
 use App\Queue\InternalApp;
