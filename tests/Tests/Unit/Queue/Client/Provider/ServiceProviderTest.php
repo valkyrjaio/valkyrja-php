@@ -22,15 +22,18 @@ use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
 use Valkyrja\Queue\Client\Data\QueueAmqpClientConfig;
 use Valkyrja\Queue\Client\Data\QueueClientConfig;
 use Valkyrja\Queue\Client\Data\QueueRedisClientConfig;
+use Valkyrja\Queue\Client\Data\QueueSqsClientConfig;
 use Valkyrja\Queue\Client\Manager\AmqpClient;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Manager\DeferredClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Client\Manager\RedisClient;
+use Valkyrja\Queue\Client\Manager\SqsClient;
 use Valkyrja\Queue\Client\Manager\SyncClient;
 use Valkyrja\Queue\Client\Provider\QueueClientServiceProvider;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientConfigNotFoundException;
@@ -76,6 +79,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(InMemoryClient::class, $publishers);
         self::assertArrayHasKey(RedisClient::class, $publishers);
         self::assertArrayHasKey(AmqpClient::class, $publishers);
+        self::assertArrayHasKey(QueueSqsClientConfigContract::class, $publishers);
+        self::assertArrayHasKey(SqsClient::class, $publishers);
     }
 
     public function testPublishConfig(): void
@@ -276,6 +281,46 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $this->publish(AmqpClient::class);
 
         self::assertInstanceOf(AmqpClient::class, $this->container->getSingleton(AmqpClient::class));
+    }
+
+    public function testPublishSqsConfig(): void
+    {
+        $this->publish(QueueSqsClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueSqsClientConfigContract::class);
+
+        self::assertSame('us-east-1', $config->sqsRegion);
+        self::assertSame('https://sqs.us-east-1.amazonaws.com/000000000000/default', $config->sqsQueueUrl);
+    }
+
+    public function testPublishSqsConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(QueueSqsClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueSqsClientConfigContract::class);
+
+        self::assertSame('eu-west-1', $config->sqsRegion);
+        self::assertSame('http://sqs.test/000000000000/test', $config->sqsQueueUrl);
+    }
+
+    public function testPublishSqsClient(): void
+    {
+        $this->container->setSingleton(QueueSqsClientConfigContract::class, new QueueSqsClientConfig());
+
+        $this->publish(SqsClient::class);
+
+        self::assertInstanceOf(SqsClient::class, $this->container->getSingleton(SqsClient::class));
+    }
+
+    public function testPublishSqsClientWithEveryOption(): void
+    {
+        $this->container->setSingleton(QueueSqsClientConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(SqsClient::class);
+
+        self::assertInstanceOf(SqsClient::class, $this->container->getSingleton(SqsClient::class));
     }
 
     /**
