@@ -39,6 +39,7 @@ class HttpConfig implements HttpConfigContract
      * @param non-empty-string                                  $key
      * @param non-empty-string                                  $dataPath
      * @param non-empty-string                                  $dataNamespace
+     * @param non-empty-string                                  $applicationName
      * @param ComponentProviderContract[]                       $providers
      * @param array<callable(ApplicationContract):void>         $callbacks
      * @param class-string<RequestReceivedMiddlewareContract>[] $requestReceivedMiddleware
@@ -59,6 +60,7 @@ class HttpConfig implements HttpConfigContract
         public readonly string $key = 'some_secret_app_key',
         public readonly string $dataPath = 'App/Provider/Data',
         public readonly string $dataNamespace = 'App\\Provider\\Data',
+        public readonly string $applicationName = 'valkyrja',
         public readonly array $providers = [
             new HttpApplicationComponentProvider(),
         ],
