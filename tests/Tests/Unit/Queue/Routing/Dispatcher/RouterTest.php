@@ -61,7 +61,16 @@ final class RouterTest extends TestCase
     {
         parent::setUp();
 
-        $this->container              = new Container();
+        $this->container = new Container();
+
+        // Every middleware the router tests schedule is bound, the same way an application binds its own.
+        $this->container->bindSingleton(ResultSettledMiddlewareFixture::class, static fn (): ResultSettledMiddlewareFixture => new ResultSettledMiddlewareFixture());
+        $this->container->bindSingleton(RouteDispatchedMiddlewareFixture::class, static fn (): RouteDispatchedMiddlewareFixture => new RouteDispatchedMiddlewareFixture());
+        $this->container->bindSingleton(RouteMatchedMiddlewareChangedFixture::class, static fn (): RouteMatchedMiddlewareChangedFixture => new RouteMatchedMiddlewareChangedFixture());
+        $this->container->bindSingleton(RouteMatchedMiddlewareFixture::class, static fn (): RouteMatchedMiddlewareFixture => new RouteMatchedMiddlewareFixture());
+        $this->container->bindSingleton(SettlingResultMiddlewareFixture::class, static fn (): SettlingResultMiddlewareFixture => new SettlingResultMiddlewareFixture());
+        $this->container->bindSingleton(ThrowableCaughtMiddlewareFixture::class, static fn (): ThrowableCaughtMiddlewareFixture => new ThrowableCaughtMiddlewareFixture());
+
         $this->collection             = new RouteCollection();
         $this->routeMatchedHandler    = new RouteMatchedHandler($this->container);
         $this->routeNotMatchedHandler = new RouteNotMatchedHandler($this->container);
