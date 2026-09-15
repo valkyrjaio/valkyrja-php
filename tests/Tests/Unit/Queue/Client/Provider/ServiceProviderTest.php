@@ -13,14 +13,31 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Queue\Client\Provider;
 
 use Override;
-use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Data\QueueConfig;
+use PHPUnit\Framework\MockObject\Exception;
+use Predis\ClientInterface;
+use Valkyrja\Application\Constant\ApplicationInfo;
+use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
+use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
+use Valkyrja\Queue\Client\Data\QueueClientConfig;
+use Valkyrja\Queue\Client\Data\QueueRedisClientConfig;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
+use Valkyrja\Queue\Client\Manager\DeferredClient;
+use Valkyrja\Queue\Client\Manager\InMemoryClient;
+use Valkyrja\Queue\Client\Manager\RedisClient;
 use Valkyrja\Queue\Client\Manager\SyncClient;
 use Valkyrja\Queue\Client\Provider\QueueClientServiceProvider;
 use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
 use Valkyrja\Queue\Client\Requeuer\Requeuer;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientConfigNotFoundException;
+use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
+use Valkyrja\Tests\Fixtures\Queue\Client\Data\QueueClientConfigFixture;
+use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 
 final class ServiceProviderTest extends ServiceProviderTestCase
 {
@@ -32,22 +49,199 @@ final class ServiceProviderTest extends ServiceProviderTestCase
     {
         parent::setUp();
 
-        $this->container->setSingleton(QueueConfigContract::class, new QueueConfig());
+        ResultLogMiddlewareFixture::reset();
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        ResultLogMiddlewareFixture::reset();
+
+        parent::tearDown();
     }
 
     public function testExpectedPublishers(): void
     {
         $publishers = new QueueClientServiceProvider()->publishers();
 
+        self::assertArrayHasKey(QueueClientConfigContract::class, $publishers);
+        self::assertArrayHasKey(QueueSyncClientConfigContract::class, $publishers);
+        self::assertArrayHasKey(QueueDeferredClientConfigContract::class, $publishers);
+        self::assertArrayHasKey(QueueRedisClientConfigContract::class, $publishers);
         self::assertArrayHasKey(ClientContract::class, $publishers);
+        self::assertArrayHasKey(SyncClient::class, $publishers);
+        self::assertArrayHasKey(DeferredClient::class, $publishers);
+        self::assertArrayHasKey(InMemoryClient::class, $publishers);
+        self::assertArrayHasKey(RedisClient::class, $publishers);
         self::assertArrayHasKey(RequeuerContract::class, $publishers);
     }
 
-    public function testTheSyncClientIsTheZeroConfigDefault(): void
+    public function testPublishConfig(): void
     {
+        $this->publish(QueueClientConfigContract::class);
+
+        self::assertSame(
+            RedisClient::class,
+            $this->container->getSingleton(QueueClientConfigContract::class)->defaultQueueClient
+        );
+    }
+
+    public function testPublishConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(QueueClientConfigContract::class);
+
+        self::assertSame(
+            SyncClient::class,
+            $this->container->getSingleton(QueueClientConfigContract::class)->defaultQueueClient
+        );
+    }
+
+    public function testPublishSyncConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(QueueSyncClientConfigContract::class);
+
+        self::assertSame(
+            InternalQueueFixture::class,
+            $this->container->getSingleton(QueueSyncClientConfigContract::class)->syncEntry
+        );
+    }
+
+    public function testPublishSyncConfigWithoutApplicationConfigThrows(): void
+    {
+        $this->expectException(QueueClientConfigNotFoundException::class);
+        $this->expectExceptionMessage(QueueSyncClientConfigContract::class);
+
+        $this->publish(QueueSyncClientConfigContract::class);
+    }
+
+    public function testPublishDeferredConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(QueueDeferredClientConfigContract::class);
+
+        self::assertSame(
+            InternalQueueFixture::class,
+            $this->container->getSingleton(QueueDeferredClientConfigContract::class)->deferredEntry
+        );
+    }
+
+    public function testPublishDeferredConfigWithoutApplicationConfigThrows(): void
+    {
+        $this->expectException(QueueClientConfigNotFoundException::class);
+        $this->expectExceptionMessage(QueueDeferredClientConfigContract::class);
+
+        $this->publish(QueueDeferredClientConfigContract::class);
+    }
+
+    public function testPublishRedisConfig(): void
+    {
+        $this->publish(QueueRedisClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueRedisClientConfigContract::class);
+
+        self::assertSame('127.0.0.1', $config->redisHost);
+        self::assertSame(6379, $config->redisPort);
+        self::assertSame('queues:default', $config->redisQueue);
+    }
+
+    public function testPublishRedisConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(QueueRedisClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueRedisClientConfigContract::class);
+
+        self::assertSame('redis.test', $config->redisHost);
+        self::assertSame(6380, $config->redisPort);
+        self::assertSame('queues:test', $config->redisQueue);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testPublishClient(): void
+    {
+        $redis = new RedisClient(redis: self::createStub(ClientInterface::class));
+
+        $this->container->setSingleton(QueueClientConfigContract::class, new QueueClientConfig());
+        $this->container->setSingleton(RedisClient::class, $redis);
+
         $this->publish(ClientContract::class);
 
-        self::assertInstanceOf(SyncClient::class, $this->container->getSingleton(ClientContract::class));
+        self::assertSame($redis, $this->container->getSingleton(ClientContract::class));
+    }
+
+    public function testPublishClientWithConfiguredDefault(): void
+    {
+        $inMemory = new InMemoryClient();
+
+        $this->container->setSingleton(
+            QueueClientConfigContract::class,
+            new QueueClientConfig(defaultQueueClient: InMemoryClient::class)
+        );
+        $this->container->setSingleton(InMemoryClient::class, $inMemory);
+
+        $this->publish(ClientContract::class);
+
+        self::assertSame($inMemory, $this->container->getSingleton(ClientContract::class));
+    }
+
+    public function testPublishSyncClient(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+        $this->container->setSingleton(QueueSyncClientConfigContract::class, new QueueClientConfigFixture());
+        $this->container->setSingleton(RequeuerContract::class, new Requeuer());
+
+        $this->publish(SyncClient::class);
+
+        $client = $this->container->getSingleton(SyncClient::class);
+        $client->push(new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK));
+
+        self::assertSame('host php/' . ApplicationInfo::VERSION, $client->getPushed()[0]->getProducer());
+        self::assertCount(1, ResultLogMiddlewareFixture::getLog());
+    }
+
+    public function testPublishDeferredClient(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+        $this->container->setSingleton(QueueDeferredClientConfigContract::class, new QueueClientConfigFixture());
+        $this->container->setSingleton(RequeuerContract::class, new Requeuer());
+
+        $this->publish(DeferredClient::class);
+
+        $client = $this->container->getSingleton(DeferredClient::class);
+        $client->push(new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK));
+        $client->drain();
+
+        self::assertSame('host php/' . ApplicationInfo::VERSION, $client->getPushed()[0]->getProducer());
+        self::assertCount(1, ResultLogMiddlewareFixture::getLog());
+    }
+
+    public function testPublishInMemoryClient(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(InMemoryClient::class);
+
+        $client = $this->container->getSingleton(InMemoryClient::class);
+        $client->push(new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK));
+
+        self::assertSame('host php/' . ApplicationInfo::VERSION, $client->getPushed()[0]->getProducer());
+    }
+
+    public function testPublishRedisClient(): void
+    {
+        $this->container->setSingleton(QueueRedisClientConfigContract::class, new QueueRedisClientConfig());
+
+        $this->publish(RedisClient::class);
+
+        self::assertInstanceOf(RedisClient::class, $this->container->getSingleton(RedisClient::class));
     }
 
     public function testPublishRequeuer(): void
