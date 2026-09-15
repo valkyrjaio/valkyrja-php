@@ -19,6 +19,7 @@ use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDatabaseClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueuePubSubClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
@@ -29,7 +30,7 @@ use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 /**
  * An application config that implements every queue client config contract.
  */
-final class QueueClientConfigFixture extends Config implements QueueClientConfigContract, QueueSyncClientConfigContract, QueueDeferredClientConfigContract, QueueRedisClientConfigContract, QueueAmqpClientConfigContract, QueueSqsClientConfigContract, QueueBeanstalkdClientConfigContract, QueueDatabaseClientConfigContract
+final class QueueClientConfigFixture extends Config implements QueueClientConfigContract, QueueSyncClientConfigContract, QueueDeferredClientConfigContract, QueueRedisClientConfigContract, QueueAmqpClientConfigContract, QueueSqsClientConfigContract, QueueBeanstalkdClientConfigContract, QueueDatabaseClientConfigContract, QueuePubSubClientConfigContract
 {
     /**
      * @param class-string<ClientContract> $defaultQueueClient
@@ -54,6 +55,8 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param int<1, max>                  $queueBeanstalkdClientReserveTimeout
      * @param non-empty-string             $queueDatabaseClientQueue
      * @param non-empty-string             $queueDatabaseClientTable
+     * @param non-empty-string             $pubSubProjectId
+     * @param non-empty-string             $pubSubTopic
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -85,6 +88,8 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public string $queueDatabaseClientQueue = 'jobs',
         public string $queueDatabaseClientTable = 'jobs_test',
         public int $queueDatabaseClientReservationTimeoutMs = 60_000,
+        public string $pubSubProjectId = 'valkyrja-tests',
+        public string $pubSubTopic = 'jobs',
     ) {
         parent::__construct(
             applicationName: 'host',
