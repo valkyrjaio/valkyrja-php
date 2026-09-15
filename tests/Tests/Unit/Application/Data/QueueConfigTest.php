@@ -15,7 +15,6 @@ namespace Valkyrja\Tests\Unit\Application\Data;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Application\Data\QueueConfig;
 use Valkyrja\Application\Provider\QueueApplicationComponentProvider;
-use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class QueueConfigTest extends TestCase
@@ -30,9 +29,6 @@ final class QueueConfigTest extends TestCase
         self::assertFalse($config->debugMode);
         self::assertSame('UTC', $config->timezone);
         self::assertSame('valkyrja', $config->applicationName);
-        self::assertSame(Job::DEFAULT_MAX_ATTEMPTS, $config->defaultMaxAttempts);
-        self::assertSame(Job::DEFAULT_RETRY_DELAY_MS, $config->defaultRetryDelayMs);
-        self::assertFalse($config->defaultRetryDelayMultiplyByAttempt);
         self::assertInstanceOf(QueueApplicationComponentProvider::class, $config->providers[0]);
         self::assertEmpty($config->callbacks);
     }
@@ -63,9 +59,6 @@ final class QueueConfigTest extends TestCase
             dataPath: 'Data',
             dataNamespace: 'Data',
             applicationName: 'worker',
-            defaultMaxAttempts: 9,
-            defaultRetryDelayMs: 250,
-            defaultRetryDelayMultiplyByAttempt: true,
             providers: [],
             callbacks: [],
         );
@@ -80,9 +73,6 @@ final class QueueConfigTest extends TestCase
         self::assertSame('Data', $config->dataPath);
         self::assertSame('Data', $config->dataNamespace);
         self::assertSame('worker', $config->applicationName);
-        self::assertSame(9, $config->defaultMaxAttempts);
-        self::assertSame(250, $config->defaultRetryDelayMs);
-        self::assertTrue($config->defaultRetryDelayMultiplyByAttempt);
         self::assertEmpty($config->providers);
     }
 }
