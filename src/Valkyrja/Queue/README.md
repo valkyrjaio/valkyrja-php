@@ -248,6 +248,18 @@ an application config that does not implement its contract.
 | `redisQueue`      | `'queues:default'` | The list key jobs are pushed onto                           |
 | `redisWorkerName` | `'default'`        | Names this worker's slot, which owns its own in-flight list |
 
+#### `QueueAmqpClientConfigContract`
+
+| Property       | Default            | Description                                            |
+| :------------- | :----------------- | :----------------------------------------------------- |
+| `amqpHost`     | `'127.0.0.1'`      | AMQP host                                              |
+| `amqpPort`     | `5672`             | AMQP port                                              |
+| `amqpUser`     | `'guest'`          | The user to connect as                                 |
+| `amqpPassword` | `'guest'`          | The password of the user                               |
+| `amqpVhost`    | `'/'`              | The virtual host to connect to                         |
+| `amqpQueue`    | `'queues.default'` | The queue jobs are published to                        |
+| `amqpExchange` | `''`               | The exchange to publish through; empty for the default |
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
