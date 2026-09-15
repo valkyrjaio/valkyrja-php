@@ -15,6 +15,7 @@ namespace Valkyrja\Tests\Fixtures\Queue\Client\Data;
 use Valkyrja\Application\Data\Config;
 use Valkyrja\Application\Entry\Abstract\InternalQueue;
 use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
@@ -27,7 +28,7 @@ use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 /**
  * An application config that implements every queue client config contract.
  */
-final class QueueClientConfigFixture extends Config implements QueueClientConfigContract, QueueSyncClientConfigContract, QueueDeferredClientConfigContract, QueueRedisClientConfigContract, QueueAmqpClientConfigContract, QueueSqsClientConfigContract
+final class QueueClientConfigFixture extends Config implements QueueClientConfigContract, QueueSyncClientConfigContract, QueueDeferredClientConfigContract, QueueRedisClientConfigContract, QueueAmqpClientConfigContract, QueueSqsClientConfigContract, QueueBeanstalkdClientConfigContract
 {
     /**
      * @param class-string<ClientContract> $defaultQueueClient
@@ -44,6 +45,9 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param non-empty-string|null        $sqsAccessKeyId
      * @param non-empty-string|null        $sqsAccessKeySecret
      * @param non-empty-string             $sqsQueueUrl
+     * @param non-empty-string             $beanstalkdHost
+     * @param non-empty-string             $beanstalkdTube
+     * @param int<0, max>                  $beanstalkdTimeToRelease
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -64,6 +68,10 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public string|null $sqsAccessKeyId = 'key',
         public string|null $sqsAccessKeySecret = 'secret',
         public string $sqsQueueUrl = 'http://sqs.test/000000000000/test',
+        public string $beanstalkdHost = 'beanstalkd.test',
+        public int $beanstalkdPort = 11301,
+        public string $beanstalkdTube = 'jobs',
+        public int $beanstalkdTimeToRelease = 90,
     ) {
         parent::__construct(
             applicationName: 'host',
