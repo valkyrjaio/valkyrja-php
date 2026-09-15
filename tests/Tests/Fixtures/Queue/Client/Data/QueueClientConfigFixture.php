@@ -17,6 +17,7 @@ use Valkyrja\Application\Entry\Abstract\InternalQueue;
 use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueDatabaseClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
@@ -28,7 +29,7 @@ use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 /**
  * An application config that implements every queue client config contract.
  */
-final class QueueClientConfigFixture extends Config implements QueueClientConfigContract, QueueSyncClientConfigContract, QueueDeferredClientConfigContract, QueueRedisClientConfigContract, QueueAmqpClientConfigContract, QueueSqsClientConfigContract, QueueBeanstalkdClientConfigContract
+final class QueueClientConfigFixture extends Config implements QueueClientConfigContract, QueueSyncClientConfigContract, QueueDeferredClientConfigContract, QueueRedisClientConfigContract, QueueAmqpClientConfigContract, QueueSqsClientConfigContract, QueueBeanstalkdClientConfigContract, QueueDatabaseClientConfigContract
 {
     /**
      * @param class-string<ClientContract> $defaultQueueClient
@@ -51,6 +52,8 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param non-empty-string             $queueBeanstalkdClientTube
      * @param int<0, max>                  $queueBeanstalkdClientTimeToRelease
      * @param int<1, max>                  $queueBeanstalkdClientReserveTimeout
+     * @param non-empty-string             $databaseQueue
+     * @param non-empty-string             $databaseTable
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -79,6 +82,8 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public string $queueBeanstalkdClientTube = 'jobs',
         public int $queueBeanstalkdClientTimeToRelease = 90,
         public int $queueBeanstalkdClientReserveTimeout = 3,
+        public string $databaseQueue = 'jobs',
+        public string $databaseTable = 'jobs_test',
     ) {
         parent::__construct(
             applicationName: 'host',
