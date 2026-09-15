@@ -17,10 +17,12 @@ use PHPUnit\Framework\MockObject\Exception;
 use Predis\ClientInterface;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Application\Data\Contract\ConfigContract;
+use Valkyrja\Orm\Manager\Contract\ManagerContract;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
 use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueDatabaseClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
@@ -28,11 +30,13 @@ use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
 use Valkyrja\Queue\Client\Data\QueueAmqpClientConfig;
 use Valkyrja\Queue\Client\Data\QueueBeanstalkdClientConfig;
 use Valkyrja\Queue\Client\Data\QueueClientConfig;
+use Valkyrja\Queue\Client\Data\QueueDatabaseClientConfig;
 use Valkyrja\Queue\Client\Data\QueueRedisClientConfig;
 use Valkyrja\Queue\Client\Data\QueueSqsClientConfig;
 use Valkyrja\Queue\Client\Manager\AmqpClient;
 use Valkyrja\Queue\Client\Manager\BeanstalkdClient;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
+use Valkyrja\Queue\Client\Manager\DatabaseClient;
 use Valkyrja\Queue\Client\Manager\DeferredClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Client\Manager\RedisClient;
@@ -86,6 +90,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(SqsClient::class, $publishers);
         self::assertArrayHasKey(QueueBeanstalkdClientConfigContract::class, $publishers);
         self::assertArrayHasKey(BeanstalkdClient::class, $publishers);
+        self::assertArrayHasKey(QueueDatabaseClientConfigContract::class, $publishers);
+        self::assertArrayHasKey(DatabaseClient::class, $publishers);
     }
 
     public function testPublishConfig(): void
@@ -358,6 +364,41 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $this->publish(BeanstalkdClient::class);
 
         self::assertInstanceOf(BeanstalkdClient::class, $this->container->getSingleton(BeanstalkdClient::class));
+    }
+
+    public function testPublishDatabaseConfig(): void
+    {
+        $this->publish(QueueDatabaseClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueDatabaseClientConfigContract::class);
+
+        self::assertSame('default', $config->databaseQueue);
+        self::assertSame('queue_jobs', $config->databaseTable);
+    }
+
+    public function testPublishDatabaseConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(QueueDatabaseClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueDatabaseClientConfigContract::class);
+
+        self::assertSame('jobs', $config->databaseQueue);
+        self::assertSame('jobs_test', $config->databaseTable);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testPublishDatabaseClient(): void
+    {
+        $this->container->setSingleton(QueueDatabaseClientConfigContract::class, new QueueDatabaseClientConfig());
+        $this->container->setSingleton(ManagerContract::class, self::createStub(ManagerContract::class));
+
+        $this->publish(DatabaseClient::class);
+
+        self::assertInstanceOf(DatabaseClient::class, $this->container->getSingleton(DatabaseClient::class));
     }
 
     /**
