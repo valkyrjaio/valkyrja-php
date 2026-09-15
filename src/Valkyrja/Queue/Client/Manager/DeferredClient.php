@@ -13,34 +13,13 @@ declare(strict_types=1);
 namespace Valkyrja\Queue\Client\Manager;
 
 use Override;
-use Valkyrja\Application\Constant\ApplicationInfo;
-use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Entry\Queue;
-use Valkyrja\Queue\Client\Manager\Abstract\Client;
+use Valkyrja\Queue\Client\Manager\Abstract\InternalClient;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 
-class DeferredClient extends Client
+class DeferredClient extends InternalClient
 {
     /** @var JobContract[] */
     protected array $buffer = [];
-
-    protected QueueConfigContract $config;
-
-    /**
-     * @param non-empty-string $version The framework version stamped into the provenance
-     */
-    public function __construct(
-        QueueConfigContract|null $config = null,
-        string $version = ApplicationInfo::VERSION,
-    ) {
-        $this->config = $config ?? new QueueConfig();
-
-        parent::__construct(
-            applicationName: $this->config->applicationName,
-            version: $version,
-        );
-    }
 
     /**
      * Run everything buffered, emptying the buffer.
@@ -58,7 +37,7 @@ class DeferredClient extends Client
             $this->buffer = [];
 
             foreach ($buffered as $job) {
-                $this->run($job);
+                $this->run($job, $this->requeuer);
             }
         }
     }
@@ -80,17 +59,5 @@ class DeferredClient extends Client
     protected function publish(JobContract $job): void
     {
         $this->buffer[] = $job;
-    }
-
-    /**
-     * Run a job through the isolated queue entry.
-     */
-    protected function run(JobContract $job): void
-    {
-        Queue::run(
-            config: $this->config,
-            job: $job,
-            client: $this,
-        );
     }
 }

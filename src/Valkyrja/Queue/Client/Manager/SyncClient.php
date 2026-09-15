@@ -13,14 +13,9 @@ declare(strict_types=1);
 namespace Valkyrja\Queue\Client\Manager;
 
 use Override;
-use Valkyrja\Application\Constant\ApplicationInfo;
-use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Entry\Queue;
-use Valkyrja\Queue\Client\Manager\Abstract\Client;
+use Valkyrja\Queue\Client\Manager\Abstract\InternalClient;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
-use Valkyrja\Queue\Client\Requeuer\Requeuer;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientSyncJobFailedException;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
@@ -28,37 +23,16 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use function array_shift;
 use function sprintf;
 
-class SyncClient extends Client implements RequeuerContract
+class SyncClient extends InternalClient implements RequeuerContract
 {
     /** @var JobContract[] */
     protected array $buffer = [];
 
     protected bool $running = false;
 
-    protected QueueConfigContract $config;
-
-    protected RequeuerContract $requeuer;
-
     protected JobContract|null $failedJob = null;
 
     protected JobResult|null $failedResult = null;
-
-    /**
-     * @param non-empty-string $version The framework version stamped into the provenance
-     */
-    public function __construct(
-        QueueConfigContract|null $config = null,
-        string $version = ApplicationInfo::VERSION,
-        RequeuerContract $requeuer = new Requeuer(),
-    ) {
-        $this->config   = $config ?? new QueueConfig();
-        $this->requeuer = $requeuer;
-
-        parent::__construct(
-            applicationName: $this->config->applicationName,
-            version: $version,
-        );
-    }
 
     /**
      * @inheritDoc
@@ -92,7 +66,9 @@ class SyncClient extends Client implements RequeuerContract
 
         try {
             while (($next = array_shift($this->buffer)) !== null) {
-                $this->run($next);
+                // Settling through this client shows it the terminal outcome,
+                // and puts a retry back in the buffer that this loop drains
+                $this->run($next, $this);
             }
 
             $this->throwOnFailure();
@@ -102,23 +78,6 @@ class SyncClient extends Client implements RequeuerContract
             $this->failedJob    = null;
             $this->failedResult = null;
         }
-    }
-
-    /**
-     * Run a job through the isolated queue entry.
-     *
-     * The entry hands any retry back to this very client, whose publish runs it
-     * again — which is what makes the retry chain loop here rather than needing
-     * a durable hold.
-     */
-    protected function run(JobContract $job): void
-    {
-        Queue::run(
-            config: $this->config,
-            job: $job,
-            client: $this,
-            requeuer: $this,
-        );
     }
 
     /**

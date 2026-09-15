@@ -13,14 +13,12 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Queue\Client\Manager;
 
 use Override;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Queue\Client\Manager\SyncClient;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientSyncJobFailedException;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
-use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
@@ -32,19 +30,16 @@ final class SyncClientTest extends TestCase
         parent::setUp();
 
         ResultLogMiddlewareFixture::reset();
+        InternalQueueFixture::reset();
     }
 
     #[Override]
     protected function tearDown(): void
     {
         ResultLogMiddlewareFixture::reset();
+        InternalQueueFixture::reset();
 
         parent::tearDown();
-    }
-
-    public function testDefaultsToItsOwnConfig(): void
-    {
-        self::assertSame([], new SyncClient()->getPushed());
     }
 
     public function testRunsTheJobInline(): void
@@ -66,14 +61,22 @@ final class SyncClientTest extends TestCase
         $this->client()->push($job);
     }
 
+    public function testTheQueueApplicationBootsOnceForEveryJob(): void
+    {
+        $client = $this->client();
+        $first  = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
+        $second = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
+
+        $client->push($first);
+        $client->push($second);
+
+        self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($first->getId()));
+        self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($second->getId()));
+        self::assertSame(1, InternalQueueFixture::$configCount);
+    }
+
     protected function client(): SyncClient
     {
-        return new SyncClient(
-            config: new QueueConfig(
-                dir: Directory::$basePath,
-                providers: [new QueueTestComponentProviderFixture()],
-                resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
-            )
-        );
+        return new SyncClient(entry: InternalQueueFixture::class);
     }
 }

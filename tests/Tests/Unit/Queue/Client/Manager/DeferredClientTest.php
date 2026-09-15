@@ -13,14 +13,12 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Queue\Client\Manager;
 
 use Override;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Queue\Client\Manager\DeferredClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
-use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
@@ -90,19 +88,8 @@ final class DeferredClientTest extends TestCase
         self::assertSame([], $client->getBuffered());
     }
 
-    public function testDefaultsToItsOwnConfig(): void
-    {
-        self::assertSame([], new DeferredClient()->getBuffered());
-    }
-
     protected function client(): DeferredClient
     {
-        return new DeferredClient(
-            config: new QueueConfig(
-                dir: Directory::$basePath,
-                providers: [new QueueTestComponentProviderFixture()],
-                resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
-            )
-        );
+        return new DeferredClient(entry: InternalQueueFixture::class);
     }
 }

@@ -13,17 +13,14 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Functional\Queue;
 
 use Override;
-use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Queue\Client\Manager\SyncClient;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientSyncJobFailedException;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
-use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Functional\Abstract\TestCase;
 
@@ -169,16 +166,10 @@ final class QueueLifecycleTest extends TestCase
 
     protected function client(): SyncClient
     {
-        return new SyncClient(config: $this->config(), version: '26.0.0');
-    }
-
-    protected function config(): QueueConfigContract
-    {
-        return new QueueConfig(
-            dir: Directory::$basePath,
+        return new SyncClient(
+            entry: InternalQueueFixture::class,
             applicationName: 'worker',
-            providers: [new QueueTestComponentProviderFixture()],
-            resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
+            version: '26.0.0',
         );
     }
 }
