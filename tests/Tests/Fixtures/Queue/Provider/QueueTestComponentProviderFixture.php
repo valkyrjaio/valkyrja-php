@@ -40,7 +40,9 @@ final class QueueTestComponentProviderFixture implements ComponentProviderContra
     #[Override]
     public function getContainerProviders(ApplicationContract $app): array
     {
-        return [];
+        return [
+            new QueueTestServiceProviderFixture(),
+        ];
     }
 
     /**
