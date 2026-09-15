@@ -542,7 +542,6 @@ ComponentClass::CLI_SERVER,
 ComponentClass::HTTP_ROUTING_CLI,  // HTTP route access from CLI
 
 // Additional constructor parameters:
-string $applicationName    = 'cli',
 string $defaultCommandName = CommandName::LIST,
 HttpConfig $http           = new AppHttpConfig(),
 ```
