@@ -233,7 +233,7 @@ use, and `getThrowableHandler()` returns the debug-mode throwable handler.
 
 ### Queue Entry Classes
 
-A queue has three entry classes, because a job reaches an application in three
+A queue has four entry classes, because a job reaches an application in four
 different ways.
 
 `Queue` is single-shot. It builds an application, runs one job, and exits. Use
@@ -246,6 +246,11 @@ application once and then gives each job a fresh child container.
 
 `PushQueue` answers a broker that delivers a job over HTTP. It maps the inbound
 request onto a job, runs it, and returns the outcome as the response status.
+
+`InternalQueue` runs each job that a `SyncClient` or a `DeferredClient` pushes.
+The class is abstract. An application extends it and returns its queue config
+from `getConfig()`, so the job runs in a separate queue application, the same
+way that a job from a broker runs.
 
 ```php
 // app/bin/queue
