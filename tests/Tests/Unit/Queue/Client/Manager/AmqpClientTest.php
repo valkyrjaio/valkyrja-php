@@ -20,6 +20,7 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Fixtures\Queue\Client\AmqpChannelFixture;
+use Valkyrja\Tests\Fixtures\Queue\Client\AmqpConnectionFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function json_decode;
@@ -34,6 +35,8 @@ final class AmqpClientTest extends TestCase
 
     protected AmqpChannelFixture $channel;
 
+    protected AmqpConnectionFixture $connection;
+
     #[Override]
     protected function setUp(): void
     {
@@ -41,7 +44,8 @@ final class AmqpClientTest extends TestCase
 
         Microtime::freeze(1768564798.0);
 
-        $this->channel = new AmqpChannelFixture();
+        $this->channel    = new AmqpChannelFixture();
+        $this->connection = new AmqpConnectionFixture($this->channel);
     }
 
     #[Override]
@@ -50,6 +54,19 @@ final class AmqpClientTest extends TestCase
         Microtime::unfreeze();
 
         parent::tearDown();
+    }
+
+    public function testTheChannelOpensOnFirstUseAndOnlyOnce(): void
+    {
+        $client = $this->client();
+
+        // Opening a channel connects, so building the client must not open one
+        self::assertSame(0, $this->connection->channelCount);
+
+        $client->push(new JobFactory()->create(self::NAME));
+        $client->push(new JobFactory()->create(self::NAME));
+
+        self::assertSame(1, $this->connection->channelCount);
     }
 
     public function testDeclareQueueDeclaresADurableQueue(): void
@@ -89,7 +106,7 @@ final class AmqpClientTest extends TestCase
 
     public function testPushRoutesThroughTheConfiguredExchange(): void
     {
-        new AmqpClient(channel: $this->channel, queue: 'other', exchange: 'jobs')
+        new AmqpClient(connection: $this->connection, queue: 'other', exchange: 'jobs')
             ->push(new JobFactory()->create(self::NAME));
 
         $calls = $this->channel->getCalls('basic_publish');
@@ -139,6 +156,6 @@ final class AmqpClientTest extends TestCase
 
     protected function client(): AmqpClient
     {
-        return new AmqpClient(channel: $this->channel, queue: self::QUEUE);
+        return new AmqpClient(connection: $this->connection, queue: self::QUEUE);
     }
 }

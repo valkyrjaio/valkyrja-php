@@ -208,7 +208,7 @@ final class AmqpIntegrationTest extends TestCase
 
     private function client(): AmqpClient
     {
-        return new AmqpClient(channel: $this->channel, queue: self::QUEUE);
+        return new AmqpClient(connection: $this->connection, queue: self::QUEUE);
     }
 
     private function puller(): AmqpPuller
