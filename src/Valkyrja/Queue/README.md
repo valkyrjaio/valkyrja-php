@@ -425,6 +425,13 @@ has to stop promptly, and pay for the extra receives.
 | `databaseQueue` | `'default'`    | The queue that jobs are written under |
 | `databaseTable` | `'queue_jobs'` | The table that jobs are written to    |
 
+#### `QueuePubSubClientConfigContract`
+
+| Property          | Default      | Description                          |
+| :---------------- | :----------- | :----------------------------------- |
+| `pubSubProjectId` | `'valkyrja'` | The Google Cloud project             |
+| `pubSubTopic`     | `'default'`  | The topic that jobs are published to |
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
