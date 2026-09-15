@@ -52,6 +52,10 @@ interface ConfigContract
     public string $dataNamespace {
         get;
     }
+    /** @var non-empty-string */
+    public string $applicationName {
+        get;
+    }
     /** @var ComponentProviderContract[] */
     public array $providers {
         get;

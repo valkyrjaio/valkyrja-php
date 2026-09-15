@@ -246,19 +246,20 @@ values.
 `Valkyrja\Application\Data\Config` carries the properties that all three
 classes share:
 
-| Property        | Default                          | Description                                          |
-| --------------- | -------------------------------- | ---------------------------------------------------- |
-| `namespace`     | `'App'`                          | The application's root namespace                     |
-| `dir`           | `__DIR__`                        | The application's root directory — set it explicitly |
-| `version`       | `ApplicationInfo::VERSION`       | The application's version string                     |
-| `environment`   | `'production'`                   | The environment name                                 |
-| `debugMode`     | `false`                          | Enable the Whoops throwable handler                  |
-| `timezone`      | `'UTC'`                          | PHP's default timezone, set at boot                  |
-| `key`           | `'some_secret_app_key'`          | The application secret key — always override it      |
-| `dataPath`      | `'App/Provider/Data'`            | The framework does not read this property            |
-| `dataNamespace` | `'App\\Provider\\Data'`          | The framework does not read this property            |
-| `providers`     | `[ApplicationComponentProvider]` | The component providers to load                      |
-| `callbacks`     | `[]`                             | Callables the bootstrap invokes with the application |
+| Property          | Default                          | Description                                          |
+| ----------------- | -------------------------------- | ---------------------------------------------------- |
+| `namespace`       | `'App'`                          | The application's root namespace                     |
+| `dir`             | `__DIR__`                        | The application's root directory — set it explicitly |
+| `version`         | `ApplicationInfo::VERSION`       | The application's version string                     |
+| `environment`     | `'production'`                   | The environment name                                 |
+| `debugMode`       | `false`                          | Enable the Whoops throwable handler                  |
+| `timezone`        | `'UTC'`                          | PHP's default timezone, set at boot                  |
+| `key`             | `'some_secret_app_key'`          | The application secret key — always override it      |
+| `dataPath`        | `'App/Provider/Data'`            | The framework does not read this property            |
+| `dataNamespace`   | `'App\\Provider\\Data'`          | The framework does not read this property            |
+| `applicationName` | `'valkyrja'`                     | The application's name                               |
+| `providers`       | `[ApplicationComponentProvider]` | The component providers to load                      |
+| `callbacks`       | `[]`                             | Callables the bootstrap invokes with the application |
 
 Every property is `public readonly`, so any code that holds the config reads
 the values directly (`$config->environment`). The bootstrap registers the
@@ -285,11 +286,11 @@ seven middleware lists. Each entry is a middleware class name.
 
 `Valkyrja\Application\Data\CliConfig` repeats the base properties, changes the
 `providers` default to `[CliWithHttpApplicationComponentProvider]`, and adds
-two names and six middleware lists:
+a command name and six middleware lists. The CLI shows `applicationName` as
+the binary name in version and help output.
 
 | Property                    | Default                                                                         |
 | --------------------------- | ------------------------------------------------------------------------------- |
-| `applicationName`           | `'valkyrja'` — the binary name in version and help output                       |
 | `defaultCommandName`        | `'list'` — the command run when no command argument is given                    |
 | `inputReceivedMiddleware`   | help, version, and global-interaction option checks                             |
 | `routeMatchedMiddleware`    | `[]`                                                                            |
