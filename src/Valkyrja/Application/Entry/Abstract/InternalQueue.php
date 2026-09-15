@@ -29,11 +29,6 @@ use function date_default_timezone_set;
 abstract class InternalQueue extends WorkerQueue
 {
     /**
-     * Get the config of the queue application that runs each job.
-     */
-    abstract public static function getConfig(): QueueConfigContract;
-
-    /**
      * @inheritDoc
      */
     #[Override]
@@ -92,6 +87,11 @@ abstract class InternalQueue extends WorkerQueue
     {
         // The host application owns the exception handler of the process
     }
+
+    /**
+     * Get the config of the queue application that runs each job.
+     */
+    abstract public static function getConfig(): QueueConfigContract;
 
     /**
      * Set the process-wide state that an application reads.
