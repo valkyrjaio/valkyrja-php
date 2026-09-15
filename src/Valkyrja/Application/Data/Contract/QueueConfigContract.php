@@ -26,28 +26,6 @@ interface QueueConfigContract extends ConfigContract
     public string $applicationName {
         get;
     }
-    /**
-     * The default ceiling before a retry chain is dead-lettered.
-     *
-     * @var positive-int
-     */
-    public int $defaultMaxAttempts {
-        get;
-    }
-    /**
-     * The default hold, in milliseconds, before a retry re-enqueue.
-     *
-     * A zero is allowed but bad: it retries immediately, giving a failing
-     * dependency no time to recover.
-     *
-     * @var int<0, max>
-     */
-    public int $defaultRetryDelayMs {
-        get;
-    }
-    public bool $defaultRetryDelayMultiplyByAttempt {
-        get;
-    }
     /** @var class-string<JobReceivedMiddlewareContract>[] */
     public array $jobReceivedMiddleware {
         get;
