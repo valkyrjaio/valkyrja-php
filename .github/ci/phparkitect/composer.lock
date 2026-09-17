@@ -1458,16 +1458,16 @@
         },
         {
             "name": "valkyrja/ci-phparkitect",
-            "version": "v26.7.42",
+            "version": "v26.7.43",
             "source": {
                 "type": "git",
                 "url": "https://github.com/valkyrjaio/ci-phparkitect-php.git",
-                "reference": "927ddc117180bd5bafae5959f7b8f30f6e92a08f"
+                "reference": "8e5383ea102ca98d95b3bf2b0c280abab7b08964"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/valkyrjaio/ci-phparkitect-php/zipball/927ddc117180bd5bafae5959f7b8f30f6e92a08f",
-                "reference": "927ddc117180bd5bafae5959f7b8f30f6e92a08f",
+                "url": "https://api.github.com/repos/valkyrjaio/ci-phparkitect-php/zipball/8e5383ea102ca98d95b3bf2b0c280abab7b08964",
+                "reference": "8e5383ea102ca98d95b3bf2b0c280abab7b08964",
                 "shasum": ""
             },
             "require": {
@@ -1499,9 +1499,9 @@
             ],
             "support": {
                 "issues": "https://github.com/valkyrjaio/ci-phparkitect-php/issues",
-                "source": "https://github.com/valkyrjaio/ci-phparkitect-php/tree/v26.7.42"
+                "source": "https://github.com/valkyrjaio/ci-phparkitect-php/tree/v26.7.43"
             },
-            "time": "2026-09-16T15:19:45+00:00"
+            "time": "2026-09-17T15:27:33+00:00"
         },
         {
             "name": "webmozart/assert",
