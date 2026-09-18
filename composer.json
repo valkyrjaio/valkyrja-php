@@ -23,7 +23,7 @@
     "psr/log"                 : "^3.0.2"
   },
   "require-dev"       : {
-    "filp/whoops"                : "^2.18.4",
+    "filp/whoops"                : "^2.18.5",
     "firebase/php-jwt"           : "^7.1.1",
     "guzzlehttp/guzzle"          : "^7.15.5",
     "league/flysystem"           : "^3.36.0",
@@ -33,11 +33,11 @@
     "phpmailer/phpmailer"        : "^7.1.1",
     "predis/predis"              : "^3.6.1",
     "pusher/pusher-php-server"   : "^7.3.0",
-    "twig/twig"                  : "^3.28.0",
+    "twig/twig"                  : "^3.29.0",
     "vonage/client-core"         : "^4.14.0"
   },
   "conflict"          : {
-    "filp/whoops"                : "<2.18.4",
+    "filp/whoops"                : "<2.18.5",
     "firebase/php-jwt"           : "<7.1.1",
     "guzzlehttp/guzzle"          : "<7.15.5",
     "league/flysystem"           : "<3.36.0",
@@ -47,7 +47,7 @@
     "phpmailer/phpmailer"        : "<7.1.1",
     "predis/predis"              : "<3.6.1",
     "pusher/pusher-php-server"   : "<7.3.0",
-    "twig/twig"                  : "<3.28.0",
+    "twig/twig"                  : "<3.29.0",
     "vonage/client-core"         : "<4.14.0"
   },
   "autoload"          : {
@@ -64,7 +64,7 @@
     ]
   },
   "suggest"           : {
-    "filp/whoops"                : "Required to use the default Throwable handler (^2.18.4)",
+    "filp/whoops"                : "Required to use the default Throwable handler (^2.18.5)",
     "firebase/php-jwt"           : "Required to use the default Jwt adapter (^7.1.1)",
     "guzzlehttp/guzzle"          : "Required to use the default Client adapter (^7.15.5).",
     "league/flysystem"           : "Required to use the default Filesystem adapter (^3.36.0).",
@@ -74,7 +74,7 @@
     "phpmailer/phpmailer"        : "Required to use the default Mail adapter (^7.1.1).",
     "predis/predis"              : "Required to use the Redis Cache store (^3.6.1).",
     "pusher/pusher-php-server"   : "Required to use the Pusher Broadcast adapter (^7.3.0).",
-    "twig/twig"                  : "Required to use the Twig View engine (^3.28.0).",
+    "twig/twig"                  : "Required to use the Twig View engine (^3.29.0).",
     "vonage/client-core"         : "Required to use the default SMS adapter (^4.14.0).",
     "openswoole/core"            : "Required to use the OpenSwoole worker entry point (^26.2.0).",
     "spiral/roadrunner-http"     : "Required to use the RoadRunner worker entry point (^4.1.0).",

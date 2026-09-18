@@ -8,7 +8,7 @@
     "psr/log"                 : "^3.0.2"
   },
   "require-dev"       : {
-    "filp/whoops"                : "^2.18.4",
+    "filp/whoops"                : "^2.18.5",
     "firebase/php-jwt"           : "^7.1.1",
     "guzzlehttp/guzzle"          : "^7.15.5",
     "league/flysystem"           : "^3.36.0",
@@ -20,7 +20,7 @@
     "predis/predis"              : "^3.6.1",
     "pusher/pusher-php-server"   : "^7.3.0",
     "spiral/roadrunner-http"     : "^4.1.0",
-    "twig/twig"                  : "^3.28.0",
+    "twig/twig"                  : "^3.29.0",
     "vonage/client-core"         : "^4.14.0"
   },
   "minimum-stability" : "dev",
