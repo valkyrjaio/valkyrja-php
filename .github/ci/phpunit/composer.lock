@@ -4050,16 +4050,16 @@
         },
         {
             "name": "valkyrja/ci-phpunit",
-            "version": "v26.6.43",
+            "version": "v26.6.44",
             "source": {
                 "type": "git",
                 "url": "https://github.com/valkyrjaio/ci-phpunit-php.git",
-                "reference": "539c43154b5262f4688e9a687b9b5edb55c2dd77"
+                "reference": "9cdd6631943a10b4cee50109d043537b18f1a896"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/valkyrjaio/ci-phpunit-php/zipball/539c43154b5262f4688e9a687b9b5edb55c2dd77",
-                "reference": "539c43154b5262f4688e9a687b9b5edb55c2dd77",
+                "url": "https://api.github.com/repos/valkyrjaio/ci-phpunit-php/zipball/9cdd6631943a10b4cee50109d043537b18f1a896",
+                "reference": "9cdd6631943a10b4cee50109d043537b18f1a896",
                 "shasum": ""
             },
             "require": {
@@ -4095,9 +4095,9 @@
             ],
             "support": {
                 "issues": "https://github.com/valkyrjaio/ci-phpunit-php/issues",
-                "source": "https://github.com/valkyrjaio/ci-phpunit-php/tree/v26.6.43"
+                "source": "https://github.com/valkyrjaio/ci-phpunit-php/tree/v26.6.44"
             },
-            "time": "2026-09-21T16:52:31+00:00"
+            "time": "2026-09-22T15:26:01+00:00"
         }
     ],
     "aliases": [],
