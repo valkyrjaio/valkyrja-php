@@ -902,16 +902,16 @@
         },
         {
             "name": "composer/semver",
-            "version": "3.4.4",
+            "version": "3.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/composer/semver.git",
-                "reference": "198166618906cb2de69b95d7d47e5fa8aa1b2b95"
+                "reference": "f7a296f4c4cf8cb8bb83e35d6951a406bb11afa5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/composer/semver/zipball/198166618906cb2de69b95d7d47e5fa8aa1b2b95",
-                "reference": "198166618906cb2de69b95d7d47e5fa8aa1b2b95",
+                "url": "https://api.github.com/repos/composer/semver/zipball/f7a296f4c4cf8cb8bb83e35d6951a406bb11afa5",
+                "reference": "f7a296f4c4cf8cb8bb83e35d6951a406bb11afa5",
                 "shasum": ""
             },
             "require": {
@@ -953,7 +953,7 @@
                     "homepage": "http://robbast.nl"
                 }
             ],
-            "description": "Semver library that offers utilities, version constraint parsing and validation.",
+            "description": "Version comparison library that offers utilities, version constraint parsing and validation.",
             "keywords": [
                 "semantic",
                 "semver",
@@ -963,7 +963,7 @@
             "support": {
                 "irc": "ircs://irc.libera.chat:6697/composer",
                 "issues": "https://github.com/composer/semver/issues",
-                "source": "https://github.com/composer/semver/tree/3.4.4"
+                "source": "https://github.com/composer/semver/tree/3.5.0"
             },
             "funding": [
                 {
@@ -975,7 +975,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-08-20T19:15:30+00:00"
+            "time": "2026-09-24T14:38:51+00:00"
         },
         {
             "name": "composer/xdebug-handler",
@@ -3258,16 +3258,16 @@
         },
         {
             "name": "valkyrja/ci-psalm",
-            "version": "v26.3.49",
+            "version": "v26.3.50",
             "source": {
                 "type": "git",
                 "url": "https://github.com/valkyrjaio/ci-psalm-php.git",
-                "reference": "515b5ccabf00613abf112a9fd405a6edd7511c00"
+                "reference": "9becf7c0b7d6c96c362e782cf18d6c3a8a936951"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/valkyrjaio/ci-psalm-php/zipball/515b5ccabf00613abf112a9fd405a6edd7511c00",
-                "reference": "515b5ccabf00613abf112a9fd405a6edd7511c00",
+                "url": "https://api.github.com/repos/valkyrjaio/ci-psalm-php/zipball/9becf7c0b7d6c96c362e782cf18d6c3a8a936951",
+                "reference": "9becf7c0b7d6c96c362e782cf18d6c3a8a936951",
                 "shasum": ""
             },
             "require": {
@@ -3299,9 +3299,9 @@
             ],
             "support": {
                 "issues": "https://github.com/valkyrjaio/ci-psalm-php/issues",
-                "source": "https://github.com/valkyrjaio/ci-psalm-php/tree/v26.3.49"
+                "source": "https://github.com/valkyrjaio/ci-psalm-php/tree/v26.3.50"
             },
-            "time": "2026-09-23T15:18:33+00:00"
+            "time": "2026-09-24T15:44:25+00:00"
         },
         {
             "name": "vimeo/psalm",
