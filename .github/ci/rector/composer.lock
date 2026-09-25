@@ -100,11 +100,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.2.15",
+            "version": "2.2.16",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/b158556ffd26825cf615a1c1f72fb5157a2301b7",
-                "reference": "b158556ffd26825cf615a1c1f72fb5157a2301b7",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/46a6d9060e5a7763adfcc21ebcb8b504ebdbcb92",
+                "reference": "46a6d9060e5a7763adfcc21ebcb8b504ebdbcb92",
                 "shasum": ""
             },
             "require": {
@@ -160,7 +160,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-09-23T12:23:07+00:00"
+            "time": "2026-09-25T09:31:51+00:00"
         },
         {
             "name": "rector/rector",
@@ -221,16 +221,16 @@
         },
         {
             "name": "valkyrja/ci-rector",
-            "version": "v26.3.48",
+            "version": "v26.3.49",
             "source": {
                 "type": "git",
                 "url": "https://github.com/valkyrjaio/ci-rector-php.git",
-                "reference": "d2924f3b97d6fefe99fe9bc953932226d16a5d53"
+                "reference": "58a3df3599f7017508b8d10c064e3eeef8752409"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/valkyrjaio/ci-rector-php/zipball/d2924f3b97d6fefe99fe9bc953932226d16a5d53",
-                "reference": "d2924f3b97d6fefe99fe9bc953932226d16a5d53",
+                "url": "https://api.github.com/repos/valkyrjaio/ci-rector-php/zipball/58a3df3599f7017508b8d10c064e3eeef8752409",
+                "reference": "58a3df3599f7017508b8d10c064e3eeef8752409",
                 "shasum": ""
             },
             "require": {
@@ -263,9 +263,9 @@
             ],
             "support": {
                 "issues": "https://github.com/valkyrjaio/ci-rector-php/issues",
-                "source": "https://github.com/valkyrjaio/ci-rector-php/tree/v26.3.48"
+                "source": "https://github.com/valkyrjaio/ci-rector-php/tree/v26.3.49"
             },
-            "time": "2026-09-24T15:46:24+00:00"
+            "time": "2026-09-25T15:46:31+00:00"
         }
     ],
     "aliases": [],

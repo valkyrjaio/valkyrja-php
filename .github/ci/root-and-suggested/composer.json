@@ -20,7 +20,7 @@
     "predis/predis"              : "^3.6.1",
     "pusher/pusher-php-server"   : "^7.3.0",
     "spiral/roadrunner-http"     : "^4.1.0",
-    "twig/twig"                  : "^3.29.0",
+    "twig/twig"                  : "^3.30.0",
     "vonage/client-core"         : "^4.14.0"
   },
   "minimum-stability" : "dev",
