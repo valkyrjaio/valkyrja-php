@@ -33,7 +33,7 @@
     "phpmailer/phpmailer"        : "^7.1.1",
     "predis/predis"              : "^3.6.1",
     "pusher/pusher-php-server"   : "^7.3.0",
-    "twig/twig"                  : "^3.29.0",
+    "twig/twig"                  : "^3.30.0",
     "vonage/client-core"         : "^4.14.0"
   },
   "conflict"          : {
@@ -47,7 +47,7 @@
     "phpmailer/phpmailer"        : "<7.1.1",
     "predis/predis"              : "<3.6.1",
     "pusher/pusher-php-server"   : "<7.3.0",
-    "twig/twig"                  : "<3.29.0",
+    "twig/twig"                  : "<3.30.0",
     "vonage/client-core"         : "<4.14.0"
   },
   "autoload"          : {
@@ -74,7 +74,7 @@
     "phpmailer/phpmailer"        : "Required to use the default Mail adapter (^7.1.1).",
     "predis/predis"              : "Required to use the Redis Cache store (^3.6.1).",
     "pusher/pusher-php-server"   : "Required to use the Pusher Broadcast adapter (^7.3.0).",
-    "twig/twig"                  : "Required to use the Twig View engine (^3.29.0).",
+    "twig/twig"                  : "Required to use the Twig View engine (^3.30.0).",
     "vonage/client-core"         : "Required to use the default SMS adapter (^4.14.0).",
     "openswoole/core"            : "Required to use the OpenSwoole worker entry point (^26.2.0).",
     "spiral/roadrunner-http"     : "Required to use the RoadRunner worker entry point (^4.1.0).",
