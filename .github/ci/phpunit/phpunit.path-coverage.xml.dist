@@ -72,6 +72,9 @@
         <testsuite name="Functional">
             <directory suffix="Test.php">../../../tests/Tests/Functional</directory>
         </testsuite>
+        <testsuite name="Grpc">
+            <directory suffix="Test.php">../../../tests/Tests/Unit/Grpc</directory>
+        </testsuite>
         <testsuite name="Http">
             <directory suffix="Test.php">../../../tests/Tests/Unit/Http</directory>
         </testsuite>
