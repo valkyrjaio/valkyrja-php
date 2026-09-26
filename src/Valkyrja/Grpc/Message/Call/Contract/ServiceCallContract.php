@@ -16,6 +16,7 @@ use Valkyrja\Grpc\Message\Cancellation\Contract\CancellationTokenContract;
 use Valkyrja\Grpc\Message\Deadline\Contract\DeadlineContract;
 use Valkyrja\Grpc\Message\Metadata\Contract\MetadataContract;
 use Valkyrja\Grpc\Message\Peer\Contract\PeerContract;
+use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Throwable\Exception\GrpcConcurrentSendException;
 use Valkyrja\Grpc\Throwable\Exception\GrpcNonStreamingSendException;
 
@@ -89,6 +90,21 @@ interface ServiceCallContract
      * @throws GrpcConcurrentSendException   If a re-entrant send is detected
      */
     public function send(mixed $message): void;
+
+    /**
+     * Get the resolved route, or null if the call has not yet been routed (or no route matched).
+     */
+    public function getRoute(): RouteContract|null;
+
+    /**
+     * Determine whether a route has been resolved for this call.
+     */
+    public function hasRoute(): bool;
+
+    /**
+     * Create a new call with the resolved route set.
+     */
+    public function withRoute(RouteContract $route): static;
 
     /**
      * Wrap a source iterable so iteration checks cancellation between items, exiting iteration
