@@ -21,6 +21,7 @@ use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
 use Valkyrja\Event\Provider\Contract\ListenerProviderContract;
 use Valkyrja\Http\Routing\Provider\Contract\HttpRouteProviderContract;
+use Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract;
 
 use function array_merge;
 use function date_default_timezone_set;
@@ -37,6 +38,8 @@ class Valkyrja implements ApplicationContract
     protected array $cliRouteProviders = [];
     /** @var HttpRouteProviderContract[] */
     protected array $httpRouteProviders = [];
+    /** @var QueueRouteProviderContract[] */
+    protected array $queueRouteProviders = [];
 
     public function __construct(
         protected ContainerContract $container,
@@ -172,6 +175,29 @@ class Valkyrja implements ApplicationContract
             : [];
 
         return $this->httpRouteProviders;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getQueueProviders(): array
+    {
+        if ($this->queueRouteProviders !== []) {
+            return $this->queueRouteProviders;
+        }
+
+        $providers = [];
+
+        foreach ($this->getProviders() as $provider) {
+            $providers[] = $provider->getQueueProviders($this);
+        }
+
+        $this->queueRouteProviders = $providers !== []
+            ? array_merge(...$providers)
+            : [];
+
+        return $this->queueRouteProviders;
     }
 
     /**
