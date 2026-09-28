@@ -1815,16 +1815,16 @@
         },
         {
             "name": "phpdocumentor/type-resolver",
-            "version": "2.0.0",
+            "version": "2.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpDocumentor/TypeResolver.git",
-                "reference": "327a05bbee54120d4786a0dc67aad30226ad4cf9"
+                "reference": "dbe2133bb23e2e33a6834f4ed417f24a1b167769"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpDocumentor/TypeResolver/zipball/327a05bbee54120d4786a0dc67aad30226ad4cf9",
-                "reference": "327a05bbee54120d4786a0dc67aad30226ad4cf9",
+                "url": "https://api.github.com/repos/phpDocumentor/TypeResolver/zipball/dbe2133bb23e2e33a6834f4ed417f24a1b167769",
+                "reference": "dbe2133bb23e2e33a6834f4ed417f24a1b167769",
                 "shasum": ""
             },
             "require": {
@@ -1867,9 +1867,9 @@
             "description": "A PSR-5 based resolver of Class names, Types and Structural Element Names",
             "support": {
                 "issues": "https://github.com/phpDocumentor/TypeResolver/issues",
-                "source": "https://github.com/phpDocumentor/TypeResolver/tree/2.0.0"
+                "source": "https://github.com/phpDocumentor/TypeResolver/tree/2.1.0"
             },
-            "time": "2026-01-06T21:53:42+00:00"
+            "time": "2026-09-27T19:32:54+00:00"
         },
         {
             "name": "phpstan/phpdoc-parser",
@@ -3264,21 +3264,21 @@
         },
         {
             "name": "valkyrja/ci-psalm",
-            "version": "v26.3.53",
+            "version": "v26.3.54",
             "source": {
                 "type": "git",
                 "url": "https://github.com/valkyrjaio/ci-psalm-php.git",
-                "reference": "86d12fc5f23431ff1f284aaa79edb8ba8bfe3dac"
+                "reference": "deca4045cc22336e4b89b05b6f79ffc0222bc91d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/valkyrjaio/ci-psalm-php/zipball/86d12fc5f23431ff1f284aaa79edb8ba8bfe3dac",
-                "reference": "86d12fc5f23431ff1f284aaa79edb8ba8bfe3dac",
+                "url": "https://api.github.com/repos/valkyrjaio/ci-psalm-php/zipball/deca4045cc22336e4b89b05b6f79ffc0222bc91d",
+                "reference": "deca4045cc22336e4b89b05b6f79ffc0222bc91d",
                 "shasum": ""
             },
             "require": {
                 "php": ">=8.4",
-                "vimeo/psalm": "^6.18.1"
+                "vimeo/psalm": "^6.19.0"
             },
             "type": "project",
             "autoload": {
@@ -3305,9 +3305,9 @@
             ],
             "support": {
                 "issues": "https://github.com/valkyrjaio/ci-psalm-php/issues",
-                "source": "https://github.com/valkyrjaio/ci-psalm-php/tree/v26.3.53"
+                "source": "https://github.com/valkyrjaio/ci-psalm-php/tree/v26.3.54"
             },
-            "time": "2026-09-27T15:33:08+00:00"
+            "time": "2026-09-28T18:25:04+00:00"
         },
         {
             "name": "vimeo/psalm",
