@@ -19,6 +19,8 @@ use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingInvalidHandlerException
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\BadHandlerControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\GreeterControllerFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\NonPublicHandlerControllerFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\NonStaticHandlerControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\OverriddenHandlerControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\UnattributedControllerFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -143,5 +145,19 @@ final class AttributeRouteCollectorTest extends TestCase
         $this->expectException(GrpcRoutingInvalidHandlerException::class);
 
         $handler(new Container(), $route);
+    }
+
+    public function testANonPublicAttributedMethodIsRejectedAtScanTime(): void
+    {
+        $this->expectException(GrpcRoutingInvalidHandlerException::class);
+
+        new AttributeRouteCollector()->getRoutes(NonPublicHandlerControllerFixture::class);
+    }
+
+    public function testANonStaticAttributedMethodIsRejectedAtScanTime(): void
+    {
+        $this->expectException(GrpcRoutingInvalidHandlerException::class);
+
+        new AttributeRouteCollector()->getRoutes(NonStaticHandlerControllerFixture::class);
     }
 }

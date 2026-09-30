@@ -71,6 +71,8 @@ class AttributeRouteCollector implements RouteCollectorContract
                 /** @var non-empty-string $method */
                 $method = $reflection->getName();
 
+                $this->validateHandler($class, $method);
+
                 $route = $this->convertAttributeToData($service, $methodAttribute, $class, $method);
                 $route = $this->updateHandler($route, $class, $method);
 
@@ -79,6 +81,27 @@ class AttributeRouteCollector implements RouteCollectorContract
         }
 
         return $routes;
+    }
+
+    /**
+     * Reject an attributed method the scan-derived handler could never call.
+     *
+     * The handler calls the method statically, so a non-public or non-static method fails at
+     * dispatch as a raw `Error` that the status mapping reports as INTERNAL. The scan is where the
+     * developer can still act on it.
+     *
+     * @param class-string     $class  The class name
+     * @param non-empty-string $method The method name
+     *
+     * @throws GrpcRoutingInvalidHandlerException
+     */
+    protected function validateHandler(string $class, string $method): void
+    {
+        $reflection = $this->reflection->forClassMethod($class, $method);
+
+        if (! $reflection->isPublic() || ! $reflection->isStatic()) {
+            throw new GrpcRoutingInvalidHandlerException("The gRPC handler `$class::$method()` must be a public static method");
+        }
     }
 
     /**
