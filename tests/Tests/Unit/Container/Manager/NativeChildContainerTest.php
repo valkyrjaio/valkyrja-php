@@ -636,4 +636,19 @@ final class NativeChildContainerTest extends TestCase
 
         $this->child->getAliased('parentAlias');
     }
+
+    public function testGetAliasedThrowsForACycleTwoWalksCross(): void
+    {
+        // Markers with no services entry, so each walk stops at the hop it reaches
+        $this->parent->setFromData(new ContainerData(
+            singletons: ['first' => 'first', 'second' => 'second'],
+        ));
+        $this->child->bindAlias('second', 'first');
+        // The parent closes the chain after the child was built
+        $this->parent->bindAlias('first', 'second');
+
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        $this->child->get('first');
+    }
 }

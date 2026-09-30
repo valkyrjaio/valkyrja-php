@@ -696,6 +696,36 @@ final class ChildContainerTest extends TestCase
         self::assertTrue($child->isService(ServiceFixture::class));
     }
 
+    public function testGetAliasedThrowsForACycleTwoWalksCross(): void
+    {
+        // Markers with no services entry, so each walk stops at the hop it reaches
+        $this->parent->setFromData(new ContainerData(
+            singletons: ['first' => 'first', 'second' => 'second'],
+        ));
+        $middle = $this->createChild();
+        $middle->bindAlias('second', 'first');
+        // The parent closes the chain after the middle container was built
+        $this->parent->bindAlias('first', 'second');
+        $child = new ChildContainer($middle, new ContainerData());
+
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        $child->get('first');
+    }
+
+    public function testSetFromDataAcceptsAnAliasThatOnlyReachesAChainItIsNoPartOf(): void
+    {
+        $child = $this->createChild();
+        $child->setFromData(new ContainerData(aliases: ['second' => 'first']));
+        // The parent closes the chain after the child was built
+        $this->parent->bindAlias('first', 'second');
+
+        // `bindAlias()` accepts the same pair, so this entry point accepts it too
+        $child->setFromData(new ContainerData(aliases: ['fourth' => 'first']));
+
+        self::assertSame('first', $child->getAliasedId('fourth'));
+    }
+
     /**
      * Create a ChildContainer from the current parent state.
      * The ContainerData is built from the parent and passed explicitly.

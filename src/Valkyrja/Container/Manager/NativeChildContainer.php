@@ -14,9 +14,17 @@ namespace Valkyrja\Container\Manager;
 
 use Override;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Container\Throwable\Exception\ContainerCyclicAliasException;
 
 class NativeChildContainer extends Container
 {
+    /**
+     * The alias targets this container is resolving.
+     *
+     * @var array<class-string, true>
+     */
+    private array $targetsInFlight = [];
+
     public function __construct(
         protected Container $parent
     ) {
@@ -131,7 +139,7 @@ class NativeChildContainer extends Container
         // the same registration, so letting the parent do it would leave the request
         // with one copy for the alias and another for the id.
         if ($this->isUnbuiltInParent($target)) {
-            return $this->get($target, $arguments);
+            return $this->getTargetOnce($id, $target, $arguments);
         }
 
         return $this->parent->getAliased($id, $arguments);
@@ -227,5 +235,29 @@ class NativeChildContainer extends Container
         }
 
         return $this->parent->isSingletonBinding($id);
+    }
+
+    /**
+     * Resolve an alias target, and reject a chain that returns to one already in flight.
+     *
+     * @param class-string            $id        The alias
+     * @param class-string            $target    The target id
+     * @param array<array-key, mixed> $arguments The arguments
+     */
+    private function getTargetOnce(string $id, string $target, array $arguments): object
+    {
+        // A walk ends at the first hop the parent would answer, so a chain that closes
+        // across two of them returns here rather than to one walk. Name the pair.
+        if (isset($this->targetsInFlight[$target])) {
+            throw new ContainerCyclicAliasException($id, $target);
+        }
+
+        $this->targetsInFlight[$target] = true;
+
+        try {
+            return $this->get($target, $arguments);
+        } finally {
+            unset($this->targetsInFlight[$target]);
+        }
     }
 }
