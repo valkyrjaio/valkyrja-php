@@ -19,7 +19,7 @@ class CacheLogConfig implements CacheLogConfigContract
 {
     /**
      * @param class-string<LoggerContract> $cacheLogLogger The logger to write to
-     * @param string                       $cacheLogPrefix      The prefix to prepend to every key
+     * @param string                       $cacheLogPrefix The prefix to prepend to every key
      */
     public function __construct(
         public readonly string $cacheLogLogger = LoggerContract::class,
