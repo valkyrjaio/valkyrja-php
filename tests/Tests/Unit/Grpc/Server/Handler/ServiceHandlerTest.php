@@ -323,6 +323,23 @@ final class ServiceHandlerTest extends TestCase
         self::assertSame(StatusCode::OK, $response->getStatus()->getCode());
     }
 
+    public function testACancellationDuringTheSendingStageOverlaysTheStatus(): void
+    {
+        $cancellation = new CancellationToken();
+
+        $call     = new ServiceCall(self::METHOD, cancellation: $cancellation);
+        $response = ServiceResponse::ok('payload');
+
+        // The transport drops the peer while the stage runs.
+        $cancellation->cancel(CancellationReason::CLIENT_CANCELLED);
+
+        $sent = $this->handler()->sending($call, $response);
+
+        self::assertSame(StatusCode::CANCELLED, $sent->getStatus()->getCode());
+        // The overlay keeps what the stage produced rather than discarding it.
+        self::assertSame(['payload'], $sent->getMessages());
+    }
+
     private function handler(bool $debug = false): ServiceHandler
     {
         $router = new Router(
