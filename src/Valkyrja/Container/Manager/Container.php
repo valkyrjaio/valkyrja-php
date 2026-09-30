@@ -420,13 +420,19 @@ class Container implements ContainerContract
             $seen    = [$alias => true];
             $current = $alias;
 
-            // Past the map, the walk reads what the container answers already. The map
-            // holds every alias the container declares, so that adds only a parent's.
+            // Past the supplied aliases, the walk reads what the container answers
+            // already, so it follows a chain the supplied map only reaches into.
             while (($aliasedId = $aliases[$current] ?? $installed($current)) !== null) {
-                // The walk reached this id once already, so the edge that closes the
-                // chain is the one it just took. Name that pair.
-                if (isset($seen[$aliasedId])) {
+                // The chain returns to the alias this walk started from, so the map the
+                // caller supplied is what closes it. Name the edge that took it there.
+                if ($aliasedId === $alias) {
                     throw new ContainerCyclicAliasException($current, $aliasedId);
+                }
+
+                // A chain the container already held returns here. `bindAlias()` ends its
+                // walk for that state, so this entry point answers it the same way.
+                if (isset($seen[$aliasedId])) {
+                    continue 2;
                 }
 
                 $seen[$aliasedId] = true;
