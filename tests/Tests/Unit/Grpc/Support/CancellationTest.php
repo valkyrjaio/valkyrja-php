@@ -14,6 +14,7 @@ namespace Valkyrja\Tests\Unit\Grpc\Support;
 
 use Valkyrja\Grpc\Message\Call\ServiceCall;
 use Valkyrja\Grpc\Message\Cancellation\CancellationToken;
+use Valkyrja\Grpc\Message\Deadline\Deadline;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Message\Enum\StatusCode;
 use Valkyrja\Grpc\Message\Metadata\Metadata;
@@ -74,6 +75,28 @@ final class CancellationTest extends TestCase
         self::assertSame(StatusCode::CANCELLED, $response->getStatus()->getCode());
         // Metadata accumulated by middleware that did manage to run is preserved.
         self::assertSame($metadata, $response->getTrailingMetadata());
+        self::assertSame(['payload'], $response->getMessages());
+    }
+
+    public function testAnElapsedDeadlineReportsDeadlineExceeded(): void
+    {
+        $call = new ServiceCall('/pkg.Service/Method', deadline: Deadline::fromTimeout(-1.0));
+
+        $response = Cancellation::checkAndFinalize($call);
+
+        self::assertNotNull($response);
+        self::assertSame(StatusCode::DEADLINE_EXCEEDED, $response->getStatus()->getCode());
+    }
+
+    public function testAnElapsedDeadlineOverlaysTheStatusOnAnExistingResponse(): void
+    {
+        $call     = new ServiceCall('/pkg.Service/Method', deadline: Deadline::fromTimeout(-1.0));
+        $existing = ServiceResponse::ok('payload');
+
+        $response = Cancellation::checkAndFinalize($call, $existing);
+
+        self::assertNotNull($response);
+        self::assertSame(StatusCode::DEADLINE_EXCEEDED, $response->getStatus()->getCode());
         self::assertSame(['payload'], $response->getMessages());
     }
 
