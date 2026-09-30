@@ -17,7 +17,7 @@ use Valkyrja\Grpc\Message\Deadline\Deadline;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-use const PHP_FLOAT_MAX;
+use function is_finite;
 
 final class DeadlineTest extends TestCase
 {
@@ -34,12 +34,15 @@ final class DeadlineTest extends TestCase
 
     public function testNone(): void
     {
+        Microtime::freeze(1000.0);
+
         $deadline = Deadline::none();
 
         self::assertFalse($deadline->hasDeadline());
         self::assertFalse($deadline->isExpired());
         self::assertSame(Deadline::INFINITE_REMAINING, $deadline->getRemaining());
-        self::assertSame(PHP_FLOAT_MAX, $deadline->getAbsoluteTime());
+        self::assertSame(1000.0 + Deadline::INFINITE_REMAINING, $deadline->getAbsoluteTime());
+        self::assertTrue(is_finite($deadline->getAbsoluteTime()));
     }
 
     public function testDefaultConstructionIsNone(): void
