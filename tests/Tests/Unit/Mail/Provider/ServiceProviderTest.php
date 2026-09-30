@@ -19,10 +19,14 @@ use PHPUnit\Framework\MockObject\Exception;
 use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Log\Logger\Contract\LoggerContract;
+use Valkyrja\Log\Logger\NullLogger;
 use Valkyrja\Mail\Data\Contract\MailConfigContract;
+use Valkyrja\Mail\Data\Contract\MailLogConfigContract;
 use Valkyrja\Mail\Data\Contract\MailMailgunConfigContract;
 use Valkyrja\Mail\Data\Contract\MailPhpMailerConfigContract;
+use Valkyrja\Mail\Data\Contract\MessageContract;
 use Valkyrja\Mail\Data\MailConfig;
+use Valkyrja\Mail\Data\MailLogConfig;
 use Valkyrja\Mail\Data\MailMailgunConfig;
 use Valkyrja\Mail\Data\MailPhpMailerConfig;
 use Valkyrja\Mail\Mailer\Contract\MailerContract;
@@ -47,6 +51,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(MailConfigContract::class, new MailServiceProvider()->publishers());
         self::assertArrayHasKey(MailMailgunConfigContract::class, new MailServiceProvider()->publishers());
         self::assertArrayHasKey(MailPhpMailerConfigContract::class, new MailServiceProvider()->publishers());
+        self::assertArrayHasKey(MailLogConfigContract::class, new MailServiceProvider()->publishers());
         self::assertArrayHasKey(MailerContract::class, new MailServiceProvider()->publishers());
         self::assertArrayHasKey(MailgunMailer::class, new MailServiceProvider()->publishers());
         self::assertArrayHasKey(Mailgun::class, new MailServiceProvider()->publishers());
@@ -115,6 +120,26 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         self::assertInstanceOf(MailPhpMailerConfigContract::class, $config = $this->container->getSingleton(MailPhpMailerConfigContract::class));
         self::assertSame('test-host', $config->phpMailerHost);
+    }
+
+    public function testPublishLogConfig(): void
+    {
+        $callback = new MailServiceProvider()->publishers()[MailLogConfigContract::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(MailLogConfig::class, $config = $this->container->getSingleton(MailLogConfigContract::class));
+        self::assertSame(LoggerContract::class, $config->mailLogLogger);
+    }
+
+    public function testPublishLogConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, $appConfig = new MailConfigFixture());
+
+        $callback = new MailServiceProvider()->publishers()[MailLogConfigContract::class];
+        $callback($this->container);
+
+        self::assertSame($appConfig, $config = $this->container->getSingleton(MailLogConfigContract::class));
+        self::assertSame(NullLogger::class, $config->mailLogLogger);
     }
 
     /**
@@ -238,12 +263,19 @@ final class ServiceProviderTest extends ServiceProviderTestCase
      */
     public function testPublishLogMailer(): void
     {
-        $this->container->setSingleton(LoggerContract::class, self::createStub(LoggerContract::class));
+        // Only the configured logger is bound, so the log call proves the mailer took it.
+        $logger = $this->createMock(NullLogger::class);
+        $logger->expects($this->atLeastOnce())->method('info');
+
+        $this->container->setSingleton(MailLogConfigContract::class, new MailLogConfig(mailLogLogger: NullLogger::class));
+        $this->container->setSingleton(NullLogger::class, $logger);
 
         $callback = new MailServiceProvider()->publishers()[LogMailer::class];
         $callback($this->container);
 
-        self::assertInstanceOf(LogMailer::class, $this->container->getSingleton(LogMailer::class));
+        self::assertInstanceOf(LogMailer::class, $mailer = $this->container->getSingleton(LogMailer::class));
+
+        $mailer->send(self::createStub(MessageContract::class));
     }
 
     public function testPublishNullMailer(): void

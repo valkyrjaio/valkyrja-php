@@ -15,10 +15,14 @@ namespace Valkyrja\Tests\Unit\Sms\Provider;
 use PHPUnit\Framework\MockObject\Exception;
 use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\Log\Logger\Contract\LoggerContract;
+use Valkyrja\Log\Logger\NullLogger;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
+use Valkyrja\Sms\Data\Contract\MessageContract;
 use Valkyrja\Sms\Data\Contract\SmsConfigContract;
+use Valkyrja\Sms\Data\Contract\SmsLogConfigContract;
 use Valkyrja\Sms\Data\Contract\SmsVonageConfigContract;
 use Valkyrja\Sms\Data\SmsConfig;
+use Valkyrja\Sms\Data\SmsLogConfig;
 use Valkyrja\Sms\Data\SmsVonageConfig;
 use Valkyrja\Sms\Messenger\Contract\MessengerContract;
 use Valkyrja\Sms\Messenger\LogMessenger;
@@ -42,6 +46,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
     {
         self::assertArrayHasKey(SmsConfigContract::class, new SmsServiceProvider()->publishers());
         self::assertArrayHasKey(SmsVonageConfigContract::class, new SmsServiceProvider()->publishers());
+        self::assertArrayHasKey(SmsLogConfigContract::class, new SmsServiceProvider()->publishers());
         self::assertArrayHasKey(MessengerContract::class, new SmsServiceProvider()->publishers());
         self::assertArrayHasKey(VonageMessenger::class, new SmsServiceProvider()->publishers());
         self::assertArrayHasKey(Client::class, new SmsServiceProvider()->publishers());
@@ -88,6 +93,26 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         self::assertInstanceOf(SmsVonageConfigContract::class, $config = $this->container->getSingleton(SmsVonageConfigContract::class));
         self::assertSame('test-key', $config->vonageKey);
+    }
+
+    public function testPublishLogConfig(): void
+    {
+        $callback = new SmsServiceProvider()->publishers()[SmsLogConfigContract::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(SmsLogConfig::class, $config = $this->container->getSingleton(SmsLogConfigContract::class));
+        self::assertSame(LoggerContract::class, $config->smsLogLogger);
+    }
+
+    public function testPublishLogConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, $appConfig = new SmsConfigFixture());
+
+        $callback = new SmsServiceProvider()->publishers()[SmsLogConfigContract::class];
+        $callback($this->container);
+
+        self::assertSame($appConfig, $config = $this->container->getSingleton(SmsLogConfigContract::class));
+        self::assertSame(NullLogger::class, $config->smsLogLogger);
     }
 
     /**
@@ -162,12 +187,19 @@ final class ServiceProviderTest extends ServiceProviderTestCase
      */
     public function testPublishLogSms(): void
     {
-        $this->container->setSingleton(LoggerContract::class, self::createStub(LoggerContract::class));
+        // Only the configured logger is bound, so the log call proves the messenger took it.
+        $logger = $this->createMock(NullLogger::class);
+        $logger->expects($this->atLeastOnce())->method('info');
+
+        $this->container->setSingleton(SmsLogConfigContract::class, new SmsLogConfig(smsLogLogger: NullLogger::class));
+        $this->container->setSingleton(NullLogger::class, $logger);
 
         $callback = new SmsServiceProvider()->publishers()[LogMessenger::class];
         $callback($this->container);
 
-        self::assertInstanceOf(LogMessenger::class, $this->container->getSingleton(LogMessenger::class));
+        self::assertInstanceOf(LogMessenger::class, $messenger = $this->container->getSingleton(LogMessenger::class));
+
+        $messenger->send(self::createStub(MessageContract::class));
     }
 
     public function testPublishNullSms(): void

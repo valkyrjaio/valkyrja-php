@@ -29,15 +29,15 @@ final class CacheConfigFixture extends Config implements CacheConfigContract, Ca
     /**
      * @param class-string<CacheContract>  $defaultCache
      * @param non-empty-string             $redisHost
-     * @param class-string<LoggerContract> $logLogger
+     * @param class-string<LoggerContract> $cacheLogLogger
      */
     public function __construct(
         public string $defaultCache = NullCache::class,
         public string $redisHost = 'redis.test',
         public int $redisPort = 6380,
         public string $redisPrefix = 'redis:',
-        public string $logLogger = LoggerContract::class,
-        public string $logPrefix = 'log:',
+        public string $cacheLogLogger = LoggerContract::class,
+        public string $cacheLogPrefix = 'log:',
         public string $nullPrefix = 'null:',
     ) {
         parent::__construct();

@@ -29,18 +29,18 @@ final class CacheLogConfigTest extends TestCase
     {
         $config = new CacheLogConfig();
 
-        self::assertSame(LoggerContract::class, $config->logLogger);
-        self::assertSame('', $config->logPrefix);
+        self::assertSame(LoggerContract::class, $config->cacheLogLogger);
+        self::assertSame('', $config->cacheLogPrefix);
     }
 
     public function testCustomValuesAreStored(): void
     {
         $config = new CacheLogConfig(
-            logLogger: PsrLogger::class,
-            logPrefix: 'test:',
+            cacheLogLogger: PsrLogger::class,
+            cacheLogPrefix: 'test:',
         );
 
-        self::assertSame(PsrLogger::class, $config->logLogger);
-        self::assertSame('test:', $config->logPrefix);
+        self::assertSame(PsrLogger::class, $config->cacheLogLogger);
+        self::assertSame('test:', $config->cacheLogPrefix);
     }
 }

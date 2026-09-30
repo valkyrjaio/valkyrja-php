@@ -23,13 +23,14 @@ use Valkyrja\Crypt\Manager\Contract\CryptContract;
 use Valkyrja\Http\Message\Constant\HeaderName;
 use Valkyrja\Http\Message\Request\Contract\ServerRequestContract;
 use Valkyrja\Jwt\Manager\Contract\JwtContract;
-use Valkyrja\Log\Logger\Contract\LoggerContract;
 use Valkyrja\Session\Data\Contract\SessionConfigContract;
 use Valkyrja\Session\Data\Contract\SessionJwtConfigContract;
+use Valkyrja\Session\Data\Contract\SessionLogConfigContract;
 use Valkyrja\Session\Data\Contract\SessionPhpConfigContract;
 use Valkyrja\Session\Data\Contract\SessionTokenConfigContract;
 use Valkyrja\Session\Data\SessionConfig;
 use Valkyrja\Session\Data\SessionJwtConfig;
+use Valkyrja\Session\Data\SessionLogConfig;
 use Valkyrja\Session\Data\SessionPhpConfig;
 use Valkyrja\Session\Data\SessionTokenConfig;
 use Valkyrja\Session\Manager\CacheSession;
@@ -112,6 +113,22 @@ class SessionServiceProvider implements ServiceProviderContract
         }
 
         $container->setSingleton(SessionTokenConfigContract::class, new SessionTokenConfig());
+    }
+
+    /**
+     * Publish the log session config service.
+     */
+    public static function publishLogConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof SessionLogConfigContract) {
+            $container->setSingleton(SessionLogConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(SessionLogConfigContract::class, new SessionLogConfig());
     }
 
     /**
@@ -424,7 +441,8 @@ class SessionServiceProvider implements ServiceProviderContract
      */
     public static function publishLogSession(ContainerContract $container): void
     {
-        $config = $container->getSingleton(SessionConfigContract::class);
+        $config    = $container->getSingleton(SessionConfigContract::class);
+        $logConfig = $container->getSingleton(SessionLogConfigContract::class);
 
         $sessionId   = $config->sessionId;
         $sessionName = $config->sessionName;
@@ -432,7 +450,7 @@ class SessionServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             LogSession::class,
             new LogSession(
-                logger: $container->getSingleton(LoggerContract::class),
+                logger: $container->getSingleton($logConfig->sessionLogLogger),
                 sessionId: $sessionId,
                 sessionName: $sessionName,
             ),
@@ -450,6 +468,7 @@ class SessionServiceProvider implements ServiceProviderContract
             SessionPhpConfigContract::class    => [self::class, 'publishPhpConfig'],
             SessionJwtConfigContract::class    => [self::class, 'publishJwtConfig'],
             SessionTokenConfigContract::class  => [self::class, 'publishTokenConfig'],
+            SessionLogConfigContract::class    => [self::class, 'publishLogConfig'],
             SessionContract::class             => [self::class, 'publishSession'],
             PhpSession::class                  => [self::class, 'publishPhpSession'],
             NullSession::class                 => [self::class, 'publishNullSession'],

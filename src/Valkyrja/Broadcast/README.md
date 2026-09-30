@@ -81,9 +81,13 @@ implement several of them at once.
 
 ### `BroadcastLogConfigContract`
 
-| Property    | Default                 | Description                     |
-| :---------- | :---------------------- | :------------------------------ |
-| `logLogger` | `LoggerContract::class` | Logger used by `LogBroadcaster` |
+| Property             | Default                 | Description                     |
+| :------------------- | :---------------------- | :------------------------------ |
+| `broadcastLogLogger` | `LoggerContract::class` | Logger used by `LogBroadcaster` |
+
+The property name starts with the component name, because the log adapter of
+each component has a logger setting. One config class can then set a different
+logger for each component.
 
 ## Service Registration
 

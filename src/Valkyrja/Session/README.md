@@ -84,7 +84,7 @@ Configure the default through `SessionConfigContract`.
 
 ## Configuration
 
-The component reads four config contracts. Your application config class
+The component reads five config contracts. Your application config class
 implements only the contracts for the adapters that it uses. Each contract
 prefixes its properties with the adapter name, so one class can implement
 several of them at once.
@@ -127,7 +127,17 @@ Every session manager reads these settings.
 | `tokenOptionName` | `null`  | CLI option name for token sessions  |
 | `tokenHeaderName` | `null`  | HTTP header name for token sessions |
 
+### `SessionLogConfigContract`
+
+| Property           | Default                 | Description                 |
+| :----------------- | :---------------------- | :-------------------------- |
+| `sessionLogLogger` | `LoggerContract::class` | Logger used by `LogSession` |
+
+The property name starts with the component name, because the log adapter of
+each component has a logger setting. One config class can then set a different
+logger for each component.
+
 ## Service Registration
 
-The Session service provider registers `SessionContract`, the four config
+The Session service provider registers `SessionContract`, the five config
 contracts, and all session implementation singletons.

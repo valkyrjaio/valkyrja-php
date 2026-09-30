@@ -17,11 +17,11 @@ use Valkyrja\Log\Logger\Contract\LoggerContract;
 interface CacheLogConfigContract
 {
     /** @var class-string<LoggerContract> */
-    public string $logLogger {
+    public string $cacheLogLogger {
         get;
     }
 
-    public string $logPrefix {
+    public string $cacheLogPrefix {
         get;
     }
 }

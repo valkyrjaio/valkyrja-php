@@ -14,8 +14,11 @@ namespace Valkyrja\Tests\Fixtures\Session\Data;
 
 use Valkyrja\Application\Data\Config;
 use Valkyrja\Http\Message\Enum\SameSite;
+use Valkyrja\Log\Logger\Contract\LoggerContract;
+use Valkyrja\Log\Logger\NullLogger;
 use Valkyrja\Session\Data\Contract\SessionConfigContract;
 use Valkyrja\Session\Data\Contract\SessionJwtConfigContract;
+use Valkyrja\Session\Data\Contract\SessionLogConfigContract;
 use Valkyrja\Session\Data\Contract\SessionPhpConfigContract;
 use Valkyrja\Session\Data\Contract\SessionTokenConfigContract;
 use Valkyrja\Session\Manager\Contract\SessionContract;
@@ -24,7 +27,7 @@ use Valkyrja\Session\Manager\NullSession;
 /**
  * An application config that implements every session contract at once.
  */
-final class SessionConfigFixture extends Config implements SessionConfigContract, SessionPhpConfigContract, SessionJwtConfigContract, SessionTokenConfigContract
+final class SessionConfigFixture extends Config implements SessionConfigContract, SessionPhpConfigContract, SessionJwtConfigContract, SessionTokenConfigContract, SessionLogConfigContract
 {
     /**
      * @param class-string<SessionContract> $defaultSession
@@ -36,6 +39,7 @@ final class SessionConfigFixture extends Config implements SessionConfigContract
      * @param non-empty-string|null         $jwtHeaderName
      * @param non-empty-string|null         $tokenOptionName
      * @param non-empty-string|null         $tokenHeaderName
+     * @param class-string<LoggerContract>  $sessionLogLogger
      */
     public function __construct(
         public string $defaultSession = NullSession::class,
@@ -51,6 +55,7 @@ final class SessionConfigFixture extends Config implements SessionConfigContract
         public string|null $jwtHeaderName = 'test-jwt-header',
         public string|null $tokenOptionName = 'test-token-option',
         public string|null $tokenHeaderName = 'test-token-header',
+        public string $sessionLogLogger = NullLogger::class,
     ) {
         parent::__construct();
     }

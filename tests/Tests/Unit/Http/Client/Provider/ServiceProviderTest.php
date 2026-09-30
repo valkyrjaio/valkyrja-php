@@ -16,14 +16,21 @@ use GuzzleHttp\Client;
 use PHPUnit\Framework\MockObject\Exception;
 use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\Http\Client\Data\Contract\HttpClientConfigContract;
+use Valkyrja\Http\Client\Data\Contract\HttpClientLogConfigContract;
 use Valkyrja\Http\Client\Data\HttpClientConfig;
+use Valkyrja\Http\Client\Data\HttpClientLogConfig;
 use Valkyrja\Http\Client\Manager\Contract\ClientContract;
 use Valkyrja\Http\Client\Manager\GuzzleClient;
 use Valkyrja\Http\Client\Manager\LogClient;
 use Valkyrja\Http\Client\Manager\NullClient;
 use Valkyrja\Http\Client\Provider\HttpClientServiceProvider;
+use Valkyrja\Http\Message\Enum\RequestMethod;
+use Valkyrja\Http\Message\Request\Request;
 use Valkyrja\Http\Message\Response\Factory\Contract\ResponseFactoryContract;
+use Valkyrja\Http\Message\Uri\Enum\Scheme;
+use Valkyrja\Http\Message\Uri\Uri;
 use Valkyrja\Log\Logger\Contract\LoggerContract;
+use Valkyrja\Log\Logger\NullLogger;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
 use Valkyrja\Tests\Fixtures\Http\Client\Data\HttpClientConfigFixture;
 
@@ -38,6 +45,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
     public function testExpectedPublishers(): void
     {
         self::assertArrayHasKey(HttpClientConfigContract::class, new HttpClientServiceProvider()->publishers());
+        self::assertArrayHasKey(HttpClientLogConfigContract::class, new HttpClientServiceProvider()->publishers());
         self::assertArrayHasKey(ClientContract::class, new HttpClientServiceProvider()->publishers());
         self::assertArrayHasKey(GuzzleClient::class, new HttpClientServiceProvider()->publishers());
         self::assertArrayHasKey(Client::class, new HttpClientServiceProvider()->publishers());
@@ -63,6 +71,26 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         self::assertInstanceOf(HttpClientConfigContract::class, $config = $this->container->getSingleton(HttpClientConfigContract::class));
         self::assertSame(NullClient::class, $config->defaultClient);
+    }
+
+    public function testPublishLogConfig(): void
+    {
+        $callback = new HttpClientServiceProvider()->publishers()[HttpClientLogConfigContract::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(HttpClientLogConfig::class, $config = $this->container->getSingleton(HttpClientLogConfigContract::class));
+        self::assertSame(LoggerContract::class, $config->httpClientLogLogger);
+    }
+
+    public function testPublishLogConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, $appConfig = new HttpClientConfigFixture());
+
+        $callback = new HttpClientServiceProvider()->publishers()[HttpClientLogConfigContract::class];
+        $callback($this->container);
+
+        self::assertSame($appConfig, $config = $this->container->getSingleton(HttpClientLogConfigContract::class));
+        self::assertSame(NullLogger::class, $config->httpClientLogLogger);
     }
 
     /**
@@ -112,12 +140,24 @@ final class ServiceProviderTest extends ServiceProviderTestCase
      */
     public function testPublishLogClient(): void
     {
-        $this->container->setSingleton(LoggerContract::class, self::createStub(LoggerContract::class));
+        // Only the configured logger is bound, so the log call proves the client took it.
+        $logger = $this->createMock(NullLogger::class);
+        $logger->expects($this->once())->method('info');
+
+        $this->container->setSingleton(HttpClientLogConfigContract::class, new HttpClientLogConfig(httpClientLogLogger: NullLogger::class));
+        $this->container->setSingleton(NullLogger::class, $logger);
 
         $callback = new HttpClientServiceProvider()->publishers()[LogClient::class];
         $callback($this->container);
 
-        self::assertInstanceOf(LogClient::class, $this->container->getSingleton(LogClient::class));
+        self::assertInstanceOf(LogClient::class, $client = $this->container->getSingleton(LogClient::class));
+
+        $client->sendRequest(
+            new Request(
+                uri: new Uri(scheme: Scheme::HTTPS, host: 'example.com'),
+                method: RequestMethod::GET,
+            )
+        );
     }
 
     public function testPublishNullClient(): void

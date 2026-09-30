@@ -1677,6 +1677,22 @@ replaces the parent's constructor.
 `LogClient` and `NullClient` stand in during development and in tests, so code
 that depends on `ClientContract` runs without a network.
 
+`HttpClientLogConfigContract::$httpClientLogLogger` selects the logger that
+`LogClient` writes to. The default is `LoggerContract::class`, which resolves
+to the application's default logger. The property name starts with the
+component name, because the log adapter of each component has a logger
+setting. One config class can then set a different logger for each component,
+and it can implement both contracts:
+
+| Contract                      | Property              | Default                 |
+| :---------------------------- | :-------------------- | :---------------------- |
+| `HttpClientConfigContract`    | `defaultClient`       | `GuzzleClient::class`   |
+| `HttpClientLogConfigContract` | `httpClientLogLogger` | `LoggerContract::class` |
+
+The service provider publishes each contract as its own binding. It binds the
+application config when that config implements the contract, and the default
+implementation when it does not.
+
 ## PSR compatibility
 
 The pipeline works exclusively with Valkyrja's own contracts. Wrapper classes in

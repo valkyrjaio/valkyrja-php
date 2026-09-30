@@ -10,14 +10,14 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Broadcast\Data\Contract;
+namespace Valkyrja\Http\Client\Data\Contract;
 
 use Valkyrja\Log\Logger\Contract\LoggerContract;
 
-interface BroadcastLogConfigContract
+interface HttpClientLogConfigContract
 {
     /** @var class-string<LoggerContract> */
-    public string $broadcastLogLogger {
+    public string $httpClientLogLogger {
         get;
     }
 }

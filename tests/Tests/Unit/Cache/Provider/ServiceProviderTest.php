@@ -101,7 +101,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $callback($this->container);
 
         self::assertInstanceOf(CacheLogConfigContract::class, $config = $this->container->getSingleton(CacheLogConfigContract::class));
-        self::assertSame('', $config->logPrefix);
+        self::assertSame('', $config->cacheLogPrefix);
     }
 
     public function testPublishLogConfigWithApplicationConfig(): void
@@ -112,7 +112,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $callback($this->container);
 
         self::assertInstanceOf(CacheLogConfigContract::class, $config = $this->container->getSingleton(CacheLogConfigContract::class));
-        self::assertSame('log:', $config->logPrefix);
+        self::assertSame('log:', $config->cacheLogPrefix);
     }
 
     public function testPublishNullConfig(): void
@@ -195,7 +195,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
      */
     public function testPublishLogCache(): void
     {
-        $this->container->setSingleton(CacheLogConfigContract::class, new CacheLogConfig(logPrefix: 'log:'));
+        $this->container->setSingleton(CacheLogConfigContract::class, new CacheLogConfig(cacheLogPrefix: 'log:'));
         $this->container->setSingleton(LoggerContract::class, self::createStub(LoggerContract::class));
 
         $callback = new CacheServiceProvider()->publishers()[LogCache::class];
