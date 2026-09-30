@@ -7,9 +7,9 @@ using PHP's libsodium extension. It supports encrypting plain strings, arrays,
 and objects, and includes a null implementation for testing.
 
 The default implementation uses `sodium_crypto_secretbox`, which provides
-authenticated encryption with a MAC. The key is stored as a hex string in the
-application configuration and is converted to raw bytes at runtime. Keys are
-zeroed from memory after use via `sodium_memzero`.
+authenticated encryption with a MAC. `CryptSodiumConfigContract` supplies the
+key as a hex string, and `SodiumCrypt` converts the key to raw bytes at run
+time. `sodium_memzero` zeroes each key from memory after use.
 
 ## The CryptContract
 
@@ -32,9 +32,9 @@ public function encryptObject(object $object, string|null $key = null): string;
 public function decryptObject(string $encrypted, string|null $key = null): object;
 ```
 
-All `$key` parameters accept `#[SensitiveParameter]` values. When `null`, the
-key configured in the application is used. All methods throw `CryptException` on
-failure.
+All `$key` parameters accept `#[SensitiveParameter]` values. When a `$key` is
+`null`, `SodiumCrypt` uses the key from `CryptSodiumConfigContract`. All methods
+throw `CryptException` on failure.
 
 `isValidEncryptedMessage()` returns `false` rather than throwing when the
 message is invalid.
@@ -71,25 +71,36 @@ Configure the default through `CryptConfigContract`.
 
 ## Configuration
 
-The component reads `CryptConfigContract`. Your application config class
-implements the contract. The service provider binds `CryptConfig` when the
-application config does not implement it.
+The component reads two config contracts. Your application config class
+implements only the contracts for the adapters that it uses. Each adapter
+contract prefixes its properties with the adapter name, so one class can
+implement several of them at once.
+
+### `CryptConfigContract`
 
 | Property       | Default              | Description                             |
 | :------------- | :------------------- | :-------------------------------------- |
 | `defaultCrypt` | `SodiumCrypt::class` | Implementation bound to `CryptContract` |
 
-The encryption key itself is read from `Config::$key` (the application-level
-key). It must be a hex-encoded string representing the raw key bytes expected by
-libsodium.
+### `CryptSodiumConfigContract`
+
+| Property    | Default        | Description                 |
+| :---------- | :------------- | :-------------------------- |
+| `sodiumKey` | `Config::$key` | Key that `SodiumCrypt` uses |
+
+The key must be a hex-encoded string of the raw key bytes that libsodium
+expects. A key has no safe default value, so `CryptSodiumConfig` has none. When
+the application config does not implement the contract, the service provider
+gives `CryptSodiumConfig` the application key from `Config::$key`.
 
 ## Service Registration
 
 The Crypt service provider registers the following singletons:
 
-| Contract / Class      | Description                                    |
-| :-------------------- | :--------------------------------------------- |
-| `CryptConfigContract` | Component config                               |
-| `CryptContract`       | Active implementation (default: `SodiumCrypt`) |
-| `SodiumCrypt`         | libsodium secretbox implementation             |
-| `NullCrypt`           | No-op implementation                           |
+| Contract / Class            | Description                                    |
+| :-------------------------- | :--------------------------------------------- |
+| `CryptConfigContract`       | Component config                               |
+| `CryptSodiumConfigContract` | Sodium adapter config                          |
+| `CryptContract`             | Active implementation (default: `SodiumCrypt`) |
+| `SodiumCrypt`               | libsodium secretbox implementation             |
+| `NullCrypt`                 | No-op implementation                           |

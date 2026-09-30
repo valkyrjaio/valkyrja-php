@@ -17,7 +17,9 @@ use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
 use Valkyrja\Crypt\Data\Contract\CryptConfigContract;
+use Valkyrja\Crypt\Data\Contract\CryptSodiumConfigContract;
 use Valkyrja\Crypt\Data\CryptConfig;
+use Valkyrja\Crypt\Data\CryptSodiumConfig;
 use Valkyrja\Crypt\Manager\Contract\CryptContract;
 use Valkyrja\Crypt\Manager\NullCrypt;
 use Valkyrja\Crypt\Manager\SodiumCrypt;
@@ -44,6 +46,28 @@ class CryptServiceProvider implements ServiceProviderContract
     }
 
     /**
+     * Publish the sodium crypt config service.
+     */
+    public static function publishSodiumConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof CryptSodiumConfigContract) {
+            $container->setSingleton(CryptSodiumConfigContract::class, $config);
+
+            return;
+        }
+
+        // A key has no safe default value, so the default config takes the application key.
+        $container->setSingleton(
+            CryptSodiumConfigContract::class,
+            new CryptSodiumConfig(
+                sodiumKey: $config->key
+            )
+        );
+    }
+
+    /**
      * Publish the crypt service.
      */
     public static function publishCrypt(ContainerContract $container): void
@@ -61,12 +85,12 @@ class CryptServiceProvider implements ServiceProviderContract
      */
     public static function publishSodiumCrypt(ContainerContract $container): void
     {
-        $config = $container->getSingleton(ConfigContract::class);
+        $config = $container->getSingleton(CryptSodiumConfigContract::class);
 
         $container->setSingleton(
             SodiumCrypt::class,
             new SodiumCrypt(
-                key: $config->key
+                key: $config->sodiumKey
             )
         );
     }
@@ -89,10 +113,11 @@ class CryptServiceProvider implements ServiceProviderContract
     public function publishers(): array
     {
         return [
-            CryptConfigContract::class => [self::class, 'publishConfig'],
-            CryptContract::class       => [self::class, 'publishCrypt'],
-            SodiumCrypt::class         => [self::class, 'publishSodiumCrypt'],
-            NullCrypt::class           => [self::class, 'publishNullCrypt'],
+            CryptConfigContract::class       => [self::class, 'publishConfig'],
+            CryptSodiumConfigContract::class => [self::class, 'publishSodiumConfig'],
+            CryptContract::class             => [self::class, 'publishCrypt'],
+            SodiumCrypt::class               => [self::class, 'publishSodiumCrypt'],
+            NullCrypt::class                 => [self::class, 'publishNullCrypt'],
         ];
     }
 }
