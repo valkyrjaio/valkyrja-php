@@ -44,25 +44,25 @@ class Deadline implements DeadlineContract
     /**
      * Create a deadline from a relative timeout, in seconds.
      */
-    public static function fromTimeout(float $timeout): self
+    public static function fromTimeout(float $timeout): static
     {
-        return new self(absoluteTime: Microtime::get() + $timeout, hasDeadline: true);
+        return new static(absoluteTime: Microtime::get() + $timeout, hasDeadline: true);
     }
 
     /**
      * Create a deadline from an absolute unix timestamp, in seconds.
      */
-    public static function fromAbsolute(float $absoluteTime): self
+    public static function fromAbsolute(float $absoluteTime): static
     {
-        return new self(absoluteTime: $absoluteTime, hasDeadline: true);
+        return new static(absoluteTime: $absoluteTime, hasDeadline: true);
     }
 
     /**
      * Create the sentinel deadline for a call with no client-set deadline.
      */
-    public static function none(): self
+    public static function none(): static
     {
-        return new self();
+        return new static();
     }
 
     /**

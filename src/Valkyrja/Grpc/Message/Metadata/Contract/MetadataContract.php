@@ -83,7 +83,7 @@ interface MetadataContract extends IteratorAggregate
     /**
      * Get an immutable snapshot as a map of lower-cased keys to value lists.
      *
-     * @return array<string, string[]>
+     * @return array<array-key, string[]>
      */
     public function toArray(): array;
 }
