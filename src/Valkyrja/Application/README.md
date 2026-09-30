@@ -609,7 +609,7 @@ application object. The application is a framework-level concern.
 
 A component provider is the top-level unit, listed in `config->providers`. It
 implements `Valkyrja\Application\Provider\Contract\ComponentProviderContract`,
-which has six methods:
+which declares one method per kind of provider:
 
 ```text
 config->providers[]
@@ -619,7 +619,8 @@ config->providers[]
         ├── getEventProviders()     → ListenerProviderContract[]
         ├── getCliProviders()       → CliRouteProviderContract[]
         ├── getHttpProviders()      → HttpRouteProviderContract[]
-        └── getQueueProviders()     → QueueRouteProviderContract[]
+        ├── getQueueProviders()     → QueueRouteProviderContract[]
+        └── getGrpcProviders()      → GrpcRouteProviderContract[]
 ```
 
 Each method receives the `ApplicationContract` and returns instances of the
@@ -633,10 +634,11 @@ matching contract:
 | `getCliProviders()`       | `Valkyrja\Cli\Routing\Provider\Contract\CliRouteProviderContract`     | CLI commands          |
 | `getHttpProviders()`      | `Valkyrja\Http\Routing\Provider\Contract\HttpRouteProviderContract`   | HTTP routes           |
 | `getQueueProviders()`     | `Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract` | Queue routes          |
+| `getGrpcProviders()`      | `Valkyrja\Grpc\Routing\Provider\Contract\GrpcRouteProviderContract`   | gRPC routes           |
 
 **Service providers** map service ids to resolution logic in the container.
-**Route providers** (CLI, HTTP, and queue) register commands, routes, and queue
-routes. **Listener providers** register event listeners. Each component's own
+**Route providers** (CLI, HTTP, queue, and gRPC) register commands, routes,
+queue routes, and gRPC routes. **Listener providers** register event listeners. Each component's own
 README documents its provider contract. The application collects each kind
 lazily, on the first call to the matching `get*Providers()` method, and caches
 the result. Nothing is instantiated at collection time. The framework pays the
@@ -645,7 +647,7 @@ cost when a service is first requested.
 ### Writing a Component Provider
 
 A typical application declares one component provider of its own, returns its
-child providers from the six methods, and lists the component provider in the
+child providers from each method, and lists the component provider in the
 config after a built-in aggregator:
 
 ```php
@@ -687,6 +689,11 @@ class AppComponentProvider implements ComponentProviderContract
     public function getQueueProviders(ApplicationContract $app): array
     {
         return [new AppQueueRouteProvider()];
+    }
+
+    public function getGrpcProviders(ApplicationContract $app): array
+    {
+        return [new AppGrpcRouteProvider()];
     }
 }
 ```

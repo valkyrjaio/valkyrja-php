@@ -39,6 +39,8 @@ use Valkyrja\Tests\Fixtures\Application\Provider\CliRouteProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\CliRoutingDataProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\ComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\EventComponentProviderFixture;
+use Valkyrja\Tests\Fixtures\Application\Provider\GrpcRouteComponentProviderFixture;
+use Valkyrja\Tests\Fixtures\Application\Provider\GrpcRouteProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\HttpComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\HttpContainerDataProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\HttpRouteComponentProviderFixture;
@@ -297,6 +299,20 @@ final class ApplicationTest extends TestCase
         self::assertSame(
             [QueueRouteProviderFixture::class],
             $application->getQueueProviders(),
+        );
+    }
+
+    /**
+     * Test that getGrpcProviders collects results from all expanded providers.
+     */
+    public function testGetGrpcProviders(): void
+    {
+        $config      = new Config(providers: [new GrpcRouteComponentProviderFixture()]);
+        $application = new Valkyrja(container: new Container(), config: $config);
+
+        self::assertSame(
+            [GrpcRouteProviderFixture::class],
+            $application->getGrpcProviders(),
         );
     }
 
