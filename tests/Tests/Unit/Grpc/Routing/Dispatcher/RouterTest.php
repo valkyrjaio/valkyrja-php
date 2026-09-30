@@ -27,15 +27,18 @@ use Valkyrja\Grpc\Middleware\Handler\RouteNotMatchedHandler;
 use Valkyrja\Grpc\Middleware\Handler\SendingResponseHandler;
 use Valkyrja\Grpc\Middleware\Handler\ThrowableCaughtHandler;
 use Valkyrja\Grpc\Routing\Collection\RouteCollection;
+use Valkyrja\Grpc\Routing\Collector\AttributeRouteCollector;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Routing\Data\Route;
 use Valkyrja\Grpc\Routing\Dispatcher\Router;
+use Valkyrja\Grpc\Throwable\Exception\CancelledException;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteDispatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareChangedFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareReplacingRouteFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteNotMatchedMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\CancellingControllerFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function reset;
@@ -271,6 +274,24 @@ final class RouterTest extends TestCase
         $all = $this->collection->all();
 
         self::assertSame(self::METHOD, reset($all)->getMethod());
+    }
+
+    public function testACollectedControllersCancellationReachesTheCaller(): void
+    {
+        $routes = new AttributeRouteCollector()->getRoutes(CancellingControllerFixture::class);
+
+        foreach ($routes as $route) {
+            $this->collection->add($route);
+        }
+
+        try {
+            $this->router()->dispatch(new ServiceCall('/pkg.Cancelling/Cancel'));
+
+            self::fail('The cancellation must reach the caller.');
+        } catch (CancelledException $exception) {
+            // The router adds no wrapper, so the status mapping above it still sees the reason.
+            self::assertSame(CancellationReason::CLIENT_CANCELLED, $exception->getReason());
+        }
     }
 
     private function router(): Router
