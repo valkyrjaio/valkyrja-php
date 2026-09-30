@@ -289,6 +289,8 @@ class Status implements StatusContract
         $new = clone $this;
 
         $new->code = $code;
+        // The message defaults from the code, so keeping the old one would describe the old code.
+        $new->message = $code->getDefaultMessage();
 
         return $new;
     }
