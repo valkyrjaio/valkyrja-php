@@ -38,9 +38,9 @@ class AuthContext implements AuthContextContract
     /**
      * Create an auth context for an insecure (plaintext) connection.
      */
-    public static function insecure(): self
+    public static function insecure(): static
     {
-        return new self(type: self::TYPE_INSECURE);
+        return new static(type: self::TYPE_INSECURE);
     }
 
     /**

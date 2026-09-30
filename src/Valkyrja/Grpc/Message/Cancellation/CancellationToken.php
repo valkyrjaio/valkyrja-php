@@ -30,9 +30,9 @@ class CancellationToken implements CancellationTokenContract
     /**
      * Create a token that never fires — the sentinel for a call with no cancellation source.
      */
-    public static function never(): self
+    public static function never(): static
     {
-        return new self();
+        return new static();
     }
 
     /**

@@ -36,17 +36,17 @@ class ServiceResponse implements ServiceResponseContract
     /**
      * Create a response for the given status.
      */
-    public static function of(StatusContract $status): self
+    public static function of(StatusContract $status): static
     {
-        return new self(status: $status);
+        return new static(status: $status);
     }
 
     /**
      * Create an OK response, optionally carrying a single message.
      */
-    public static function ok(mixed $message = null): self
+    public static function ok(mixed $message = null): static
     {
-        return new self(
+        return new static(
             status: Status::ok(),
             messages: $message === null
                 ? []
@@ -59,17 +59,17 @@ class ServiceResponse implements ServiceResponseContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function unimplemented(string|null $message = null): self
+    public static function unimplemented(string|null $message = null): static
     {
-        return new self(status: Status::unimplemented($message));
+        return new static(status: Status::unimplemented($message));
     }
 
     /**
      * Create a cancellation response for the given reason.
      */
-    public static function cancelled(CancellationReason|null $reason = null): self
+    public static function cancelled(CancellationReason|null $reason = null): static
     {
-        return new self(status: Status::forReason($reason));
+        return new static(status: Status::forReason($reason));
     }
 
     /**

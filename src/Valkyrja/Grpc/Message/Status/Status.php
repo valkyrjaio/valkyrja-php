@@ -39,17 +39,17 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function of(StatusCode $code, string|null $message = null, string|null $details = null): self
+    public static function of(StatusCode $code, string|null $message = null, string|null $details = null): static
     {
-        return new self(code: $code, message: $message, details: $details);
+        return new static(code: $code, message: $message, details: $details);
     }
 
     /**
      * Create an OK status.
      */
-    public static function ok(): self
+    public static function ok(): static
     {
-        return new self(code: StatusCode::OK);
+        return new static(code: StatusCode::OK);
     }
 
     /**
@@ -57,7 +57,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function cancelled(string|null $message = null): self
+    public static function cancelled(string|null $message = null): static
     {
         return self::of(code: StatusCode::CANCELLED, message: $message);
     }
@@ -67,7 +67,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function unknown(string|null $message = null): self
+    public static function unknown(string|null $message = null): static
     {
         return self::of(code: StatusCode::UNKNOWN, message: $message);
     }
@@ -77,7 +77,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function invalidArgument(string|null $message = null): self
+    public static function invalidArgument(string|null $message = null): static
     {
         return self::of(code: StatusCode::INVALID_ARGUMENT, message: $message);
     }
@@ -87,7 +87,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function deadlineExceeded(string|null $message = null): self
+    public static function deadlineExceeded(string|null $message = null): static
     {
         return self::of(code: StatusCode::DEADLINE_EXCEEDED, message: $message);
     }
@@ -98,7 +98,7 @@ class Status implements StatusContract
      * DEADLINE_EXCEEDED maps to that status. Every other reason, and an unknown reason, maps to
      * CANCELLED.
      */
-    public static function forReason(CancellationReason|null $reason): self
+    public static function forReason(CancellationReason|null $reason): static
     {
         return $reason === CancellationReason::DEADLINE_EXCEEDED
             ? self::deadlineExceeded()
@@ -110,7 +110,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function notFound(string|null $message = null): self
+    public static function notFound(string|null $message = null): static
     {
         return self::of(code: StatusCode::NOT_FOUND, message: $message);
     }
@@ -120,7 +120,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function alreadyExists(string|null $message = null): self
+    public static function alreadyExists(string|null $message = null): static
     {
         return self::of(code: StatusCode::ALREADY_EXISTS, message: $message);
     }
@@ -130,7 +130,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function permissionDenied(string|null $message = null): self
+    public static function permissionDenied(string|null $message = null): static
     {
         return self::of(code: StatusCode::PERMISSION_DENIED, message: $message);
     }
@@ -140,7 +140,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function resourceExhausted(string|null $message = null): self
+    public static function resourceExhausted(string|null $message = null): static
     {
         return self::of(code: StatusCode::RESOURCE_EXHAUSTED, message: $message);
     }
@@ -150,7 +150,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function failedPrecondition(string|null $message = null): self
+    public static function failedPrecondition(string|null $message = null): static
     {
         return self::of(code: StatusCode::FAILED_PRECONDITION, message: $message);
     }
@@ -160,7 +160,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function aborted(string|null $message = null): self
+    public static function aborted(string|null $message = null): static
     {
         return self::of(code: StatusCode::ABORTED, message: $message);
     }
@@ -170,7 +170,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function outOfRange(string|null $message = null): self
+    public static function outOfRange(string|null $message = null): static
     {
         return self::of(code: StatusCode::OUT_OF_RANGE, message: $message);
     }
@@ -180,7 +180,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function unimplemented(string|null $message = null): self
+    public static function unimplemented(string|null $message = null): static
     {
         return self::of(code: StatusCode::UNIMPLEMENTED, message: $message);
     }
@@ -191,7 +191,7 @@ class Status implements StatusContract
      * @param non-empty-string|null $message The message
      * @param string|null           $details The `google.rpc.Status` protobuf bytes
      */
-    public static function internal(string|null $message = null, string|null $details = null): self
+    public static function internal(string|null $message = null, string|null $details = null): static
     {
         return self::of(code: StatusCode::INTERNAL, message: $message, details: $details);
     }
@@ -201,7 +201,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function unavailable(string|null $message = null): self
+    public static function unavailable(string|null $message = null): static
     {
         return self::of(code: StatusCode::UNAVAILABLE, message: $message);
     }
@@ -211,7 +211,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function dataLoss(string|null $message = null): self
+    public static function dataLoss(string|null $message = null): static
     {
         return self::of(code: StatusCode::DATA_LOSS, message: $message);
     }
@@ -221,7 +221,7 @@ class Status implements StatusContract
      *
      * @param non-empty-string|null $message The message
      */
-    public static function unauthenticated(string|null $message = null): self
+    public static function unauthenticated(string|null $message = null): static
     {
         return self::of(code: StatusCode::UNAUTHENTICATED, message: $message);
     }

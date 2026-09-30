@@ -83,9 +83,9 @@ class ServiceCall implements ServiceCallContract
      * @param non-empty-string $method  The fully-qualified method
      * @param mixed            $message The single inbound message
      */
-    public static function unary(string $method, mixed $message): self
+    public static function unary(string $method, mixed $message): static
     {
-        return new self(method: $method, messages: [$message]);
+        return new static(method: $method, messages: [$message]);
     }
 
     /**

@@ -34,9 +34,9 @@ class Peer implements PeerContract
      *
      * @param non-empty-string $address The peer address
      */
-    public static function insecure(string $address): self
+    public static function insecure(string $address): static
     {
-        return new self(
+        return new static(
             address: $address,
             addressType: AddressType::UNKNOWN,
             authContext: AuthContext::insecure()

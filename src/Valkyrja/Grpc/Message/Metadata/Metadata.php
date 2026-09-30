@@ -47,11 +47,11 @@ class Metadata implements MetadataContract
      */
     protected const string VALID_ASCII_VALUE_REGEX = '/^[\x20-\x7e]*$/D';
 
-    /** @var array<string, string[]> */
+    /** @var array<array-key, string[]> */
     protected array $values = [];
 
     /**
-     * @param array<string, string[]> $values The values
+     * @param array<array-key, string[]> $values The values, keyed by metadata key
      */
     public function __construct(array $values = [])
     {
