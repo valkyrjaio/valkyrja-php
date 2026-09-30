@@ -23,6 +23,9 @@ interface SettlingResultMiddlewareContract
      *
      * This stage runs on every job, error paths included, and is the last
      * chance to change the outcome the adapter will act on.
+     *
+     * The attempt ceiling applies to the outcome this stage returns. A
+     * middleware that returns a retry on the final attempt gets a dead-letter.
      */
     public function settlingResult(
         JobContract $job,
