@@ -65,7 +65,7 @@ class ServiceHandler implements ServiceHandlerContract
             try {
                 // A middleware runs here, so the recovery belongs under a guard of its own.
                 $response = $this->getResponseFromThrowable($throwable);
-                $response = $this->throwableCaughtHandler->throwableCaught($call, $response, $throwable);
+                $response = $this->throwableCaughtHandler->throwableCaught($this->getCurrentCall($call), $response, $throwable);
             } catch (Throwable) {
                 // Without this the client gets no status at all, which reads as a dead transport
                 // rather than a server error.
@@ -85,6 +85,7 @@ class ServiceHandler implements ServiceHandlerContract
     #[Override]
     public function sending(ServiceCallContract $call, ServiceResponseContract $response): ServiceResponseContract
     {
+        $call = $this->getCurrentCall($call);
         $sent = $this->sendingResponseHandler->sendingResponse($call, $response);
 
         // The stage always runs, so a cancellation that fired during it overlays the status on
@@ -105,7 +106,7 @@ class ServiceHandler implements ServiceHandlerContract
     public function terminate(ServiceCallContract $call, ServiceResponseContract $response): void
     {
         // Dispatch the response sent middleware
-        $this->responseSentHandler->responseSent($call, $response);
+        $this->responseSentHandler->responseSent($this->getCurrentCall($call), $response);
     }
 
     /**
@@ -117,6 +118,21 @@ class ServiceHandler implements ServiceHandlerContract
     public function run(ServiceCallContract $call): ServiceResponseContract
     {
         return $this->sending($call, $this->handle($call));
+    }
+
+    /**
+     * Get the call as the pipeline last left it.
+     *
+     * The router attaches the route to a clone, so a stage handed the caller's own call would read
+     * no route at all.
+     *
+     * @param ServiceCallContract $call The call the caller passed in
+     */
+    protected function getCurrentCall(ServiceCallContract $call): ServiceCallContract
+    {
+        return $this->container->isSingleton(ServiceCallContract::class)
+            ? $this->container->getSingleton(ServiceCallContract::class)
+            : $call;
     }
 
     /**
