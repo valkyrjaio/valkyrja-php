@@ -26,7 +26,7 @@ interface ClientContract
      *
      * @param int<0, max> $delayMs The hold before the job becomes eligible again
      */
-    public function retry(JobContract $job, int $delayMs = 0): void;
+    public function retry(JobContract $job, int $delayMs): void;
 
     /**
      * Get the stamped jobs handed to this client during this unit of work.
