@@ -149,4 +149,18 @@ final class MetadataTest extends TestCase
     {
         self::assertSame('', new Metadata()->with('trace', '')->get('trace'));
     }
+
+    public function testRejectsAKeyWithATrailingNewline(): void
+    {
+        $this->expectException(MetadataInvalidKeyException::class);
+
+        new Metadata()->with("trace\n", 'x');
+    }
+
+    public function testRejectsAnAsciiValueWithATrailingNewline(): void
+    {
+        $this->expectException(MetadataInvalidValueException::class);
+
+        new Metadata()->with('trace', "x\n");
+    }
 }
