@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Grpc\Support;
 
 use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
+use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Message\Response\ServiceResponse;
 use Valkyrja\Grpc\Message\Status\Status;
@@ -31,9 +32,14 @@ class Cancellation
     public static function checkAndFinalize(ServiceCallContract $call, ServiceResponseContract|null $response = null): ServiceResponseContract|null
     {
         $cancellation = $call->getCancellation();
+        $isCancelled  = $cancellation->isCancelled();
 
-        if ($cancellation->isCancelled()) {
-            $reason = $cancellation->getReason();
+        // An elapsed deadline is the second half of the first question, and a transport that never
+        // fires the token still has to report DEADLINE_EXCEEDED rather than run the handler.
+        if ($isCancelled || $call->getDeadline()->isExpired()) {
+            $reason = $isCancelled
+                ? $cancellation->getReason()
+                : CancellationReason::DEADLINE_EXCEEDED;
 
             return $response?->withStatus(Status::forReason($reason))
                 ?? ServiceResponse::cancelled($reason);
