@@ -161,6 +161,51 @@ final class ServiceCallTest extends TestCase
         self::assertSame(['fine'], $sent);
     }
 
+    public function testAReentrantSendThroughAClonedCallThrows(): void
+    {
+        $clone   = null;
+        $entered = 0;
+
+        $call = new ServiceCall(
+            method: '/pkg.Service/Method',
+            sink: static function () use (&$clone, &$entered): void {
+                $entered++;
+
+                /** @var ServiceCall $clone */
+                $clone->send('nested');
+            },
+        );
+
+        // The clone is taken before the send, so a per-instance flag would still read false here.
+        $clone = $call->withRoute(self::createStub(RouteContract::class));
+
+        try {
+            $call->send('outer');
+
+            self::fail('A nested send through a clone must throw.');
+        } catch (GrpcConcurrentSendException) {
+            // The clone shares the guard, so the nested send never reaches the transport.
+        }
+
+        self::assertSame(1, $entered);
+    }
+
+    public function testAClonedCallSendsThroughTheSameSink(): void
+    {
+        $sent = [];
+
+        $call = new ServiceCall(
+            method: '/pkg.Service/Method',
+            sink: static function (mixed $message) use (&$sent): void {
+                $sent[] = $message;
+            },
+        );
+
+        $call->withRoute(self::createStub(RouteContract::class))->send('one');
+
+        self::assertSame(['one'], $sent);
+    }
+
     public function testCancellableYieldsEverythingWhenUncancelled(): void
     {
         $call = new ServiceCall('/pkg.Service/Method');
