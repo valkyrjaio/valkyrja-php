@@ -340,6 +340,20 @@ final class ServiceHandlerTest extends TestCase
         self::assertSame(['payload'], $sent->getMessages());
     }
 
+    public function testTheSendingStageSeesTheRoutedCall(): void
+    {
+        $this->addRoute(static fn (): ServiceResponseContract => ServiceResponse::ok('handled'));
+
+        $handler = $this->handler();
+        $call    = new ServiceCall(self::METHOD);
+
+        $handler->sending($call, $handler->handle($call));
+
+        // The caller's own call carries no route; the one the stages read does.
+        self::assertFalse($call->hasRoute());
+        self::assertTrue($this->container->getSingleton(ServiceCallContract::class)->hasRoute());
+    }
+
     private function handler(bool $debug = false): ServiceHandler
     {
         $router = new Router(
