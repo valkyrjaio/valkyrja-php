@@ -23,6 +23,8 @@ use Valkyrja\Grpc\Middleware\Handler\Contract\ThrowableCaughtHandlerContract;
 use Valkyrja\Grpc\Routing\Dispatcher\Contract\RouterContract;
 use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
 use Valkyrja\Grpc\Server\Handler\ServiceHandler;
+use Valkyrja\Grpc\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddleware;
+use Valkyrja\Log\Logger\Contract\LoggerContract;
 
 class GrpcServerServiceProvider implements ServiceProviderContract
 {
@@ -50,13 +52,29 @@ class GrpcServerServiceProvider implements ServiceProviderContract
     }
 
     /**
+     * Publish the LogThrowableCaughtMiddleware service.
+     *
+     * @param ContainerContract $container The container
+     */
+    public static function publishLogThrowableCaughtMiddleware(ContainerContract $container): void
+    {
+        $container->setSingleton(
+            LogThrowableCaughtMiddleware::class,
+            new LogThrowableCaughtMiddleware(
+                logger: $container->getSingleton(LoggerContract::class),
+            )
+        );
+    }
+
+    /**
      * @inheritDoc
      */
     #[Override]
     public function publishers(): array
     {
         return [
-            ServiceHandlerContract::class => [self::class, 'publishServiceHandler'],
+            ServiceHandlerContract::class       => [self::class, 'publishServiceHandler'],
+            LogThrowableCaughtMiddleware::class => [self::class, 'publishLogThrowableCaughtMiddleware'],
         ];
     }
 }
