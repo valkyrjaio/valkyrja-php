@@ -139,7 +139,7 @@ final class AmqpClientTest extends TestCase
 
     public function testRetryPublishesNothing(): void
     {
-        $this->client()->retry(new Job(name: self::NAME, attempts: 2));
+        $this->client()->retry(new Job(name: self::NAME, attempts: 2), 0);
 
         // The broker still holds the unacknowledged delivery, so publishing
         // again would duplicate the job rather than retry it
@@ -149,7 +149,7 @@ final class AmqpClientTest extends TestCase
     public function testRetryStillRecordsTheHandover(): void
     {
         $client = $this->client();
-        $client->retry(new Job(name: self::NAME, attempts: 2));
+        $client->retry(new Job(name: self::NAME, attempts: 2), 0);
 
         self::assertCount(1, $client->getPushed());
     }
