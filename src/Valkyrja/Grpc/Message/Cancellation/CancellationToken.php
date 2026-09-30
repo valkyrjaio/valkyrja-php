@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Grpc\Message\Cancellation;
 
 use Override;
+use Throwable;
 use Valkyrja\Grpc\Message\Cancellation\Contract\CancellationTokenContract;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Throwable\Exception\CancelledException;
@@ -101,8 +102,20 @@ class CancellationToken implements CancellationTokenContract
         $listeners       = $this->listeners;
         $this->listeners = [];
 
+        // Every listener runs even when one throws, so a single bad listener cannot leave the rest
+        // of the call's cleanup undone. The first throwable propagates once the loop is finished.
+        $thrown = null;
+
         foreach ($listeners as $listener) {
-            $listener();
+            try {
+                $listener();
+            } catch (Throwable $throwable) {
+                $thrown ??= $throwable;
+            }
+        }
+
+        if ($thrown !== null) {
+            throw $thrown;
         }
     }
 }

@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Unit\Grpc\Message\Cancellation;
 
+use RuntimeException;
 use Valkyrja\Grpc\Message\Cancellation\CancellationToken;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Throwable\Exception\CancelledException;
@@ -119,5 +120,36 @@ final class CancellationTokenTest extends TestCase
         });
 
         self::assertSame(1, $fired);
+    }
+
+    public function testEveryListenerRunsWhenOneThrows(): void
+    {
+        $token = new CancellationToken();
+        $fired = 0;
+
+        $token->onCancelled(static function () use (&$fired): void {
+            $fired++;
+
+            throw new RuntimeException('first');
+        });
+        $token->onCancelled(static function () use (&$fired): void {
+            $fired++;
+
+            throw new RuntimeException('second');
+        });
+        $token->onCancelled(static function () use (&$fired): void {
+            $fired++;
+        });
+
+        try {
+            $token->cancel(CancellationReason::CLIENT_CANCELLED);
+
+            self::fail('The first throwable should propagate.');
+        } catch (RuntimeException $exception) {
+            self::assertSame('first', $exception->getMessage());
+        }
+
+        self::assertSame(3, $fired);
+        self::assertTrue($token->isCancelled());
     }
 }
