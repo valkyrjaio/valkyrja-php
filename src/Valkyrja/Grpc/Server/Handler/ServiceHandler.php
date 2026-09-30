@@ -58,8 +58,19 @@ class ServiceHandler implements ServiceHandlerContract
         try {
             $response = $this->dispatchRouter($call);
         } catch (Throwable $throwable) {
-            $response = $this->getResponseFromThrowable($throwable);
-            $response = $this->throwableCaughtHandler->throwableCaught($call, $response, $throwable);
+            if ($this->debug) {
+                throw $throwable;
+            }
+
+            try {
+                // A middleware runs here, so the recovery belongs under a guard of its own.
+                $response = $this->getResponseFromThrowable($throwable);
+                $response = $this->throwableCaughtHandler->throwableCaught($call, $response, $throwable);
+            } catch (Throwable) {
+                // Without this the client gets no status at all, which reads as a dead transport
+                // rather than a server error.
+                $response = ServiceResponse::of(Status::internal());
+            }
         }
 
         // Set the returned response in the container
@@ -142,15 +153,9 @@ class ServiceHandler implements ServiceHandlerContract
      * response it likes for an application that wants one.
      *
      * @param Throwable $throwable The throwable
-     *
-     * @throws Throwable
      */
     protected function getResponseFromThrowable(Throwable $throwable): ServiceResponseContract
     {
-        if ($this->debug) {
-            throw $throwable;
-        }
-
         if ($throwable instanceof CancelledException) {
             return ServiceResponse::cancelled($throwable->getReason());
         }
