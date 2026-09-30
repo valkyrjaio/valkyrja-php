@@ -53,14 +53,14 @@ interface RouteContract
     /**
      * Get the handler.
      *
-     * @return callable(ContainerContract, RouteContract): JobResult
+     * @return callable(ContainerContract, self): JobResult
      */
     public function getHandler(): callable;
 
     /**
      * Get a new instance with the specified handler.
      *
-     * @param callable(ContainerContract, RouteContract): JobResult $handler The handler
+     * @param callable(ContainerContract, self): JobResult $handler The handler
      */
     public function withHandler(callable $handler): static;
 
