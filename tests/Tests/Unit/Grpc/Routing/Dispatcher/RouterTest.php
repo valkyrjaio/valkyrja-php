@@ -34,6 +34,7 @@ use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteDispatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareChangedFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareReplacingRouteFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteNotMatchedMiddlewareFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
@@ -68,6 +69,7 @@ final class RouterTest extends TestCase
         $this->container->bindSingleton(RouteDispatchedMiddlewareFixture::class, static fn (): RouteDispatchedMiddlewareFixture => new RouteDispatchedMiddlewareFixture());
         $this->container->bindSingleton(RouteMatchedMiddlewareChangedFixture::class, static fn (): RouteMatchedMiddlewareChangedFixture => new RouteMatchedMiddlewareChangedFixture());
         $this->container->bindSingleton(RouteMatchedMiddlewareFixture::class, static fn (): RouteMatchedMiddlewareFixture => new RouteMatchedMiddlewareFixture());
+        $this->container->bindSingleton(RouteMatchedMiddlewareReplacingRouteFixture::class, static fn (): RouteMatchedMiddlewareReplacingRouteFixture => new RouteMatchedMiddlewareReplacingRouteFixture());
         $this->container->bindSingleton(RouteNotMatchedMiddlewareFixture::class, static fn (): RouteNotMatchedMiddlewareFixture => new RouteNotMatchedMiddlewareFixture());
         $this->collection             = new RouteCollection();
         $this->routeMatchedHandler    = new RouteMatchedHandler($this->container);
@@ -252,10 +254,20 @@ final class RouterTest extends TestCase
 
     public function testTheRouteMatchedMiddlewareCanReplaceTheRoute(): void
     {
-        $this->collection->add($this->route());
+        $this->collection->add($this->route(RouteMatchedMiddlewareReplacingRouteFixture::class));
 
-        $this->router()->dispatch(new ServiceCall(self::METHOD));
+        $response = $this->router()->dispatch(new ServiceCall(self::METHOD));
 
+        // The replacement's own handler runs, not the collected route's.
+        self::assertSame(['replaced'], $response->getMessages());
+
+        $route = $this->container->getSingleton(RouteContract::class);
+        $call  = $this->container->getSingleton(ServiceCallContract::class);
+
+        self::assertSame(RouteMatchedMiddlewareReplacingRouteFixture::REPLACEMENT_METHOD, $route->getMethod());
+        self::assertSame(RouteMatchedMiddlewareReplacingRouteFixture::REPLACEMENT_METHOD, $call->getRoute()?->getMethod());
+
+        // The collection still holds the route it was given.
         $all = $this->collection->all();
 
         self::assertSame(self::METHOD, reset($all)->getMethod());
