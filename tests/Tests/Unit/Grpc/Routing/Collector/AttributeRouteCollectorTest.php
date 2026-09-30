@@ -12,12 +12,16 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Unit\Grpc\Routing\Collector;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Valkyrja\Container\Manager\Container;
+use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Routing\Collector\AttributeRouteCollector;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingInvalidHandlerException;
+use Valkyrja\Grpc\Throwable\Exception\CancelledException;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\BadHandlerControllerFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\CancellingControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\GreeterControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\NonPublicHandlerControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\NonStaticHandlerControllerFixture;
@@ -27,6 +31,16 @@ use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class AttributeRouteCollectorTest extends TestCase
 {
+    /**
+     * @return iterable<string, array{string, CancellationReason}>
+     */
+    public static function provideCancellingMethods(): iterable
+    {
+        yield 'client cancelled' => ['/pkg.Cancelling/Cancel', CancellationReason::CLIENT_CANCELLED];
+
+        yield 'deadline exceeded' => ['/pkg.Cancelling/Expire', CancellationReason::DEADLINE_EXCEEDED];
+    }
+
     /**
      * @param RouteContract[] $routes
      */
@@ -159,5 +173,24 @@ final class AttributeRouteCollectorTest extends TestCase
         $this->expectException(GrpcRoutingInvalidHandlerException::class);
 
         new AttributeRouteCollector()->getRoutes(NonStaticHandlerControllerFixture::class);
+    }
+
+    #[DataProvider('provideCancellingMethods')]
+    public function testTheHandlerRethrowsTheControllersOwnCancellation(string $method, CancellationReason $reason): void
+    {
+        $routes = new AttributeRouteCollector()->getRoutes(CancellingControllerFixture::class);
+        $route  = self::byMethod($routes, $method);
+
+        $handler = $route->getHandler();
+
+        try {
+            $handler(new Container(), $route);
+
+            self::fail('The cancellation must reach the caller.');
+        } catch (CancelledException $exception) {
+            // Reflective dispatch must not wrap the controller's own throwable, or the status
+            // mapping cannot see the cancellation.
+            self::assertSame($reason, $exception->getReason());
+        }
     }
 }
