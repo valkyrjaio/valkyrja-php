@@ -58,7 +58,8 @@ class Metadata implements MetadataContract
         $normalized = [];
 
         foreach ($values as $key => $keyValues) {
-            $normalizedKey = self::normalize($key);
+            // PHP casts a numeric-string array key to an int, so cast it back before normalizing.
+            $normalizedKey = self::normalize((string) $key);
 
             self::validateKey($normalizedKey);
 

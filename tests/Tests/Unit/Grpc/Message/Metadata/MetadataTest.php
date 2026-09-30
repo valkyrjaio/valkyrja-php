@@ -163,4 +163,11 @@ final class MetadataTest extends TestCase
 
         new Metadata()->with('trace', "x\n");
     }
+
+    public function testAcceptsANumericKey(): void
+    {
+        $metadata = new Metadata(['123' => ['x']]);
+
+        self::assertSame('x', $metadata->get('123'));
+    }
 }
