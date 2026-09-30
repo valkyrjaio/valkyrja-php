@@ -89,9 +89,14 @@ class Container implements ContainerContract
     {
         $aliases = array_merge($this->aliases, $data->aliases);
 
-        // The whole merged map is validated before any of the four is installed, so a
-        // caller that catches the throw keeps every map the container already had.
-        $this->validateAliasMapIsNotCyclic($aliases, $this->getAliasedId(...));
+        // Only the incoming aliases start a walk, so a chain the container already held
+        // is no reason to reject this call. Each walk reads the whole merged map, and
+        // the container past it, so a chain the incoming data closes is still caught.
+        // Nothing is installed before the walks end, so a caught throw leaves all four.
+        $this->validateAliasMapIsNotCyclic(
+            $data->aliases,
+            fn (string $id): string|null => $aliases[$id] ?? $this->getAliasedId($id),
+        );
 
         $this->aliases          = $aliases;
         $this->callbacks        = array_merge($this->callbacks, $data->callbacks);
@@ -406,7 +411,7 @@ class Container implements ContainerContract
     /**
      * Validate that no alias in the map points at a chain that returns to it.
      *
-     * @param array<class-string, class-string>          $aliases   The alias map
+     * @param array<class-string, class-string>          $aliases   The aliases that start a walk
      * @param Closure(class-string): (class-string|null) $installed The read for an id the map does not hold
      */
     protected function validateAliasMapIsNotCyclic(array $aliases, Closure $installed): void

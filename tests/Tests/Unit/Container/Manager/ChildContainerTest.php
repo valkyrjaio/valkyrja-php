@@ -681,6 +681,21 @@ final class ChildContainerTest extends TestCase
         self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
     }
 
+    public function testSetFromDataAcceptsDataWithNoAliasWhenAChainAlreadyReturns(): void
+    {
+        $child = $this->createChild();
+        $child->setFromData(new ContainerData(aliases: ['second' => 'first']));
+        // The parent closes the chain after the child was built
+        $this->parent->bindAlias('first', 'second');
+
+        // The call carries no alias, so a chain the container already held is no part of it
+        $child->setFromData(new ContainerData(
+            services: [ServiceFixture::class => [ServiceFixture::class, 'make']],
+        ));
+
+        self::assertTrue($child->isService(ServiceFixture::class));
+    }
+
     /**
      * Create a ChildContainer from the current parent state.
      * The ContainerData is built from the parent and passed explicitly.
