@@ -141,6 +141,27 @@ final class ContainerTest extends TestCase
         $container->setFromData(new ContainerData(aliases: ['first' => 'second', 'second' => 'first']));
     }
 
+    public function testSetFromDataWalksAChainOnPastAnAliasTheContainerAlreadyHeld(): void
+    {
+        $container = $this->container;
+        $container->bindAlias('middle', ServiceFixture::class);
+
+        // The walk leaves the incoming map at 'middle' and reads the installed alias
+        $container->setFromData(new ContainerData(aliases: ['outer' => 'middle']));
+
+        self::assertSame('middle', $container->getAliasedId('outer'));
+    }
+
+    public function testSetFromDataRejectsAChainThatReturnsThroughAnAliasTheContainerAlreadyHeld(): void
+    {
+        $container = $this->container;
+        $container->bindAlias('middle', 'outer');
+
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        $container->setFromData(new ContainerData(aliases: ['outer' => 'middle']));
+    }
+
     public function testConstructorRejectsACyclicAliasMapAnAliasIsNoPartOf(): void
     {
         $this->expectException(ContainerCyclicAliasException::class);
