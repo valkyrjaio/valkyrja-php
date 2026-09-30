@@ -53,21 +53,23 @@ class ServiceCall implements ServiceCallContract
         if ($sink !== null) {
             // The guard lives with the sink, not with the call. `withRoute()` clones the call but
             // shares the one transport, so a per-instance flag misses a nested send from a clone.
-            $sending = false;
+            $guard = new class {
+                public bool $sending = false;
+            };
 
-            $sink = static function (mixed $message) use ($sink, &$sending): void {
-                if ($sending) {
+            $sink = static function (mixed $message) use ($sink, $guard): void {
+                if ($guard->sending) {
                     throw new GrpcConcurrentSendException(
                         'Concurrent send() on a streaming call: a streaming handler must emit one message at a time — sends are serialized and the transport is not re-entrant.'
                     );
                 }
 
-                $sending = true;
+                $guard->sending = true;
 
                 try {
                     $sink($message);
                 } finally {
-                    $sending = false;
+                    $guard->sending = false;
                 }
             };
         }
