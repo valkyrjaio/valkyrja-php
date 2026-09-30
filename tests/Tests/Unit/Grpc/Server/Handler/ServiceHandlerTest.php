@@ -22,6 +22,7 @@ use Valkyrja\Grpc\Message\Enum\StatusCode;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Message\Response\ServiceResponse;
 use Valkyrja\Grpc\Middleware\Handler\CallReceivedHandler;
+use Valkyrja\Grpc\Middleware\Handler\Contract\CallReceivedHandlerContract;
 use Valkyrja\Grpc\Middleware\Handler\ResponseSentHandler;
 use Valkyrja\Grpc\Middleware\Handler\RouteDispatchedHandler;
 use Valkyrja\Grpc\Middleware\Handler\RouteMatchedHandler;
@@ -139,19 +140,19 @@ final class ServiceHandlerTest extends TestCase
 
     public function testTheEntryPreCheckFastExitsAnAlreadyCancelledCall(): void
     {
-        CallReceivedMiddlewareFixture::resetCounter();
-
-        $this->callReceivedHandler->add(CallReceivedMiddlewareFixture::class);
+        // The stage handler runs its own cancellation check, so a middleware counter cannot tell
+        // the entry pre-check from the stage's. A handler double that must not be reached can.
+        $callReceivedHandler = $this->createMock(CallReceivedHandlerContract::class);
+        $callReceivedHandler->expects($this->never())->method('callReceived');
 
         $cancellation = new CancellationToken();
         $cancellation->cancel(CancellationReason::DEADLINE_EXCEEDED);
 
-        $response = $this->handler()->handle(
+        $response = $this->handler(callReceivedHandler: $callReceivedHandler)->handle(
             new ServiceCall(self::METHOD, cancellation: $cancellation)
         );
 
         self::assertSame(StatusCode::DEADLINE_EXCEEDED, $response->getStatus()->getCode());
-        self::assertSame(0, CallReceivedMiddlewareFixture::getAndResetCounter());
     }
 
     public function testAnUncaughtThrowableBecomesInternal(): void
@@ -354,7 +355,7 @@ final class ServiceHandlerTest extends TestCase
         self::assertTrue($this->container->getSingleton(ServiceCallContract::class)->hasRoute());
     }
 
-    private function handler(bool $debug = false): ServiceHandler
+    private function handler(bool $debug = false, CallReceivedHandlerContract|null $callReceivedHandler = null): ServiceHandler
     {
         $router = new Router(
             container: $this->container,
@@ -370,7 +371,7 @@ final class ServiceHandlerTest extends TestCase
         return new ServiceHandler(
             container: $this->container,
             router: $router,
-            callReceivedHandler: $this->callReceivedHandler,
+            callReceivedHandler: $callReceivedHandler ?? $this->callReceivedHandler,
             throwableCaughtHandler: $this->throwableCaughtHandler,
             sendingResponseHandler: $this->sendingResponseHandler,
             responseSentHandler: $this->responseSentHandler,
