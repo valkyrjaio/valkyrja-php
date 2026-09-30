@@ -43,6 +43,14 @@ final class RouteTest extends TestCase
         yield 'empty service' => ['//Method'];
 
         yield 'empty' => ['/'];
+
+        yield 'trailing newline' => ["/pkg.Service/Method\n"];
+
+        yield 'newline inside the method name' => ["/pkg.Service/Me\nthod"];
+
+        yield 'newline inside the service' => ["/pkg.Ser\nvice/Method"];
+
+        yield 'null byte' => ["/pkg.Service/Method\0"];
     }
 
     /**

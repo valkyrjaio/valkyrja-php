@@ -80,7 +80,10 @@ class Route implements RouteContract
      */
     protected static function partsOf(string $method): array
     {
-        if (preg_match('#^/([^/]++)/([^/]++)$#', $method, $matches) !== 1) {
+        // A control character is excluded from both segments, because the method goes on the wire
+        // as the HTTP/2 `:path`. `[^/]` alone matches a newline, which `$` and `\z` both allow
+        // through at the end of the subject.
+        if (preg_match('#\A/([^/[:cntrl:]]++)/([^/[:cntrl:]]++)\z#', $method, $matches) !== 1) {
             throw new GrpcRoutingInvalidMethodException("Invalid gRPC method `$method`; expected `/package.Service/Method`");
         }
 
