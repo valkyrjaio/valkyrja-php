@@ -38,6 +38,7 @@ use Valkyrja\Tests\Fixtures\Grpc\Middleware\CallReceivedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\ResponseSentMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\SendingResponseMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\ThrowableCaughtMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\ThrowableCaughtMiddlewareThrowingFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class ServiceHandlerTest extends TestCase
@@ -66,6 +67,7 @@ final class ServiceHandlerTest extends TestCase
         $this->container->bindSingleton(ResponseSentMiddlewareFixture::class, static fn (): ResponseSentMiddlewareFixture => new ResponseSentMiddlewareFixture());
         $this->container->bindSingleton(SendingResponseMiddlewareFixture::class, static fn (): SendingResponseMiddlewareFixture => new SendingResponseMiddlewareFixture());
         $this->container->bindSingleton(ThrowableCaughtMiddlewareFixture::class, static fn (): ThrowableCaughtMiddlewareFixture => new ThrowableCaughtMiddlewareFixture());
+        $this->container->bindSingleton(ThrowableCaughtMiddlewareThrowingFixture::class, static fn (): ThrowableCaughtMiddlewareThrowingFixture => new ThrowableCaughtMiddlewareThrowingFixture());
         $this->collection             = new RouteCollection();
         $this->callReceivedHandler    = new CallReceivedHandler($this->container);
         $this->throwableCaughtHandler = new ThrowableCaughtHandler($this->container);
@@ -198,6 +200,35 @@ final class ServiceHandlerTest extends TestCase
         $this->handler()->handle(new ServiceCall(self::METHOD));
 
         self::assertSame(1, ThrowableCaughtMiddlewareFixture::getAndResetCounter());
+    }
+
+    public function testAThrowingThrowableCaughtStageStillYieldsAStatus(): void
+    {
+        ThrowableCaughtMiddlewareThrowingFixture::resetCounter();
+
+        $this->throwableCaughtHandler->add(ThrowableCaughtMiddlewareThrowingFixture::class);
+
+        $this->addRoute(static function (): ServiceResponseContract {
+            throw new RuntimeException('boom');
+        });
+
+        $response = $this->handler()->handle(new ServiceCall(self::METHOD));
+
+        self::assertSame(StatusCode::INTERNAL, $response->getStatus()->getCode());
+        self::assertSame(1, ThrowableCaughtMiddlewareThrowingFixture::getAndResetCounter());
+    }
+
+    public function testTheInternalStatusCarriesNothingFromTheThrowable(): void
+    {
+        $this->addRoute(static function (): ServiceResponseContract {
+            throw new RuntimeException('a secret the client must not read');
+        });
+
+        $response = $this->handler()->handle(new ServiceCall(self::METHOD));
+        $status   = $response->getStatus();
+
+        self::assertSame(StatusCode::INTERNAL->getDefaultMessage(), $status->getMessage());
+        self::assertNull($status->getDetails());
     }
 
     public function testDebugModeRethrows(): void
