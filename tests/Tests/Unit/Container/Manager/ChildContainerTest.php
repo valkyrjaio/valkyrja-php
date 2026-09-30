@@ -603,6 +603,20 @@ final class ChildContainerTest extends TestCase
         self::assertSame('first', $child->getAliasedId('third'));
     }
 
+    public function testGetAliasedThrowsForACycleANestedParentHolds(): void
+    {
+        $middle = $this->createChild();
+        $middle->bindAlias('second', 'first');
+        // The grandparent checks only its own map, so a later binding closes a chain
+        $this->parent->bindAlias('first', 'second');
+        $child = new ChildContainer($middle, new ContainerData());
+
+        $this->expectException(ContainerCyclicAliasException::class);
+        $this->expectExceptionMessage('Alias `second` cannot point at `first`');
+
+        $child->get('first');
+    }
+
     public function testGetAliasedWalksPastAHopTheParentPublishedWithoutBindingIt(): void
     {
         // The publisher binds nothing for its own id, so the parent reads on past it

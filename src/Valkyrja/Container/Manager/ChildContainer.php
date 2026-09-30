@@ -15,6 +15,7 @@ namespace Valkyrja\Container\Manager;
 use Override;
 use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Container\Throwable\Exception\ContainerCyclicAliasException;
 
 class ChildContainer extends Container
 {
@@ -175,10 +176,18 @@ class ChildContainer extends Container
     {
         $current = $id;
         $target  = null;
+        $seen    = [$id => true];
 
         while (($aliasedId = $this->parent->getAliasedId($current)) !== null) {
-            $target  = $aliasedId;
-            $current = $aliasedId;
+            // A parent that is itself a child reads its own map and its parent's, and a
+            // binding made on either after it was built can close a chain between them.
+            if (isset($seen[$aliasedId])) {
+                throw new ContainerCyclicAliasException($current, $aliasedId);
+            }
+
+            $seen[$aliasedId] = true;
+            $target           = $aliasedId;
+            $current          = $aliasedId;
 
             // The parent publishes, then reads its maps, and only then follows an
             // alias, so it never reaches the rest of the chain from any of these.
