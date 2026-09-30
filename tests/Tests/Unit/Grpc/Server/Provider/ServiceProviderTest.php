@@ -21,7 +21,9 @@ use Valkyrja\Grpc\Routing\Data\GrpcRoutingData;
 use Valkyrja\Grpc\Routing\Provider\GrpcRoutingServiceProvider;
 use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
 use Valkyrja\Grpc\Server\Handler\ServiceHandler;
+use Valkyrja\Grpc\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddleware;
 use Valkyrja\Grpc\Server\Provider\GrpcServerServiceProvider;
+use Valkyrja\Log\Logger\Contract\LoggerContract;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
 use Valkyrja\Tests\Fixtures\Application\Data\GrpcConfigFixture;
 
@@ -38,6 +40,23 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(
             ServiceHandlerContract::class,
             new GrpcServerServiceProvider()->publishers()
+        );
+        self::assertArrayHasKey(
+            LogThrowableCaughtMiddleware::class,
+            new GrpcServerServiceProvider()->publishers()
+        );
+    }
+
+    public function testPublishLogThrowableCaughtMiddleware(): void
+    {
+        $this->container->setSingleton(LoggerContract::class, self::createStub(LoggerContract::class));
+
+        $callback = new GrpcServerServiceProvider()->publishers()[LogThrowableCaughtMiddleware::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(
+            LogThrowableCaughtMiddleware::class,
+            $this->container->getSingleton(LogThrowableCaughtMiddleware::class)
         );
     }
 
