@@ -737,13 +737,15 @@ receives a fresh child container built from one snapshot of the parent, so the
 child holds the parent's singleton markers and publish callbacks and answers
 almost everything itself.
 
-The child checks its own maps first, so it answers a deferred id and an unbuilt
-singleton itself, in its own scope. An id the child cannot answer at all goes to
-the parent, and the parent answers it as it would for any caller. That is a
-shared service resolving once, not a leak. What the child never does is rebuild
-something the parent already holds, and what it never leaks is its own state: a
-registration made during a request stays in the child, and the child is
-discarded when the request ends.
+The child checks its own maps first, so it publishes a deferred id and caches
+an unbuilt singleton itself. The container that the singleton's factory
+receives depends on the implementation
+([Where a Factory Runs](#where-a-factory-runs)). An id the child cannot answer
+at all goes to the parent, and the parent answers it as it would for any caller.
+That is a shared service resolving once, not a leak. What the child never does
+is rebuild something the parent already holds, and what it never leaks is its
+own state: a registration made during a request stays in the child, and the
+child is discarded when the request ends.
 
 Deferred services stay available in a child. The child receives the parent's
 publish callbacks through `ContainerData`, so the first lookup of an
@@ -806,10 +808,11 @@ way, a built singleton caches in the child's own instance map, and a
 `bind()` factory caches nowhere.
 
 Warning: under `ChildContainer`, a factory bound on the parent resolves its
-dependencies from the parent. The factory cannot see a service that exists
-only on the child. A request-scoped `setSingleton()` registers such a
-service. When a service needs a request-scoped dependency, register it
-through a provider's publish callback, which runs with the child.
+dependencies from the parent, and the parent caches any singleton that the
+factory resolves. The factory cannot see a service that exists only on the
+child. A request-scoped `setSingleton()` registers such a service. When a
+service needs a request-scoped dependency, register it through a provider's
+publish callback, which runs with the child.
 `NativeChildContainer` behaves differently on this path
 ([Available Implementations](#available-implementations)).
 
