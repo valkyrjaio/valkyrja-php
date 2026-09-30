@@ -133,7 +133,7 @@ final class DatabaseClientTest extends TestCase
 
     public function testARetryWithNoHoldIsAvailableAtOnce(): void
     {
-        $this->client()->retry(new Job(name: self::NAME, attempts: 2));
+        $this->client()->retry(new Job(name: self::NAME, attempts: 2), 0);
 
         self::assertSame(
             self::FROZEN_MS,
