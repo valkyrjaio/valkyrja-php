@@ -216,9 +216,9 @@ The Auth service provider registers the following singletons:
 | `AuthConfigContract`        | Component config                                       |
 | `AuthSessionConfigContract` | Session authenticator config                           |
 | `AuthenticatorContract`     | Active authenticator (default: `SessionAuthenticator`) |
-| `SessionAuthenticator`   | Session-backed authenticator                           |
-| `StoreContract`          | Active store (default: `OrmStore`)                     |
-| `OrmStore`               | ORM-backed user store                                  |
-| `InMemoryStore`          | In-memory user store                                   |
-| `NullStore`              | No-op user store                                       |
-| `PasswordHasherContract` | Password hasher (default: `PhpPasswordHasher`)         |
+| `SessionAuthenticator`      | Session-backed authenticator                           |
+| `StoreContract`             | Active store (default: `OrmStore`)                     |
+| `OrmStore`                  | ORM-backed user store                                  |
+| `InMemoryStore`             | In-memory user store                                   |
+| `NullStore`                 | No-op user store                                       |
+| `PasswordHasherContract`    | Password hasher (default: `PhpPasswordHasher`)         |
