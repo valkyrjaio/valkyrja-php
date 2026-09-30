@@ -29,6 +29,8 @@ interface CancellationTokenContract
 
     /**
      * Get the cause of cancellation, or null if not cancelled.
+     *
+     * @phpstan-impure
      */
     public function getReason(): CancellationReason|null;
 

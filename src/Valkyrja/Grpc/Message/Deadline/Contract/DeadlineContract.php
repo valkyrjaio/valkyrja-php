@@ -23,11 +23,17 @@ interface DeadlineContract
      * Get the remaining budget in seconds from now.
      *
      * Zero if already expired, and a very large duration when no deadline is set.
+     *
+     * The answer moves with the clock, so a previous answer says nothing about the next one.
+     *
+     * @phpstan-impure
      */
     public function getRemaining(): float;
 
     /**
      * Determine whether the deadline has elapsed. Always false when no deadline is set.
+     *
+     * @phpstan-impure
      */
     public function isExpired(): bool;
 
