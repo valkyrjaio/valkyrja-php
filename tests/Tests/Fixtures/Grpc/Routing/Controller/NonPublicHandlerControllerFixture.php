@@ -26,7 +26,7 @@ use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 final class NonPublicHandlerControllerFixture
 {
     #[Method(name: 'DoThing')]
-    protected static function doThing(ContainerContract $container, RouteContract $route): ServiceResponseContract
+    private static function doThing(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         return ServiceResponse::ok();
     }
