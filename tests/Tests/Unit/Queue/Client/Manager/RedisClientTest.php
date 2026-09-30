@@ -122,7 +122,7 @@ final class RedisClientTest extends TestCase
     {
         $job = new Job(name: self::NAME, attempts: 2, retryDelayMs: 0);
 
-        $this->client()->retry($job);
+        $this->client()->retry($job, 0);
 
         self::assertCount(1, $this->redis->getCalls('rpush'));
         self::assertSame([], $this->redis->getCalls('zadd'));
@@ -132,7 +132,7 @@ final class RedisClientTest extends TestCase
     {
         $job = new Job(name: self::NAME, id: 'stable-id', attempts: 4, retryDelayMs: 0);
 
-        $this->client()->retry($job);
+        $this->client()->retry($job, 0);
 
         /** @var array<string, mixed> $envelope */
         $envelope = json_decode($this->redis->getCalls('rpush')[0][1][0], true);
