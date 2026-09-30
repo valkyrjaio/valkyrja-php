@@ -14,23 +14,16 @@ namespace Valkyrja\Tests\Fixtures\Application\Provider;
 
 use Override;
 use Valkyrja\Grpc\Routing\Provider\Contract\GrpcRouteProviderContract;
-use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\GreeterControllerFixture;
 
 final class GrpcRouteProviderFixture implements GrpcRouteProviderContract
 {
-    public static bool $called = false;
-
     /**
      * @inheritDoc
      */
     #[Override]
     public function getControllerClasses(): array
     {
-        self::$called = true;
-
-        return [
-            GreeterControllerFixture::class,
-        ];
+        return [];
     }
 
     /**
