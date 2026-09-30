@@ -882,9 +882,10 @@ This is the one path where `NativeChildContainer` gives the parent for a lookup
 it could have answered itself.
 
 Warning: on that path the parent reads none of the child's maps. An instance the
-child holds for the target does not answer the alias. The alias returns the
-parent's copy, or throws `ContainerInvalidReferenceException` when the parent
-holds none. To reach the child's copy through an alias, declare the alias on the
+child holds for the target does not answer the alias. The parent answers from
+its own maps: it returns the copy it holds, or it runs its own binding, or it
+throws `ContainerInvalidReferenceException` when it holds no registration at
+all. To reach the child's copy through an alias, declare the alias on the
 child:
 
 ```php
@@ -906,9 +907,11 @@ $child->get(TimeSourceContract::class);  // $requestClock
 Off that path the receiver follows the implementation, not the alias.
 `NativeChildContainer` invokes a parent-bound factory itself and gives it the
 child. `ChildContainer` hands the same call to the parent and gives it the
-parent. The exception path above follows the same rule, and caches the instance
-in the child either way. A deferred target is the one case both give the child,
-because the publish callback runs in the container that publishes it.
+parent. The exception path above follows the same rule. A singleton the child
+builds on that path caches in the child. A publisher decides what it registers,
+so a publisher that binds a `bind()` factory caches nothing. A deferred target
+is the one case both give the child, because the publish callback runs in the
+container that publishes it.
 
 The two answer `isDeferred()` about **themselves** differently, because they
 hold different state. `ChildContainer` copies the callbacks, so it answers for
@@ -958,8 +961,10 @@ type. It extends the SPL `InvalidArgumentException`.
 **`ContainerCyclicAliasException`** — an alias points at a chain that returns
 to it, so the chain has no end. Every entry point checks: `bindAlias()` for the
 pair it is asked to store, and the constructor and `setFromData()` for the map
-they receive. A child also follows each chain through its parent. The check runs
-at registration, not at resolution. It extends the SPL
+they receive. A child also follows each chain through its parent. Each check
+covers the maps that exist when it runs, so a container that binds an alias
+after a child reads through it can still close a chain. A child throws for that
+chain when it walks the parent's aliases to resolve one. It extends the SPL
 `InvalidArgumentException`.
 
 All three implement `Valkyrja\Container\Throwable\Contract\ContainerThrowable`,
