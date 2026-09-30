@@ -15,18 +15,17 @@ namespace Valkyrja\Tests\Fixtures\Application\Provider;
 use Override;
 use Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract;
 
+/**
+ * A queue route provider that contributes no controllers and no routes.
+ */
 final class QueueRouteProviderFixture implements QueueRouteProviderContract
 {
-    public static bool $called = false;
-
     /**
      * @inheritDoc
      */
     #[Override]
     public function getControllerClasses(): array
     {
-        self::$called = true;
-
         return [];
     }
 

@@ -16,6 +16,9 @@ use Override;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Application\Provider\Contract\ComponentProviderContract;
 
+/**
+ * A component provider that contributes only a queue route provider.
+ */
 final class QueueRouteComponentProviderFixture implements ComponentProviderContract
 {
     /**
