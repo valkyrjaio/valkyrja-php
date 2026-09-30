@@ -17,7 +17,9 @@ use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\Auth\Authenticator\Contract\AuthenticatorContract;
 use Valkyrja\Auth\Authenticator\SessionAuthenticator;
 use Valkyrja\Auth\Data\AuthConfig;
+use Valkyrja\Auth\Data\AuthSessionConfig;
 use Valkyrja\Auth\Data\Contract\AuthConfigContract;
+use Valkyrja\Auth\Data\Contract\AuthSessionConfigContract;
 use Valkyrja\Auth\Hasher\Contract\PasswordHasherContract;
 use Valkyrja\Auth\Hasher\PhpPasswordHasher;
 use Valkyrja\Auth\Store\Contract\StoreContract;
@@ -51,6 +53,25 @@ class AuthServiceProvider implements ServiceProviderContract
     }
 
     /**
+     * Publish the session authenticator config service.
+     */
+    public static function publishSessionConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof AuthSessionConfigContract) {
+            $container->setSingleton(AuthSessionConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(
+            AuthSessionConfigContract::class,
+            new AuthSessionConfig()
+        );
+    }
+
+    /**
      * Publish the authenticator service.
      */
     public static function publishAuthenticator(ContainerContract $container): void
@@ -68,7 +89,8 @@ class AuthServiceProvider implements ServiceProviderContract
      */
     public static function publishSessionAuthenticator(ContainerContract $container): void
     {
-        $config = $container->getSingleton(AuthConfigContract::class);
+        $config        = $container->getSingleton(AuthConfigContract::class);
+        $sessionConfig = $container->getSingleton(AuthSessionConfigContract::class);
 
         $container->setSingleton(
             SessionAuthenticator::class,
@@ -77,8 +99,8 @@ class AuthServiceProvider implements ServiceProviderContract
                 store: $container->getSingleton(StoreContract::class),
                 hasher: $container->getSingleton(PasswordHasherContract::class),
                 entity: $config->defaultUserEntity,
-                sessionItemId: $config->session->itemId,
-                allowedClasses: $config->session->allowedClasses
+                sessionItemId: $sessionConfig->sessionItemId,
+                allowedClasses: $sessionConfig->sessionAllowedClasses
             ),
         );
     }
@@ -149,14 +171,15 @@ class AuthServiceProvider implements ServiceProviderContract
     public function publishers(): array
     {
         return [
-            AuthConfigContract::class     => [self::class, 'publishConfig'],
-            AuthenticatorContract::class  => [self::class, 'publishAuthenticator'],
-            SessionAuthenticator::class   => [self::class, 'publishSessionAuthenticator'],
-            StoreContract::class          => [self::class, 'publishStore'],
-            OrmStore::class               => [self::class, 'publishOrmStore'],
-            InMemoryStore::class          => [self::class, 'publishInMemoryStore'],
-            NullStore::class              => [self::class, 'publishNullStore'],
-            PasswordHasherContract::class => [self::class, 'publishPasswordHasher'],
+            AuthConfigContract::class        => [self::class, 'publishConfig'],
+            AuthSessionConfigContract::class => [self::class, 'publishSessionConfig'],
+            AuthenticatorContract::class     => [self::class, 'publishAuthenticator'],
+            SessionAuthenticator::class      => [self::class, 'publishSessionAuthenticator'],
+            StoreContract::class             => [self::class, 'publishStore'],
+            OrmStore::class                  => [self::class, 'publishOrmStore'],
+            InMemoryStore::class             => [self::class, 'publishInMemoryStore'],
+            NullStore::class                 => [self::class, 'publishNullStore'],
+            PasswordHasherContract::class    => [self::class, 'publishPasswordHasher'],
         ];
     }
 }

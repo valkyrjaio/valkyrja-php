@@ -13,7 +13,6 @@ declare(strict_types=1);
 namespace Valkyrja\Auth\Data\Contract;
 
 use Valkyrja\Auth\Authenticator\Contract\AuthenticatorContract;
-use Valkyrja\Auth\Data\AuthSessionConfig;
 use Valkyrja\Auth\Entity\Contract\UserContract;
 use Valkyrja\Auth\Store\Contract\StoreContract;
 
@@ -31,10 +30,6 @@ interface AuthConfigContract
 
     /** @var class-string<UserContract> */
     public string $defaultUserEntity {
-        get;
-    }
-
-    public AuthSessionConfig $session {
         get;
     }
 }

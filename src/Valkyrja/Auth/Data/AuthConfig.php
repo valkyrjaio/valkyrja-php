@@ -31,7 +31,6 @@ class AuthConfig implements AuthConfigContract
         public readonly string $defaultAuthenticator = SessionAuthenticator::class,
         public readonly string $defaultStore = OrmStore::class,
         public readonly string $defaultUserEntity = User::class,
-        public readonly AuthSessionConfig $session = new AuthSessionConfig(),
     ) {
     }
 }

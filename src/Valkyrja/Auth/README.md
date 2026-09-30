@@ -177,41 +177,45 @@ Additional user capability contracts can be composed as needed:
 ## Session Storage
 
 `SessionAuthenticator` serializes the `AuthenticatedUsers` object and stores it
-in the session under the `auth.users` key. On construction, it reads and
-deserializes this value, validating the allowed classes against
-`AuthSessionConfig::$allowedClasses` to prevent unsafe deserialization.
+in the session under the `sessionItemId` key. The key is `auth.users` by
+default. On construction, the authenticator reads and deserializes this value.
+It accepts only the classes in `sessionAllowedClasses`, which prevents unsafe
+deserialization.
 
 The `auth.passwordConfirmedTimestamp` session key is also reserved for
 password-confirmation flows.
 
 ## Configuration
 
-The component reads `AuthConfigContract`. Your application config class
-implements the contract. The service provider binds `AuthConfig` when the
-application config does not implement it.
+The component reads two config contracts. Your application config class
+implements only the contracts for the adapters that it uses. Each adapter
+contract prefixes its properties with the adapter name, so one class can
+implement several of them at once.
+
+### `AuthConfigContract`
 
 | Property               | Default                       | Description                                     |
 | :--------------------- | :---------------------------- | :---------------------------------------------- |
 | `defaultAuthenticator` | `SessionAuthenticator::class` | Implementation bound to `AuthenticatorContract` |
 | `defaultStore`         | `OrmStore::class`             | Implementation bound to `StoreContract`         |
 | `defaultUserEntity`    | `User::class`                 | Default user entity class                       |
-| `session`              | `new AuthSessionConfig()`     | Settings for `SessionAuthenticator`             |
 
-`AuthSessionConfig` holds the settings that only `SessionAuthenticator` reads:
+### `AuthSessionConfigContract`
 
-| Property         | Default                       | Description                                        |
-| :--------------- | :---------------------------- | :------------------------------------------------- |
-| `itemId`         | `'auth.users'`                | Session key for the authenticated users collection |
-| `allowedClasses` | `[AuthenticatedUsers::class]` | Allowed classes during session deserialization     |
+| Property                | Default                       | Description                                        |
+| :---------------------- | :---------------------------- | :------------------------------------------------- |
+| `sessionItemId`         | `'auth.users'`                | Session key for the authenticated users collection |
+| `sessionAllowedClasses` | `[AuthenticatedUsers::class]` | Allowed classes during session deserialization     |
 
 ## Service Registration
 
 The Auth service provider registers the following singletons:
 
-| Contract / Class         | Description                                            |
-| :----------------------- | :----------------------------------------------------- |
-| `AuthConfigContract`     | Component config                                       |
-| `AuthenticatorContract`  | Active authenticator (default: `SessionAuthenticator`) |
+| Contract / Class            | Description                                            |
+| :-------------------------- | :----------------------------------------------------- |
+| `AuthConfigContract`        | Component config                                       |
+| `AuthSessionConfigContract` | Session authenticator config                           |
+| `AuthenticatorContract`     | Active authenticator (default: `SessionAuthenticator`) |
 | `SessionAuthenticator`   | Session-backed authenticator                           |
 | `StoreContract`          | Active store (default: `OrmStore`)                     |
 | `OrmStore`               | ORM-backed user store                                  |

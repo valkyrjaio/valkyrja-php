@@ -14,16 +14,17 @@ namespace Valkyrja\Auth\Data;
 
 use Valkyrja\Auth\Constant\SessionItemId;
 use Valkyrja\Auth\Data\Contract\AuthenticatedUsersContract;
+use Valkyrja\Auth\Data\Contract\AuthSessionConfigContract;
 
-class AuthSessionConfig
+class AuthSessionConfig implements AuthSessionConfigContract
 {
     /**
-     * @param non-empty-string                           $itemId         The session item id to store the users under
-     * @param class-string<AuthenticatedUsersContract>[] $allowedClasses The classes the session may deserialize
+     * @param non-empty-string                           $sessionItemId         The session item id to store the users under
+     * @param class-string<AuthenticatedUsersContract>[] $sessionAllowedClasses The classes the session may deserialize
      */
     public function __construct(
-        public readonly string $itemId = SessionItemId::AUTHENTICATED_USERS,
-        public readonly array $allowedClasses = [AuthenticatedUsers::class],
+        public readonly string $sessionItemId = SessionItemId::AUTHENTICATED_USERS,
+        public readonly array $sessionAllowedClasses = [AuthenticatedUsers::class],
     ) {
     }
 }
