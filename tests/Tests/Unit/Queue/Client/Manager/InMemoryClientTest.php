@@ -97,7 +97,7 @@ final class InMemoryClientTest extends TestCase
     {
         $job    = new Job(name: self::NAME, id: 'stable-id', producer: 'other', attempts: 3);
         $client = new InMemoryClient();
-        $client->retry($job);
+        $client->retry($job, 0);
 
         $pushed = $client->getPushed()[0];
 
@@ -109,7 +109,7 @@ final class InMemoryClientTest extends TestCase
     public function testRetryBuffersLikeAPush(): void
     {
         $client = new InMemoryClient();
-        $client->retry(new Job(name: self::NAME, attempts: 2));
+        $client->retry(new Job(name: self::NAME, attempts: 2), 0);
 
         self::assertCount(1, $client->getBuffered());
     }

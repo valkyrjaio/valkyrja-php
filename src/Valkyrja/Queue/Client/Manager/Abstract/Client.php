@@ -53,7 +53,7 @@ abstract class Client implements ClientContract
      * @inheritDoc
      */
     #[Override]
-    public function retry(JobContract $job, int $delayMs = 0): void
+    public function retry(JobContract $job, int $delayMs): void
     {
         $this->pushed[] = $job;
 
