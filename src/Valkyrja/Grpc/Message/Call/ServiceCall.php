@@ -35,9 +35,6 @@ class ServiceCall implements ServiceCallContract
      */
     protected $sink;
 
-    /** Guards against a re-entrant send — the transport sink is not re-entrant. */
-    protected bool $sending = false;
-
     /**
      * @param non-empty-string            $method   The fully-qualified method
      * @param iterable<array-key, mixed>  $messages The inbound messages
@@ -53,6 +50,28 @@ class ServiceCall implements ServiceCallContract
         protected RouteContract|null $route = null,
         callable|null $sink = null,
     ) {
+        if ($sink !== null) {
+            // The guard lives with the sink, not with the call. `withRoute()` clones the call but
+            // shares the one transport, so a per-instance flag misses a nested send from a clone.
+            $sending = false;
+
+            $sink = static function (mixed $message) use ($sink, &$sending): void {
+                if ($sending) {
+                    throw new GrpcConcurrentSendException(
+                        'Concurrent send() on a streaming call: a streaming handler must emit one message at a time — sends are serialized and the transport is not re-entrant.'
+                    );
+                }
+
+                $sending = true;
+
+                try {
+                    $sink($message);
+                } finally {
+                    $sending = false;
+                }
+            };
+        }
+
         $this->sink = $sink;
     }
 
@@ -144,20 +163,7 @@ class ServiceCall implements ServiceCallContract
             );
         }
 
-        // The transport sink is not re-entrant, so a nested send corrupts the frame in flight.
-        if ($this->sending) {
-            throw new GrpcConcurrentSendException(
-                'Concurrent send() on a streaming call: a streaming handler must emit one message at a time — sends are serialized and the transport is not re-entrant.'
-            );
-        }
-
-        $this->sending = true;
-
-        try {
-            $sink($message);
-        } finally {
-            $this->sending = false;
-        }
+        $sink($message);
     }
 
     /**

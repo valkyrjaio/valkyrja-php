@@ -137,12 +137,16 @@ final class ServiceCallTest extends TestCase
 
     public function testTheSendGuardIsReleasedAfterAThrow(): void
     {
+        $sent = [];
+
         $call = new ServiceCall(
             method: '/pkg.Service/Method',
-            sink: static function (mixed $message): void {
+            sink: static function (mixed $message) use (&$sent): void {
                 if ($message === 'boom') {
                     throw new RuntimeException('boom');
                 }
+
+                $sent[] = $message;
             },
         );
 
@@ -154,7 +158,7 @@ final class ServiceCallTest extends TestCase
 
         $call->send('fine');
 
-        self::assertTrue($call->isStreaming());
+        self::assertSame(['fine'], $sent);
     }
 
     public function testCancellableYieldsEverythingWhenUncancelled(): void
