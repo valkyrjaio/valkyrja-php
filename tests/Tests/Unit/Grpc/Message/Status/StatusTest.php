@@ -88,13 +88,14 @@ final class StatusTest extends TestCase
 
     public function testWithCode(): void
     {
-        $status = new Status(StatusCode::OK, 'kept', 'details');
+        $status = new Status(StatusCode::OK, 'replaced', 'details');
         $new    = $status->withCode(StatusCode::ABORTED);
 
         self::assertNotSame($status, $new);
         self::assertSame(StatusCode::OK, $status->getCode());
+        self::assertSame('replaced', $status->getMessage());
         self::assertSame(StatusCode::ABORTED, $new->getCode());
-        self::assertSame('kept', $new->getMessage());
+        self::assertSame(StatusCode::ABORTED->getDefaultMessage(), $new->getMessage());
         self::assertSame('details', $new->getDetails());
     }
 
