@@ -87,6 +87,11 @@ class ServiceHandler implements ServiceHandlerContract
     {
         $sent = $this->sendingResponseHandler->sendingResponse($call, $response);
 
+        // The stage always runs, so a cancellation that fired during it overlays the status on
+        // what the stage produced rather than discarding it.
+        $sent = Cancellation::checkAndFinalize($call, $sent)
+            ?? $sent;
+
         // Set the returned response in the container
         $this->container->setSingleton(ServiceResponseContract::class, $sent);
 
