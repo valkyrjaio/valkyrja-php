@@ -31,19 +31,21 @@ class Metadata implements MetadataContract
     /**
      * The valid gRPC metadata key charset (matched against the normalized, lower-cased key): one or
      * more of a lowercase letter, digit, `-`, `_`, or `.`. Mirrors the set gRPC itself enforces, so
-     * a key accepted here is one the transport will accept.
+     * a key accepted here is one the transport will accept. The `D` modifier is load-bearing:
+     * without it `$` also matches before a trailing newline, so a key could smuggle one in.
      *
      * @var non-empty-string
      */
-    protected const string VALID_KEY_REGEX = '/^[a-z0-9._-]+$/';
+    protected const string VALID_KEY_REGEX = '/^[a-z0-9._-]+$/D';
 
     /**
      * The valid charset for an ASCII (non-`-bin`) metadata value: printable ASCII only, which is
-     * what the wire permits for a non-binary header value.
+     * what the wire permits for a non-binary header value. The `D` modifier stops `$` from
+     * matching before a trailing newline.
      *
      * @var non-empty-string
      */
-    protected const string VALID_ASCII_VALUE_REGEX = '/^[\x20-\x7e]*$/';
+    protected const string VALID_ASCII_VALUE_REGEX = '/^[\x20-\x7e]*$/D';
 
     /** @var array<string, string[]> */
     protected array $values = [];
