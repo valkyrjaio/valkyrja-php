@@ -16,8 +16,6 @@ use Override;
 use Valkyrja\Grpc\Message\Deadline\Contract\DeadlineContract;
 use Valkyrja\Support\Time\Microtime;
 
-use const PHP_FLOAT_MAX;
-
 class Deadline implements DeadlineContract
 {
     /**
@@ -27,14 +25,20 @@ class Deadline implements DeadlineContract
      */
     public const float INFINITE_REMAINING = 365.0 * 100.0 * 86400.0;
 
+    protected float $absoluteTime;
+
     /**
-     * @param float $absoluteTime The absolute expiry time, as a unix timestamp in seconds
-     * @param bool  $hasDeadline  Whether a deadline is set at all
+     * @param float|null $absoluteTime The absolute expiry time as a unix timestamp in seconds, or
+     *                                 null for the no-deadline sentinel
+     * @param bool       $hasDeadline  Whether a deadline is set at all
      */
     public function __construct(
-        protected float $absoluteTime = PHP_FLOAT_MAX,
+        float|null $absoluteTime = null,
         protected bool $hasDeadline = false,
     ) {
+        // The sentinel is finite, so arithmetic on an absent deadline's absolute time cannot
+        // overflow the way PHP_FLOAT_MAX does.
+        $this->absoluteTime = $absoluteTime ?? Microtime::get() + self::INFINITE_REMAINING;
     }
 
     /**
