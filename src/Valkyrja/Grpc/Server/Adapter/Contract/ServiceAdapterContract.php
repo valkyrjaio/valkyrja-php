@@ -19,6 +19,12 @@ interface ServiceAdapterContract
     /**
      * Begin accepting calls, dispatching each to the given handler.
      *
+     * The adapter bounds both directions of each call. `maxInboundMessages` bounds the inbound
+     * direction. Nothing in the framework bounds the outbound direction, so the adapter checks
+     * whether the transport can accept a message before it writes one. When the transport cannot,
+     * the adapter pauses the drain and resumes it later. A paused drain is not a cancelled call:
+     * cancellation ends the drain, and backpressure only pauses it.
+     *
      * @param ServiceHandlerContract $handler The kernel entry point
      */
     public function start(ServiceHandlerContract $handler): void;
