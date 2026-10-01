@@ -38,10 +38,10 @@ final class SqsQueueFixture extends SqsQueue
         int $visibilityTimeout = 45,
     ): void {
         self::$injected            = $sqs;
-        static::$sqs               = $sqs;
-        static::$queueUrl          = $queueUrl;
-        static::$waitTimeSeconds   = $waitTimeSeconds;
-        static::$visibilityTimeout = $visibilityTimeout;
+        self::$sqs                 = $sqs;
+        self::$queueUrl            = $queueUrl;
+        self::$waitTimeSeconds     = $waitTimeSeconds;
+        self::$visibilityTimeout   = $visibilityTimeout;
     }
 
     /**
@@ -50,11 +50,11 @@ final class SqsQueueFixture extends SqsQueue
     public static function reset(): void
     {
         self::$injected            = null;
-        static::$sqs               = null;
-        static::$current           = null;
-        static::$queueUrl          = null;
-        static::$waitTimeSeconds   = 1;
-        static::$visibilityTimeout = 30;
+        self::$sqs                 = null;
+        self::$current             = null;
+        self::$queueUrl            = null;
+        self::$waitTimeSeconds     = 1;
+        self::$visibilityTimeout   = 30;
     }
 
     /**
