@@ -97,7 +97,18 @@ class JobFactory implements JobFactoryContract
     #[Override]
     public function toJson(JobContract $job): string
     {
-        return ArrayFactory::toString($job->asArray());
+        $envelope = $job->asArray();
+
+        // Both maps are objects on the wire, and json_encode writes an empty
+        // PHP array as `[]`. A strict consumer in another language rejects that
+        // for a map, so each map is cast rather than left to the encoder. The
+        // cast is scoped to the two maps: JSON_FORCE_OBJECT would also rewrite
+        // an attribute's value list into an object and break its `str -> [str]`
+        // shape.
+        $envelope[EnvelopeField::ATTRIBUTES] = (object) $envelope[EnvelopeField::ATTRIBUTES];
+        $envelope[EnvelopeField::PAYLOAD]    = (object) $envelope[EnvelopeField::PAYLOAD];
+
+        return ArrayFactory::toString($envelope);
     }
 
     /**
