@@ -25,6 +25,7 @@ use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
 use function is_array;
@@ -72,14 +73,15 @@ class AmqpQueue extends PullQueue
 
         // Declaring is idempotent, so a consumer may start before any producer
         $channel->queue_declare(static::$queue, false, true, false, false);
-        // One unacknowledged delivery at a time, matching the single in-flight slot
+        // The prefetch governs deliveries pushed to a registered consumer, and
+        // this entry fetches one at a time instead, so the broker ignores it
+        // here. It is set for the day the entry registers a consumer; what holds
+        // one delivery today is the single in-flight slot below.
         $channel->basic_qos(0, 1, false);
     }
 
     /**
      * @inheritDoc
-     *
-     * @throws JsonException
      */
     #[Override]
     public static function receive(): JobContract|null
@@ -92,9 +94,15 @@ class AmqpQueue extends PullQueue
             return null;
         }
 
+        $job = static::decode($message);
+
+        if ($job === null) {
+            return null;
+        }
+
         static::$current = $message;
 
-        return static::withNormalizedAttempts(new JobFactory()->fromJson($message->getBody()), $message);
+        return static::withNormalizedAttempts($job, $message);
     }
 
     /**
@@ -141,6 +149,24 @@ class AmqpQueue extends PullQueue
         }
 
         $message->ack();
+    }
+
+    /**
+     * Read an envelope off a delivery, or nothing when it cannot be read.
+     *
+     * A body that is not a readable envelope is rejected without requeue, so the
+     * broker's dead-letter policy takes it. Handing it back would give the next
+     * worker the same body, and one bad message would stop the queue for good.
+     */
+    protected static function decode(AMQPMessage $message): JobContract|null
+    {
+        try {
+            return new JobFactory()->fromJson($message->getBody());
+        } catch (JsonException|QueueMessageInvalidEnvelopeException) {
+            $message->nack(false);
+
+            return null;
+        }
     }
 
     /**
