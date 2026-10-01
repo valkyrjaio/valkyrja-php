@@ -72,10 +72,11 @@ subclass can hold per-environment defaults.
 ### Renaming the Built-In Commands and Options
 
 A custom config class is also how you rename the built-in commands and the
-global options. `CliServerServiceProvider` checks the config against five
-opt-in contracts in `Valkyrja\Cli\Server\Data\Contract`. When the config
-implements a contract, the provider reads the names from its properties. When
-it does not, the default names apply.
+global options. `CliServerServiceProvider` publishes each of the five contracts
+in `Valkyrja\Cli\Server\Data\Contract` as its own container binding. The
+provider binds your config when your config implements the contract. When it
+does not, the provider binds the matching default from
+`Valkyrja\Cli\Server\Data`, which holds the default names.
 
 | Contract                             | Properties                                                          | Renames                                    |
 | ------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------ |

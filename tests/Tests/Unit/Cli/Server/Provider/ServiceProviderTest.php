@@ -24,12 +24,24 @@ use Valkyrja\Cli\Middleware\Handler\Contract\InputReceivedHandlerContract;
 use Valkyrja\Cli\Middleware\Handler\Contract\ProcessExitingHandlerContract;
 use Valkyrja\Cli\Middleware\Handler\Contract\ThrowableCaughtHandlerContract;
 use Valkyrja\Cli\Routing\Collection\Contract\RouteCollectionContract;
+use Valkyrja\Cli\Routing\Constant\OptionName;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Routing\Dispatcher\Contract\RouterContract;
 use Valkyrja\Cli\Server\Command\HelpCommand;
 use Valkyrja\Cli\Server\Command\ListBashCommand;
 use Valkyrja\Cli\Server\Command\ListCommand;
 use Valkyrja\Cli\Server\Command\VersionCommand;
+use Valkyrja\Cli\Server\Constant\CommandName;
+use Valkyrja\Cli\Server\Data\CliHelpCommandConfig;
+use Valkyrja\Cli\Server\Data\CliNoInteractionConfig;
+use Valkyrja\Cli\Server\Data\CliQuietInteractionConfig;
+use Valkyrja\Cli\Server\Data\CliSilentInteractionConfig;
+use Valkyrja\Cli\Server\Data\CliVersionCommandConfig;
+use Valkyrja\Cli\Server\Data\Contract\CliHelpCommandConfigContract;
+use Valkyrja\Cli\Server\Data\Contract\CliNoInteractionConfigContract;
+use Valkyrja\Cli\Server\Data\Contract\CliQuietInteractionConfigContract;
+use Valkyrja\Cli\Server\Data\Contract\CliSilentInteractionConfigContract;
+use Valkyrja\Cli\Server\Data\Contract\CliVersionCommandConfigContract;
 use Valkyrja\Cli\Server\Handler\Contract\InputHandlerContract;
 use Valkyrja\Cli\Server\Handler\InputHandler;
 use Valkyrja\Cli\Server\Middleware\InputReceived\CheckForHelpOptionsMiddleware;
@@ -53,6 +65,11 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
     public function testExpectedPublishers(): void
     {
+        self::assertArrayHasKey(CliHelpCommandConfigContract::class, new CliServerServiceProvider()->publishers());
+        self::assertArrayHasKey(CliVersionCommandConfigContract::class, new CliServerServiceProvider()->publishers());
+        self::assertArrayHasKey(CliNoInteractionConfigContract::class, new CliServerServiceProvider()->publishers());
+        self::assertArrayHasKey(CliQuietInteractionConfigContract::class, new CliServerServiceProvider()->publishers());
+        self::assertArrayHasKey(CliSilentInteractionConfigContract::class, new CliServerServiceProvider()->publishers());
         self::assertArrayHasKey(InputHandlerContract::class, new CliServerServiceProvider()->publishers());
         self::assertArrayHasKey(HelpCommand::class, new CliServerServiceProvider()->publishers());
         self::assertArrayHasKey(ListBashCommand::class, new CliServerServiceProvider()->publishers());
@@ -64,6 +81,106 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(CheckForVersionOptionsMiddleware::class, new CliServerServiceProvider()->publishers());
         self::assertArrayHasKey(CheckGlobalInteractionOptionsMiddleware::class, new CliServerServiceProvider()->publishers());
         self::assertArrayHasKey(CheckCommandForTypoMiddleware::class, new CliServerServiceProvider()->publishers());
+    }
+
+    public function testPublishHelpCommandConfig(): void
+    {
+        $callback = new CliServerServiceProvider()->publishers()[CliHelpCommandConfigContract::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(CliHelpCommandConfig::class, $config = $this->container->getSingleton(CliHelpCommandConfigContract::class));
+        self::assertSame(CommandName::HELP, $config->helpCommandName);
+    }
+
+    public function testPublishHelpCommandConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, $appConfig = new CliCommandCommandConfigFixture(helpCommandName: 'helpTest'));
+
+        $callback = new CliServerServiceProvider()->publishers()[CliHelpCommandConfigContract::class];
+        $callback($this->container);
+
+        self::assertSame($appConfig, $config = $this->container->getSingleton(CliHelpCommandConfigContract::class));
+        self::assertSame('helpTest', $config->helpCommandName);
+    }
+
+    public function testPublishVersionCommandConfig(): void
+    {
+        $callback = new CliServerServiceProvider()->publishers()[CliVersionCommandConfigContract::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(CliVersionCommandConfig::class, $config = $this->container->getSingleton(CliVersionCommandConfigContract::class));
+        self::assertSame(CommandName::VERSION, $config->versionCommandName);
+    }
+
+    public function testPublishVersionCommandConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, $appConfig = new CliCommandCommandConfigFixture(versionCommandName: 'versionTest'));
+
+        $callback = new CliServerServiceProvider()->publishers()[CliVersionCommandConfigContract::class];
+        $callback($this->container);
+
+        self::assertSame($appConfig, $config = $this->container->getSingleton(CliVersionCommandConfigContract::class));
+        self::assertSame('versionTest', $config->versionCommandName);
+    }
+
+    public function testPublishNoInteractionConfig(): void
+    {
+        $callback = new CliServerServiceProvider()->publishers()[CliNoInteractionConfigContract::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(CliNoInteractionConfig::class, $config = $this->container->getSingleton(CliNoInteractionConfigContract::class));
+        self::assertSame(OptionName::NO_INTERACTION, $config->noInteractionOptionName);
+    }
+
+    public function testPublishNoInteractionConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, $appConfig = new CliCommandCommandConfigFixture(noInteractionOptionName: 'batchTest'));
+
+        $callback = new CliServerServiceProvider()->publishers()[CliNoInteractionConfigContract::class];
+        $callback($this->container);
+
+        self::assertSame($appConfig, $config = $this->container->getSingleton(CliNoInteractionConfigContract::class));
+        self::assertSame('batchTest', $config->noInteractionOptionName);
+    }
+
+    public function testPublishQuietInteractionConfig(): void
+    {
+        $callback = new CliServerServiceProvider()->publishers()[CliQuietInteractionConfigContract::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(CliQuietInteractionConfig::class, $config = $this->container->getSingleton(CliQuietInteractionConfigContract::class));
+        self::assertSame(OptionName::QUIET, $config->quietOptionName);
+    }
+
+    public function testPublishQuietInteractionConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, $appConfig = new CliCommandCommandConfigFixture(quietOptionName: 'hushTest'));
+
+        $callback = new CliServerServiceProvider()->publishers()[CliQuietInteractionConfigContract::class];
+        $callback($this->container);
+
+        self::assertSame($appConfig, $config = $this->container->getSingleton(CliQuietInteractionConfigContract::class));
+        self::assertSame('hushTest', $config->quietOptionName);
+    }
+
+    public function testPublishSilentInteractionConfig(): void
+    {
+        $callback = new CliServerServiceProvider()->publishers()[CliSilentInteractionConfigContract::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(CliSilentInteractionConfig::class, $config = $this->container->getSingleton(CliSilentInteractionConfigContract::class));
+        self::assertSame(OptionName::SILENT, $config->silentOptionName);
+    }
+
+    public function testPublishSilentInteractionConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, $appConfig = new CliCommandCommandConfigFixture(silentOptionName: 'muteTest'));
+
+        $callback = new CliServerServiceProvider()->publishers()[CliSilentInteractionConfigContract::class];
+        $callback($this->container);
+
+        self::assertSame($appConfig, $config = $this->container->getSingleton(CliSilentInteractionConfigContract::class));
+        self::assertSame('muteTest', $config->silentOptionName);
     }
 
     /**
@@ -168,6 +285,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
     public function testPublishCheckForHelpOptionsMiddleware(): void
     {
+        CliServerServiceProvider::publishHelpCommandConfig($this->container);
+
         $callback = new CliServerServiceProvider()->publishers()[CheckForHelpOptionsMiddleware::class];
         $callback($this->container);
 
@@ -184,6 +303,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
                 helpOptionShortName: 'helpOptionShortNameTest',
             )
         );
+        CliServerServiceProvider::publishHelpCommandConfig($this->container);
 
         $callback = new CliServerServiceProvider()->publishers()[CheckForHelpOptionsMiddleware::class];
         $callback($this->container);
@@ -206,6 +326,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
     public function testPublishCheckForVersionOptionsMiddleware(): void
     {
+        CliServerServiceProvider::publishVersionCommandConfig($this->container);
+
         $callback = new CliServerServiceProvider()->publishers()[CheckForVersionOptionsMiddleware::class];
         $callback($this->container);
 
@@ -222,6 +344,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
                 versionOptionShortName: 'versionOptionShortNameTest',
             )
         );
+        CliServerServiceProvider::publishVersionCommandConfig($this->container);
 
         $callback = new CliServerServiceProvider()->publishers()[CheckForVersionOptionsMiddleware::class];
         $callback($this->container);
@@ -244,6 +367,10 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
     public function testPublishCheckGlobalInteractionOptionsMiddleware(): void
     {
+        CliServerServiceProvider::publishNoInteractionConfig($this->container);
+        CliServerServiceProvider::publishQuietInteractionConfig($this->container);
+        CliServerServiceProvider::publishSilentInteractionConfig($this->container);
+
         $this->container->setSingleton(CliInteractionConfigContract::class, self::createStub(CliInteractionConfig::class));
 
         $callback = new CliServerServiceProvider()->publishers()[CheckGlobalInteractionOptionsMiddleware::class];
@@ -265,6 +392,9 @@ final class ServiceProviderTest extends ServiceProviderTestCase
                 silentOptionShortName: 'silentOptionShortNameTest',
             )
         );
+        CliServerServiceProvider::publishNoInteractionConfig($this->container);
+        CliServerServiceProvider::publishQuietInteractionConfig($this->container);
+        CliServerServiceProvider::publishSilentInteractionConfig($this->container);
         $this->container->setSingleton(CliInteractionConfigContract::class, self::createStub(CliInteractionConfig::class));
 
         $callback = new CliServerServiceProvider()->publishers()[CheckGlobalInteractionOptionsMiddleware::class];
