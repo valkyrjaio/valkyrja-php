@@ -61,7 +61,7 @@ class PubSubClient extends Client
      * @inheritDoc
      */
     #[Override]
-    protected function republish(JobContract $job, int $delayMs = 0): void
+    protected function republish(JobContract $job, int $delayMs): void
     {
     }
 }
