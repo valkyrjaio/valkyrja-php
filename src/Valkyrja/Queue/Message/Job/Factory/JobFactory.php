@@ -24,6 +24,7 @@ use Valkyrja\Queue\Message\Payload\Payload;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Type\Array\Factory\ArrayFactory;
 
+use function array_is_list;
 use function is_array;
 use function is_bool;
 use function is_int;
@@ -31,6 +32,28 @@ use function is_string;
 
 class JobFactory implements JobFactoryContract
 {
+    /**
+     * Render a map as a JSON object, to any depth.
+     *
+     * A nested empty map goes out as `[]` otherwise, which is the same failure
+     * one level down, and it makes a round trip unstable: a `{}` that was read
+     * would be written back as `[]`. A non-empty list keeps its integer keys,
+     * so it stays a JSON array, which is what an attribute's value list needs.
+     *
+     * @param array<array-key, mixed> $map The map to render
+     */
+    protected static function asObject(array $map): object
+    {
+        /** @var mixed $value */
+        foreach ($map as $key => $value) {
+            if (is_array($value) && ($value === [] || ! array_is_list($value))) {
+                $map[$key] = static::asObject($value);
+            }
+        }
+
+        return (object) $map;
+    }
+
     /**
      * @inheritDoc
      */
@@ -102,6 +125,9 @@ class JobFactory implements JobFactoryContract
     {
         $envelope = $job->asArray();
 
+        /** @var array<array-key, mixed> $payload */
+        $payload = $envelope[EnvelopeField::PAYLOAD];
+
         // Both maps are objects on the wire, and json_encode writes an empty
         // PHP array as `[]`. A strict consumer in another language rejects that
         // for a map, so each map is cast rather than left to the encoder. The
@@ -109,7 +135,7 @@ class JobFactory implements JobFactoryContract
         // an attribute's value list into an object and break its `str -> [str]`
         // shape.
         $envelope[EnvelopeField::ATTRIBUTES] = (object) $envelope[EnvelopeField::ATTRIBUTES];
-        $envelope[EnvelopeField::PAYLOAD]    = (object) $envelope[EnvelopeField::PAYLOAD];
+        $envelope[EnvelopeField::PAYLOAD]    = static::asObject($payload);
 
         return ArrayFactory::toString($envelope);
     }
