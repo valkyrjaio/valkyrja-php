@@ -25,11 +25,11 @@ use const ARRAY_FILTER_USE_KEY;
 
 class Payload implements PayloadContract
 {
-    /** @var array<non-empty-string|int, scalar|PayloadContract|null> */
+    /** @var array<array-key, scalar|PayloadContract|null> */
     protected array $params = [];
 
     /**
-     * @param array<non-empty-string|int, scalar|PayloadContract|null> $params The params
+     * @param array<array-key, scalar|PayloadContract|null> $params The params
      */
     public function __construct(array $params = [])
     {
@@ -62,7 +62,7 @@ class Payload implements PayloadContract
         }
 
         /**
-         * @var array<non-empty-string|int, scalar|PayloadContract|null> $params
+         * @var array<array-key, scalar|PayloadContract|null> $params
          *
          * @phpstan-ignore-next-line
          */
@@ -202,9 +202,9 @@ class Payload implements PayloadContract
      *
      * @param array<non-empty-string|int, mixed> $params The params to validate
      *
-     * @psalm-assert array<non-empty-string|int, scalar|PayloadContract|null> $params
+     * @psalm-assert array<array-key, scalar|PayloadContract|null> $params
      *
-     * @phpstan-assert array<non-empty-string|int, scalar|PayloadContract|null> $params
+     * @phpstan-assert array<array-key, scalar|PayloadContract|null> $params
      */
     protected function validateParams(array $params): void
     {

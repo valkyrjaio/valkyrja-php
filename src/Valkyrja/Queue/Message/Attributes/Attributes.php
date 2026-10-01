@@ -29,7 +29,7 @@ use const ARRAY_FILTER_USE_KEY;
 
 class Attributes implements AttributesContract
 {
-    /** @var array<non-empty-lowercase-string, string[]> */
+    /** @var array<non-empty-lowercase-string|int, string[]> */
     protected array $attributes = [];
 
     /**
@@ -155,7 +155,7 @@ class Attributes implements AttributesContract
 
         return array_filter(
             $this->attributes,
-            static fn (string $name): bool => in_array($name, $normalized, true),
+            static fn (string|int $name): bool => in_array((string) $name, $normalized, true),
             ARRAY_FILTER_USE_KEY
         );
     }
@@ -170,7 +170,7 @@ class Attributes implements AttributesContract
 
         return array_filter(
             $this->attributes,
-            static fn (string $name): bool => ! in_array($name, $normalized, true),
+            static fn (string|int $name): bool => ! in_array((string) $name, $normalized, true),
             ARRAY_FILTER_USE_KEY
         );
     }
