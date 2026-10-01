@@ -864,13 +864,16 @@ an alias. When the parent holds a resolved instance and the child holds none, a
 direct child lookup reuses the parent's instance.
 
 The parent answers the target as it would for any caller, with one exception.
-When the parent would resolve the target for the first time — a singleton it
-registered and never built, or a publisher it has not run — and the child holds
-that registration too, the child resolves it instead. Both hold the same
-registration, so letting the parent do it would leave the request with one copy
-for the alias and another for the id. A child that holds neither leaves the
-whole lookup to the parent. Anything the parent has already built or published
-is reused as it stands.
+The child resolves a target the parent would build for the first time, because
+letting the parent do it would leave the request with one copy for the alias and
+another for the id. The two arms of that rule read different state. For a
+singleton the parent registered and never built, the child resolves it only when
+it holds the binding too, and a child without it leaves the whole lookup to the
+parent. For a publisher the parent has not run, the parent's state alone
+decides, so a child whose snapshot omits the callback reports a missing
+reference. A worker takes one snapshot after boot, so a request holds every
+registration either way. Anything the parent has already built or published is
+reused as it stands.
 
 Warning: that exception also decides which binding the alias reaches. Give the
 parent a singleton the parent never builds, and a child that shadows the target
