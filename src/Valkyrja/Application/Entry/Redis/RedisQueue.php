@@ -150,7 +150,7 @@ class RedisQueue extends PullQueue
         $delayedQueue = static::$queue . RedisClient::DELAYED_SUFFIX;
 
         /** @var mixed $due */
-        $due = $redis->zrangebyscore($delayedQueue, '-inf', (string) Microtime::now());
+        $due = $redis->zrangebyscore($delayedQueue, '-inf', (string) Microtime::getMilliseconds());
 
         if (! is_array($due)) {
             return;

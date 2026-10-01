@@ -79,7 +79,7 @@ class RedisClient extends Client
         $encoded = $this->factory->toJson($job);
 
         if ($delayMs > 0) {
-            $this->redis->zadd($this->getDelayedQueue(), [$encoded => Microtime::now() + $delayMs]);
+            $this->redis->zadd($this->getDelayedQueue(), [$encoded => Microtime::getMilliseconds() + $delayMs]);
 
             return;
         }
