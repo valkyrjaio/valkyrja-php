@@ -28,6 +28,14 @@ use function preg_match;
 
 class Route implements RouteContract
 {
+    /**
+     * A `/package.Service/Method` name, where the package is an optional dot-joined list of
+     * protobuf identifiers.
+     *
+     * @var non-empty-string
+     */
+    protected const string METHOD_REGEX = '#\A/([A-Za-z_][A-Za-z0-9_]*+(?:\.[A-Za-z_][A-Za-z0-9_]*+)*+)/([A-Za-z_][A-Za-z0-9_]*+)\z#';
+
     /** @var callable(ContainerContract, RouteContract): ServiceResponseContract */
     protected $handler;
 
@@ -80,10 +88,10 @@ class Route implements RouteContract
      */
     protected static function partsOf(string $method): array
     {
-        // A control character is excluded from both segments, because the method goes on the wire
-        // as the HTTP/2 `:path`. Anchoring alone does not reject one: `[^/]` matches a newline, so
-        // the segment swallows it rather than leaving it past the anchor.
-        if (preg_match('#\A/([^/[:cntrl:]]++)/([^/[:cntrl:]]++)\z#', $method, $matches) !== 1) {
+        // Both segments are protobuf identifiers, and the method goes on the wire as the HTTP/2
+        // `:path`. A looser class would accept a control character, a space, a `?` or a `#`, each
+        // of which corrupts that path silently rather than failing where the name is declared.
+        if (preg_match(self::METHOD_REGEX, $method, $matches) !== 1) {
             throw new GrpcRoutingInvalidMethodException("Invalid gRPC method `$method`; expected `/package.Service/Method`");
         }
 
