@@ -23,6 +23,7 @@ use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Tests\Fixtures\Application\Entry\AmqpQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\AmqpChannelFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -61,6 +62,43 @@ final class AmqpQueueTest extends TestCase
         self::assertCount(1, $this->channel->getCalls('queue_declare'));
         // One in flight at a time, matching the single delivery slot
         self::assertSame([[0, 1, false]], $this->channel->getCalls('basic_qos'));
+    }
+
+    public function testPollingWithoutAChannelFails(): void
+    {
+        AmqpQueueFixture::reset();
+
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        AmqpQueueFixture::receive();
+    }
+
+    public function testAHeaderTableWithoutTheCountIsIgnored(): void
+    {
+        $this->channel->next = $this->delivery(
+            ['name' => 'SendWelcomeEmail', 'attempts' => 2],
+            headers: ['x-something-else' => 'value'],
+        );
+
+        $job = AmqpQueueFixture::receive();
+
+        self::assertNotNull($job);
+        // The table is present and is an array, but carries no count
+        self::assertSame(2, $job->getAttempts());
+    }
+
+    public function testAnUnreadableBodyIsRejectedWithoutRequeue(): void
+    {
+        $message = new AMQPMessage('not json at all');
+        $message->setChannel($this->channel);
+        $message->setDeliveryInfo('delivery-1', false, '', self::QUEUE);
+
+        $this->channel->next = $message;
+
+        self::assertNull(AmqpQueueFixture::receive());
+
+        // Handing it back would give the next worker the same body for ever
+        self::assertSame([['delivery-1', false, false]], $this->channel->getCalls('basic_nack'));
     }
 
     public function testReceiveReturnsNullWhenNothingIsWaiting(): void
