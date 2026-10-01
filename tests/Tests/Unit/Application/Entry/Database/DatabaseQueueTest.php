@@ -15,6 +15,9 @@ namespace Valkyrja\Tests\Unit\Application\Entry\Database;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Valkyrja\Application\Entry\Database\DatabaseQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Queue\Client\Data\QueueDatabaseClientConfig;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -72,6 +75,25 @@ final class DatabaseQueueTest extends TestCase
         Microtime::unfreeze();
 
         parent::tearDown();
+    }
+
+    public function testConnectReadsTheQueueAndTableFromTheConfig(): void
+    {
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturn(
+            new QueueDatabaseClientConfig(databaseQueue: 'emails', databaseTable: 'queue_jobs')
+        );
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        DatabaseQueueFixture::connect($app);
+        DatabaseQueueFixture::receive();
+
+        $select = $this->manager->getStatements('SELECT')[0];
+
+        self::assertStringContainsString('FROM queue_jobs', $select->query);
+        self::assertSame('emails', $select->bound['queue']);
     }
 
     public function testAnEmptyTableYieldsNothing(): void
