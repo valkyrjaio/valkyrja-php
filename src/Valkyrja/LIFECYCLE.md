@@ -298,8 +298,9 @@ and the build costs time on every request.
 
 An id the child cannot answer from its own maps goes to the parent, and the
 parent answers it as it would for any caller. A parent-declared alias is the
-exception: the child resolves a target the parent has not resolved, when the
-child holds that registration too. Resolve here whatever every
+exception: the child resolves a target the parent has not resolved. For a
+singleton binding the child needs that registration too, and for a publisher the
+parent's state alone decides. Resolve here whatever every
 request should share. See
 [Where an Alias Resolves](Container/README.md#where-an-alias-resolves).
 

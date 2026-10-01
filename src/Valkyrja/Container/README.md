@@ -879,9 +879,9 @@ either way. Anything the parent has already built or published is reused as it
 stands.
 
 Warning: that exception also decides which binding the alias reaches. Give the
-parent a singleton it never builds, and give the child a binding for the same
-id, and the alias reaches the binding of the **child**, because the child
-resolves the target itself.
+parent a singleton it never builds, and give the child a factory for the same
+id, and the alias reaches the factory of the **child**, because the child holds
+the copied marker and resolves the target itself.
 
 Warning: outside that exception, a **parent-declared** alias hands the call to
 the parent in both implementations, so a parent-bound factory receives the
