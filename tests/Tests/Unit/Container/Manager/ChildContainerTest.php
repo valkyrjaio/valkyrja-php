@@ -669,10 +669,11 @@ final class ChildContainerTest extends TestCase
         $child->getAliased('parentAlias');
     }
 
-    public function testGetSingletonBuildsAParentBindingTakenAfterTheSnapshot(): void
+    public function testGetSingletonBuildsWhatIsSingletonBindingReports(): void
     {
         $child = $this->createChild();
-        // A snapshot copies the parent's bindings, so only a later one reaches the fallback
+        // The snapshot copies the parent's bindings, so a marker it missed is the only way
+        // to reach the parent read. A worker takes no binding after the snapshot.
         $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
 
         $instance = $child->getSingleton(SingletonFixture::class);
