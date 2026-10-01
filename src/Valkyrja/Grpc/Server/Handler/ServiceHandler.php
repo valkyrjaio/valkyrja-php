@@ -62,14 +62,16 @@ class ServiceHandler implements ServiceHandlerContract
                 throw $throwable;
             }
 
+            $mapped   = $this->getResponseFromThrowable($throwable);
+            $response = $mapped;
+
             try {
-                // A middleware runs here, so the recovery belongs under a guard of its own.
-                $response = $this->getResponseFromThrowable($throwable);
+                // A middleware runs here, so the stage belongs under a guard of its own.
                 $response = $this->throwableCaughtHandler->throwableCaught($this->getCurrentCall($call), $response, $throwable);
             } catch (Throwable) {
-                // Without this the client gets no status at all, which reads as a dead transport
-                // rather than a server error.
-                $response = ServiceResponse::of(Status::internal());
+                // Fall back to the mapped response rather than a fresh INTERNAL, so a failed
+                // recovery cannot downgrade a status the mapping already got right.
+                $response = $mapped;
             }
         }
 
