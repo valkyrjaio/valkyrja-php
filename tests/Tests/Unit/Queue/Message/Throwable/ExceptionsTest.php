@@ -48,6 +48,10 @@ final class ExceptionsTest extends TestCase
     public function testInvalidAttributeNameException(): void
     {
         self::isA(QueueMessageInvalidArgumentException::class, QueueMessageInvalidAttributeNameException::class);
+    }
+
+    public function testInvalidAttributeValueException(): void
+    {
         self::isA(QueueMessageInvalidArgumentException::class, QueueMessageInvalidAttributeValueException::class);
     }
 
