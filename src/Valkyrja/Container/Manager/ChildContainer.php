@@ -153,7 +153,7 @@ class ChildContainer extends Container
         // The parent would resolve this target for the first time, and the child holds
         // the same registration, so letting the parent do it would leave the request
         // with one copy for the alias and another for the id.
-        if ($this->isUnbuiltInParent($target)) {
+        if ($this->isResolvedInChild($target)) {
             return $this->getTargetOnce($id, $target, $arguments);
         }
 
@@ -198,11 +198,11 @@ class ChildContainer extends Container
     }
 
     /**
-     * Check whether the parent would resolve an id for the first time.
+     * Check whether the child resolves the target of a parent-declared alias itself.
      *
      * @param class-string $id The target id
      */
-    private function isUnbuiltInParent(string $id): bool
+    private function isResolvedInChild(string $id): bool
     {
         // The parent publishes before it reads any map, so this test comes first.
         if ($this->parent->isDeferred($id) && ! $this->parent->isPublished($id)) {
