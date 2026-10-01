@@ -52,13 +52,13 @@ class JobHandler implements JobHandlerContract
     public function handle(JobContract $job): JobResult
     {
         try {
-            $result = $this->dispatchRouter($job);
+            $result = $this->capRetries($job, $this->dispatchRouter($job));
         } catch (Throwable $throwable) {
             $result = $this->getResultFromThrowable($throwable);
             $result = $this->throwableCaughtHandler->throwableCaught($job, $result, $throwable);
         }
 
-        return $this->capRetries($job, $result);
+        return $result;
     }
 
     /**
@@ -119,6 +119,11 @@ class JobHandler implements JobHandlerContract
      * overrides: once the attempts reach the ceiling there is nowhere left to
      * retry into. Applying it here rather than at settlement means the
      * SettlingResult stage sees the outcome the adapter will actually act on.
+     *
+     * A throwable does not come through here. The ThrowableCaught chain owns
+     * the ceiling for a throwable, because a worker shutdown returns the job
+     * for another worker without spending an attempt, and capping that outcome
+     * would drop the work for a reason that has nothing to do with the job.
      */
     protected function capRetries(JobContract $job, JobResult $result): JobResult
     {

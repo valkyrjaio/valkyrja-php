@@ -28,6 +28,8 @@ use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 use Valkyrja\Queue\Routing\Data\Route;
 use Valkyrja\Queue\Routing\Dispatcher\Router;
 use Valkyrja\Queue\Server\Handler\JobHandler;
+use Valkyrja\Queue\Server\Middleware\ThrowableCaught\RetryPolicyThrowableCaughtMiddleware;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerWorkerShutdownException;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\JobReceivedMiddlewareChangedFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\JobReceivedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultSettledMiddlewareFixture;
@@ -65,6 +67,7 @@ final class JobHandlerTest extends TestCase
         $this->container->bindSingleton(ResultSettledMiddlewareFixture::class, static fn (): ResultSettledMiddlewareFixture => new ResultSettledMiddlewareFixture());
         $this->container->bindSingleton(SettlingResultMiddlewareFixture::class, static fn (): SettlingResultMiddlewareFixture => new SettlingResultMiddlewareFixture());
         $this->container->bindSingleton(ThrowableCaughtMiddlewareChangedFixture::class, static fn (): ThrowableCaughtMiddlewareChangedFixture => new ThrowableCaughtMiddlewareChangedFixture());
+        $this->container->bindSingleton(RetryPolicyThrowableCaughtMiddleware::class, static fn (): RetryPolicyThrowableCaughtMiddleware => new RetryPolicyThrowableCaughtMiddleware());
 
         $this->collection             = new RouteCollection();
         $this->jobReceivedHandler     = new JobReceivedHandler($this->container);
@@ -127,6 +130,21 @@ final class JobHandlerTest extends TestCase
 
         self::assertSame(JobResult::DEAD_LETTER, $this->handler()->handle(new Job(name: self::NAME)));
         self::assertSame(1, ThrowableCaughtMiddlewareChangedFixture::getCounter());
+    }
+
+    public function testAWorkerShutdownRetriesAtTheCeilingWithoutPenalty(): void
+    {
+        $this->throwableCaughtHandler->add(RetryPolicyThrowableCaughtMiddleware::class);
+        $this->collection->add($this->route(
+            static fn (): JobResult => throw new QueueServerWorkerShutdownException('draining')
+        ));
+
+        // A shutdown did not spend an attempt, so the ceiling must not turn the
+        // retry into a dead letter and drop work for an unrelated reason
+        self::assertSame(
+            JobResult::RETRY,
+            $this->handler()->handle(new Job(name: self::NAME, attempts: 3, maxAttempts: 3))
+        );
     }
 
     public function testAHandlerReturnedRetryIsCappedAtTheCeiling(): void
