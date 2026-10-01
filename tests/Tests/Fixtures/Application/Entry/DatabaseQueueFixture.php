@@ -39,10 +39,10 @@ final class DatabaseQueueFixture extends DatabaseQueue
         int $reservationTimeoutMs = self::DEFAULT_RESERVATION_TIMEOUT_MS,
     ): void {
         self::$injected               = $manager;
-        static::$manager              = $manager;
-        static::$queue                = $queue;
-        static::$table                = $table;
-        static::$reservationTimeoutMs = $reservationTimeoutMs;
+        self::$manager                = $manager;
+        self::$queue                  = $queue;
+        self::$table                  = $table;
+        self::$reservationTimeoutMs   = $reservationTimeoutMs;
     }
 
     /**
@@ -51,11 +51,11 @@ final class DatabaseQueueFixture extends DatabaseQueue
     public static function reset(): void
     {
         self::$injected               = null;
-        static::$manager              = null;
-        static::$current              = null;
-        static::$queue                = 'default';
-        static::$table                = DatabaseClient::DEFAULT_TABLE;
-        static::$reservationTimeoutMs = self::DEFAULT_RESERVATION_TIMEOUT_MS;
+        self::$manager                = null;
+        self::$current                = null;
+        self::$queue                  = 'default';
+        self::$table                  = DatabaseClient::DEFAULT_TABLE;
+        self::$reservationTimeoutMs   = self::DEFAULT_RESERVATION_TIMEOUT_MS;
     }
 
     /**
