@@ -755,7 +755,7 @@ an unbuilt singleton itself. The container that the singleton's factory
 receives depends on the implementation
 ([Where a Factory Runs](#where-a-factory-runs)). An id the child cannot answer
 at all goes to the parent, and the parent answers it as it would for any caller.
-That is a shared service resolving once, not a leak. What the child never does
+What the child never does
 is rebuild something the parent already holds, and what it never leaks is its
 own state: a registration made during a request stays in the child, and the
 child is discarded when the request ends.
@@ -857,8 +857,8 @@ access also removes the method-call overhead on the fallback path.
 
 An alias resolves in the container that declares it, so **where you declare an
 alias selects the resolution scope.** A child lookup of an alias that only the
-parent declares resolves in the parent. That is the way to reach the parent's
-copy of a **service** that the child also binds:
+parent declares resolves in the parent. That is the way to reach what the
+**parent's own binding** answers, for a service the child also binds:
 
 ```php
 // Once, at bootstrap. The child never declares this alias.
@@ -1011,7 +1011,8 @@ to it, so the chain has no end. Four checks reject one:
 The exception extends the SPL `InvalidArgumentException`. The first two checks
 run at registration, and a container installs no map before its walk ends, so a
 caller that catches the exception keeps the container it had. A container that
-writes an alias after a child reads through it is outside registration. A chain
+writes an alias after a child reads through it is outside registration, and a
+chain that closes through a factory is outside every alias walk. A chain
 no check sees ends in one of four ways:
 
 - It resolves through the first hop the parent would answer.
