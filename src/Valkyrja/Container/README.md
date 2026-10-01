@@ -877,16 +877,17 @@ for the id. The two arms of that rule read different state:
   when it holds the binding too. A child without it leaves the lookup to the
   parent.
 - **A publisher the parent has not run** — the parent's state alone decides. A
-  child whose snapshot omits the callback reports a missing reference.
+  child that holds a registration for the target answers from it. A child that
+  holds none reports a missing reference.
 
 A worker takes one snapshot after boot, so a request holds every registration
 either way. Anything the parent has already built or published is reused as it
 stands.
 
-Warning: that exception also decides which binding the alias reaches. Give the
-parent a singleton it never builds, and give the child a factory for the same
-id, and the alias reaches the factory of the **child**, because the child holds
-the copied marker and resolves the target itself.
+Warning: that exception also decides which binding the alias reaches. The child
+resolves the target itself, so the child's own registration answers. Give the
+parent a singleton it never builds. Give the child a factory for the same id.
+The alias then reaches the factory of the **child**.
 
 Warning: outside that exception, a **parent-declared** alias hands the call to
 the parent in both implementations, so a parent-bound factory receives the
