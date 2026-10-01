@@ -102,6 +102,8 @@ class RedisQueue extends PullQueue
 
     /**
      * Build the connection the loop polls.
+     *
+     * @codeCoverageIgnore A real redis connection is unavailable in a test.
      */
     protected static function getRedis(QueueRedisClientConfigContract $config): ClientInterface
     {
