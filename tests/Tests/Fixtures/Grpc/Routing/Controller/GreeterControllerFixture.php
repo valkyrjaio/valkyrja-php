@@ -28,9 +28,6 @@ use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
 #[Service(service: 'pkg.Greeter')]
 final class GreeterControllerFixture
 {
-    /** @var non-empty-string */
-    public const string SERVICE = 'pkg.Greeter';
-
     #[Method(name: 'SayHello')]
     public static function sayHello(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {

@@ -27,9 +27,6 @@ use Valkyrja\Grpc\Throwable\Exception\CancelledException;
 #[Service(service: 'pkg.Cancelling')]
 final class CancellingControllerFixture
 {
-    /** @var non-empty-string */
-    public const string SERVICE = 'pkg.Cancelling';
-
     #[Method(name: 'Cancel')]
     public static function cancel(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
