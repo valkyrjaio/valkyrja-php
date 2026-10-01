@@ -29,6 +29,15 @@ interface ClientContract
     public function retry(JobContract $job, int $delayMs): void;
 
     /**
+     * Re-enqueue a job for its next attempt.
+     *
+     * Bumps the attempt count and holds the job for the ramp of the attempt
+     * that just failed, so a processor without native redelivery settles a
+     * retry by calling this.
+     */
+    public function requeue(JobContract $job): void;
+
+    /**
      * Get the stamped jobs handed to this client during this unit of work.
      *
      * @return JobContract[]
