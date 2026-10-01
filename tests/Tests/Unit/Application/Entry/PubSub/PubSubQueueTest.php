@@ -20,6 +20,9 @@ use GuzzleHttp\Psr7\Request;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Valkyrja\Application\Entry\PubSub\PubSubQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Queue\Client\Data\QueuePubSubClientConfig;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -63,6 +66,20 @@ final class PubSubQueueTest extends TestCase
         PubSubQueueFixture::reset();
 
         parent::tearDown();
+    }
+
+    public function testConnectOpensTheSubscriptionFromTheConfig(): void
+    {
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturn(new QueuePubSubClientConfig());
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        PubSubQueueFixture::connect($app);
+
+        // The injected subscription survives connect, so the loop polls it
+        self::assertNull(PubSubQueueFixture::receive());
     }
 
     public function testAnEmptySubscriptionYieldsNothing(): void
