@@ -648,7 +648,7 @@ final class NativeChildContainerTest extends TestCase
         $this->parent->bindAlias('first', 'second');
 
         $this->expectException(ContainerCyclicAliasException::class);
-        $this->expectExceptionMessage('Alias `first` cannot point at `second`');
+        $this->expectExceptionMessage('Alias `first` cannot reach `second`');
 
         $this->child->get('first');
     }

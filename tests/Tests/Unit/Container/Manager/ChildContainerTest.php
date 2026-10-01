@@ -600,7 +600,7 @@ final class ChildContainerTest extends TestCase
         $child = new ChildContainer($middle, new ContainerData());
 
         $this->expectException(ContainerCyclicAliasException::class);
-        $this->expectExceptionMessage('Alias `second` cannot point at `first`');
+        $this->expectExceptionMessage('Alias `second` cannot reach `first`');
 
         $child->get('first');
     }
@@ -685,7 +685,7 @@ final class ChildContainerTest extends TestCase
         $child = new ChildContainer($middle, new ContainerData());
 
         $this->expectException(ContainerCyclicAliasException::class);
-        $this->expectExceptionMessage('Alias `first` cannot point at `second`');
+        $this->expectExceptionMessage('Alias `first` cannot reach `second`');
 
         $child->get('first');
     }

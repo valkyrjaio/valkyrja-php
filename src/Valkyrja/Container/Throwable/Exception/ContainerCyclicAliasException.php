@@ -27,7 +27,7 @@ class ContainerCyclicAliasException extends ContainerInvalidArgumentException
         int $code = 0,
         Throwable|null $previous = null
     ) {
-        $message = "Alias `$alias` cannot point at `$id`, because `$id` already reaches `$alias`.";
+        $message = "Alias `$alias` cannot reach `$id`, because `$id` already reaches `$alias`.";
 
         parent::__construct($message, $code, $previous);
     }
