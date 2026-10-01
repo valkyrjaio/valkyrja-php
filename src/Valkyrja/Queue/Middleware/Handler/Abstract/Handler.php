@@ -53,9 +53,11 @@ abstract class Handler implements HandlerContract
     }
 
     /**
-     * Middleware is appended, never deduplicated: scheduling the same class
-     * twice runs it twice, which is the developer's bug to fix rather than the
-     * framework's to silently paper over.
+     * Append each middleware in order.
+     *
+     * This never dedupes, so a class scheduled twice runs twice. A duplicate
+     * registration is the developer's error. The framework does not correct it,
+     * because the generated cache must match reflection exactly.
      *
      * @param class-string<Middleware> ...$middleware The middleware to add
      */
