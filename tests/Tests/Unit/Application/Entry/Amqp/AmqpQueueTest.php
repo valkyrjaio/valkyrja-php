@@ -10,23 +10,26 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Tests\Unit\Queue\Client\Puller;
+namespace Valkyrja\Tests\Unit\Application\Entry\Amqp;
 
 use Override;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
+use Valkyrja\Application\Entry\Amqp\AmqpQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Queue\Client\Data\QueueAmqpClientConfig;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
-use Valkyrja\Queue\Client\Puller\AmqpPuller;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Tests\Fixtures\Application\Entry\AmqpQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\AmqpChannelFixture;
-use Valkyrja\Tests\Fixtures\Queue\Client\AmqpPullerFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function json_encode;
 
-final class AmqpPullerTest extends TestCase
+final class AmqpQueueTest extends TestCase
 {
     /** @var non-empty-string */
     protected const string QUEUE = 'queues.default';
@@ -39,11 +42,21 @@ final class AmqpPullerTest extends TestCase
         parent::setUp();
 
         $this->channel = new AmqpChannelFixture();
+
+        AmqpQueueFixture::inject($this->channel, self::QUEUE, timeout: 0);
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        AmqpQueueFixture::reset();
+
+        parent::tearDown();
     }
 
     public function testConnectDeclaresTheQueueAndLimitsUnacknowledgedDeliveries(): void
     {
-        $this->puller()->connect();
+        AmqpQueueFixture::connect($this->application());
 
         self::assertCount(1, $this->channel->getCalls('queue_declare'));
         // One in flight at a time, matching the single delivery slot
@@ -52,14 +65,14 @@ final class AmqpPullerTest extends TestCase
 
     public function testReceiveReturnsNullWhenNothingIsWaiting(): void
     {
-        self::assertNull($this->puller()->receive());
+        self::assertNull(AmqpQueueFixture::receive());
     }
 
     public function testReceiveDecodesTheEnvelope(): void
     {
         $this->channel->next = $this->delivery(['name' => 'SendWelcomeEmail', 'attempts' => 3]);
 
-        $job = $this->puller()->receive();
+        $job = AmqpQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame('SendWelcomeEmail', $job->getName());
@@ -68,9 +81,9 @@ final class AmqpPullerTest extends TestCase
 
     public function testAnAcknowledgedJobIsAcked(): void
     {
-        $puller = $this->receiveOne();
+        $this->receiveOne();
 
-        $puller->settle(new JobFactory()->create('x'), JobResult::ACK, new InMemoryClient());
+        AmqpQueueFixture::settle(new JobFactory()->create('x'), JobResult::ACK, new InMemoryClient());
 
         self::assertSame([['delivery-1', false]], $this->channel->getCalls('basic_ack'));
         self::assertSame([], $this->channel->getCalls('basic_nack'));
@@ -78,9 +91,9 @@ final class AmqpPullerTest extends TestCase
 
     public function testARetryIsNackedBackOntoTheQueue(): void
     {
-        $puller = $this->receiveOne();
+        $this->receiveOne();
 
-        $puller->settle(new JobFactory()->create('x'), JobResult::RETRY, new InMemoryClient());
+        AmqpQueueFixture::settle(new JobFactory()->create('x'), JobResult::RETRY, new InMemoryClient());
 
         // Requeued, so the broker redelivers and owns the attempt counting
         self::assertSame([['delivery-1', false, true]], $this->channel->getCalls('basic_nack'));
@@ -88,25 +101,25 @@ final class AmqpPullerTest extends TestCase
 
     public function testAFailIsNackedWithoutRequeue(): void
     {
-        $puller = $this->receiveOne();
+        $this->receiveOne();
 
-        $puller->settle(new JobFactory()->create('x'), JobResult::FAIL, new InMemoryClient());
+        AmqpQueueFixture::settle(new JobFactory()->create('x'), JobResult::FAIL, new InMemoryClient());
 
         self::assertSame([['delivery-1', false, false]], $this->channel->getCalls('basic_nack'));
     }
 
     public function testADeadLetterIsNackedWithoutRequeue(): void
     {
-        $puller = $this->receiveOne();
+        $this->receiveOne();
 
-        $puller->settle(new JobFactory()->create('x'), JobResult::DEAD_LETTER, new InMemoryClient());
+        AmqpQueueFixture::settle(new JobFactory()->create('x'), JobResult::DEAD_LETTER, new InMemoryClient());
 
         self::assertSame([['delivery-1', false, false]], $this->channel->getCalls('basic_nack'));
     }
 
     public function testSettlingWithNothingInFlightDoesNothing(): void
     {
-        $this->puller()->settle(new JobFactory()->create('x'), JobResult::ACK, new InMemoryClient());
+        AmqpQueueFixture::settle(new JobFactory()->create('x'), JobResult::ACK, new InMemoryClient());
 
         self::assertSame([], $this->channel->getCalls('basic_ack'));
         self::assertSame([], $this->channel->getCalls('basic_nack'));
@@ -114,19 +127,19 @@ final class AmqpPullerTest extends TestCase
 
     public function testSettlingTwiceCannotDoubleAcknowledge(): void
     {
-        $puller = $this->receiveOne();
+        $this->receiveOne();
 
-        $puller->settle(new JobFactory()->create('x'), JobResult::ACK, new InMemoryClient());
-        $puller->settle(new JobFactory()->create('x'), JobResult::ACK, new InMemoryClient());
+        AmqpQueueFixture::settle(new JobFactory()->create('x'), JobResult::ACK, new InMemoryClient());
+        AmqpQueueFixture::settle(new JobFactory()->create('x'), JobResult::ACK, new InMemoryClient());
 
         self::assertCount(1, $this->channel->getCalls('basic_ack'));
     }
 
     public function testDisconnectReleasesAnInFlightDelivery(): void
     {
-        $puller = $this->receiveOne();
+        $this->receiveOne();
 
-        $puller->disconnect();
+        AmqpQueueFixture::disconnect();
 
         // A shutdown did not complete the work, so hand it straight back
         self::assertSame([['delivery-1', false, true]], $this->channel->getCalls('basic_nack'));
@@ -135,7 +148,7 @@ final class AmqpPullerTest extends TestCase
 
     public function testDisconnectWithNothingInFlightJustCloses(): void
     {
-        $this->puller()->disconnect();
+        AmqpQueueFixture::disconnect();
 
         self::assertSame([], $this->channel->getCalls('basic_nack'));
         self::assertTrue($this->channel->closed);
@@ -145,25 +158,25 @@ final class AmqpPullerTest extends TestCase
     {
         // A polling consumer must yield, or the entry's loop bounds and
         // graceful shutdown would never get a chance to run
-        $puller = new AmqpPullerFixture(channel: $this->channel, queue: self::QUEUE, timeout: 1);
+        AmqpQueueFixture::inject($this->channel, self::QUEUE, timeout: 1);
 
-        self::assertNull($puller->receive());
-        self::assertSame(1, $puller->waits);
+        self::assertNull(AmqpQueueFixture::receive());
+        self::assertSame(1, AmqpQueueFixture::$waits);
     }
 
     public function testAZeroTimeoutDoesNotYield(): void
     {
-        $puller = new AmqpPullerFixture(channel: $this->channel, queue: self::QUEUE, timeout: 0);
+        AmqpQueueFixture::inject($this->channel, self::QUEUE, timeout: 0);
 
-        self::assertNull($puller->receive());
-        self::assertSame(0, $puller->waits);
+        self::assertNull(AmqpQueueFixture::receive());
+        self::assertSame(0, AmqpQueueFixture::$waits);
     }
 
     public function testAFirstDeliveryKeepsTheEnvelopeAttempt(): void
     {
         $this->channel->next = $this->delivery(['name' => 'SendWelcomeEmail', 'attempts' => 1]);
 
-        $job = $this->puller()->receive();
+        $job = AmqpQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(1, $job->getAttempts());
@@ -176,10 +189,10 @@ final class AmqpPullerTest extends TestCase
         // can never stop a failing chain.
         $this->channel->next = $this->delivery(
             ['name' => 'SendWelcomeEmail', 'attempts' => 1],
-            headers: [AmqpPuller::DELIVERY_COUNT_HEADER => 4],
+            headers: [AmqpQueue::DELIVERY_COUNT_HEADER => 4],
         );
 
-        $job = $this->puller()->receive();
+        $job = AmqpQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(5, $job->getAttempts());
@@ -191,7 +204,7 @@ final class AmqpPullerTest extends TestCase
         // delivery is not the first, and no more than that
         $this->channel->next = $this->delivery(['name' => 'SendWelcomeEmail', 'attempts' => 1], redelivered: true);
 
-        $job = $this->puller()->receive();
+        $job = AmqpQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(2, $job->getAttempts());
@@ -201,7 +214,7 @@ final class AmqpPullerTest extends TestCase
     {
         $this->channel->next = $this->delivery(['name' => 'SendWelcomeEmail', 'attempts' => 4], redelivered: true);
 
-        $job = $this->puller()->receive();
+        $job = AmqpQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(4, $job->getAttempts());
@@ -210,9 +223,9 @@ final class AmqpPullerTest extends TestCase
     public function testARawHeaderTableIsRead(): void
     {
         // php-amqplib keeps a header array as an array rather than wrapping it
-        $this->channel->next = $this->rawHeaderDelivery([AmqpPuller::DELIVERY_COUNT_HEADER => 2]);
+        $this->channel->next = $this->rawHeaderDelivery([AmqpQueue::DELIVERY_COUNT_HEADER => 2]);
 
-        $job = $this->puller()->receive();
+        $job = AmqpQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(3, $job->getAttempts());
@@ -222,7 +235,7 @@ final class AmqpPullerTest extends TestCase
     {
         $this->channel->next = $this->rawHeaderDelivery('not-a-table');
 
-        $job = $this->puller()->receive();
+        $job = AmqpQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(1, $job->getAttempts());
@@ -231,13 +244,13 @@ final class AmqpPullerTest extends TestCase
     public function testANegativeDeliveryCountIsIgnored(): void
     {
         // A count below zero would make the attempt zero, which the envelope
-        // rejects, so a malformed header would crash the puller
+        // rejects, so a malformed header would crash the consumer
         $this->channel->next = $this->delivery(
             ['name' => 'SendWelcomeEmail', 'attempts' => 3],
-            headers: [AmqpPuller::DELIVERY_COUNT_HEADER => -1],
+            headers: [AmqpQueue::DELIVERY_COUNT_HEADER => -1],
         );
 
-        $job = $this->puller()->receive();
+        $job = AmqpQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(3, $job->getAttempts());
@@ -247,26 +260,37 @@ final class AmqpPullerTest extends TestCase
     {
         $this->channel->next = $this->delivery(
             ['name' => 'SendWelcomeEmail', 'attempts' => 3],
-            headers: [AmqpPuller::DELIVERY_COUNT_HEADER => 'not-a-count'],
+            headers: [AmqpQueue::DELIVERY_COUNT_HEADER => 'not-a-count'],
         );
 
-        $job = $this->puller()->receive();
+        $job = AmqpQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(3, $job->getAttempts());
     }
 
     /**
-     * Receive a single scripted delivery and return the puller holding it.
+     * Build an application whose container carries the AMQP client config.
      */
-    protected function receiveOne(): AmqpPuller
+    protected function application(): ApplicationContract
+    {
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturn(new QueueAmqpClientConfig());
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        return $app;
+    }
+
+    /**
+     * Receive a single scripted delivery, leaving it in flight.
+     */
+    protected function receiveOne(): void
     {
         $this->channel->next = $this->delivery(['name' => 'SendWelcomeEmail']);
 
-        $puller = $this->puller();
-        $puller->receive();
-
-        return $puller;
+        AmqpQueueFixture::receive();
     }
 
     /**
@@ -303,10 +327,5 @@ final class AmqpPullerTest extends TestCase
         $message->setDeliveryInfo('delivery-1', $redelivered, '', self::QUEUE);
 
         return $message;
-    }
-
-    protected function puller(): AmqpPuller
-    {
-        return new AmqpPuller(channel: $this->channel, queue: self::QUEUE, timeout: 0);
     }
 }
