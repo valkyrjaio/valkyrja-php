@@ -21,15 +21,17 @@ use Valkyrja\Cli\Middleware\Handler\Contract\InputReceivedHandlerContract;
 use Valkyrja\Cli\Middleware\Handler\Contract\ProcessExitingHandlerContract;
 use Valkyrja\Cli\Middleware\Handler\Contract\ThrowableCaughtHandlerContract;
 use Valkyrja\Cli\Routing\Collection\Contract\RouteCollectionContract;
-use Valkyrja\Cli\Routing\Constant\OptionName;
-use Valkyrja\Cli\Routing\Constant\OptionShortName;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Routing\Dispatcher\Contract\RouterContract;
 use Valkyrja\Cli\Server\Command\HelpCommand;
 use Valkyrja\Cli\Server\Command\ListBashCommand;
 use Valkyrja\Cli\Server\Command\ListCommand;
 use Valkyrja\Cli\Server\Command\VersionCommand;
-use Valkyrja\Cli\Server\Constant\CommandName;
+use Valkyrja\Cli\Server\Data\CliHelpCommandConfig;
+use Valkyrja\Cli\Server\Data\CliNoInteractionConfig;
+use Valkyrja\Cli\Server\Data\CliQuietInteractionConfig;
+use Valkyrja\Cli\Server\Data\CliSilentInteractionConfig;
+use Valkyrja\Cli\Server\Data\CliVersionCommandConfig;
 use Valkyrja\Cli\Server\Data\Contract\CliHelpCommandConfigContract;
 use Valkyrja\Cli\Server\Data\Contract\CliNoInteractionConfigContract;
 use Valkyrja\Cli\Server\Data\Contract\CliQuietInteractionConfigContract;
@@ -49,6 +51,86 @@ use Valkyrja\Log\Logger\Contract\LoggerContract;
 
 class CliServerServiceProvider implements ServiceProviderContract
 {
+    /**
+     * Publish the help command config service.
+     */
+    public static function publishHelpCommandConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof CliHelpCommandConfigContract) {
+            $container->setSingleton(CliHelpCommandConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(CliHelpCommandConfigContract::class, new CliHelpCommandConfig());
+    }
+
+    /**
+     * Publish the version command config service.
+     */
+    public static function publishVersionCommandConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof CliVersionCommandConfigContract) {
+            $container->setSingleton(CliVersionCommandConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(CliVersionCommandConfigContract::class, new CliVersionCommandConfig());
+    }
+
+    /**
+     * Publish the no interaction config service.
+     */
+    public static function publishNoInteractionConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof CliNoInteractionConfigContract) {
+            $container->setSingleton(CliNoInteractionConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(CliNoInteractionConfigContract::class, new CliNoInteractionConfig());
+    }
+
+    /**
+     * Publish the quiet interaction config service.
+     */
+    public static function publishQuietInteractionConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof CliQuietInteractionConfigContract) {
+            $container->setSingleton(CliQuietInteractionConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(CliQuietInteractionConfigContract::class, new CliQuietInteractionConfig());
+    }
+
+    /**
+     * Publish the silent interaction config service.
+     */
+    public static function publishSilentInteractionConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof CliSilentInteractionConfigContract) {
+            $container->setSingleton(CliSilentInteractionConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(CliSilentInteractionConfigContract::class, new CliSilentInteractionConfig());
+    }
+
     /**
      * Publish the input handler service.
      */
@@ -160,24 +242,14 @@ class CliServerServiceProvider implements ServiceProviderContract
      */
     public static function publishCheckForHelpOptionsMiddleware(ContainerContract $container): void
     {
-        $config = $container->getSingleton(ConfigContract::class);
-
-        $commandName = CommandName::HELP;
-        $name        = OptionName::HELP;
-        $shortName   = OptionShortName::HELP;
-
-        if ($config instanceof CliHelpCommandConfigContract) {
-            $commandName = $config->helpCommandName;
-            $name        = $config->helpOptionName;
-            $shortName   = $config->helpOptionShortName;
-        }
+        $config = $container->getSingleton(CliHelpCommandConfigContract::class);
 
         $container->setSingleton(
             CheckForHelpOptionsMiddleware::class,
             new CheckForHelpOptionsMiddleware(
-                commandName: $commandName,
-                optionName: $name,
-                optionShortName: $shortName
+                commandName: $config->helpCommandName,
+                optionName: $config->helpOptionName,
+                optionShortName: $config->helpOptionShortName
             )
         );
     }
@@ -187,24 +259,14 @@ class CliServerServiceProvider implements ServiceProviderContract
      */
     public static function publishCheckForVersionOptionsMiddleware(ContainerContract $container): void
     {
-        $config = $container->getSingleton(ConfigContract::class);
-
-        $commandName = CommandName::VERSION;
-        $name        = OptionName::VERSION;
-        $shortName   = OptionShortName::VERSION;
-
-        if ($config instanceof CliVersionCommandConfigContract) {
-            $commandName = $config->versionCommandName;
-            $name        = $config->versionOptionName;
-            $shortName   = $config->versionOptionShortName;
-        }
+        $config = $container->getSingleton(CliVersionCommandConfigContract::class);
 
         $container->setSingleton(
             CheckForVersionOptionsMiddleware::class,
             new CheckForVersionOptionsMiddleware(
-                commandName: $commandName,
-                optionName: $name,
-                optionShortName: $shortName
+                commandName: $config->versionCommandName,
+                optionName: $config->versionOptionName,
+                optionShortName: $config->versionOptionShortName
             )
         );
     }
@@ -214,42 +276,20 @@ class CliServerServiceProvider implements ServiceProviderContract
      */
     public static function publishCheckGlobalInteractionOptionsMiddleware(ContainerContract $container): void
     {
-        $config = $container->getSingleton(ConfigContract::class);
-
-        $noInteractionOptionName      = OptionName::NO_INTERACTION;
-        $noInteractionOptionShortName = OptionShortName::NO_INTERACTION;
-
-        $isQuietOptionName      = OptionName::QUIET;
-        $isQuietOptionShortName = OptionShortName::QUIET;
-
-        $isSilentOptionName      = OptionName::SILENT;
-        $isSilentOptionShortName = OptionShortName::SILENT;
-
-        if ($config instanceof CliNoInteractionConfigContract) {
-            $noInteractionOptionName      = $config->noInteractionOptionName;
-            $noInteractionOptionShortName = $config->noInteractionOptionShortName;
-        }
-
-        if ($config instanceof CliQuietInteractionConfigContract) {
-            $isQuietOptionName      = $config->quietOptionName;
-            $isQuietOptionShortName = $config->quietOptionShortName;
-        }
-
-        if ($config instanceof CliSilentInteractionConfigContract) {
-            $isSilentOptionName      = $config->silentOptionName;
-            $isSilentOptionShortName = $config->silentOptionShortName;
-        }
+        $noInteractionConfig = $container->getSingleton(CliNoInteractionConfigContract::class);
+        $quietConfig         = $container->getSingleton(CliQuietInteractionConfigContract::class);
+        $silentConfig        = $container->getSingleton(CliSilentInteractionConfigContract::class);
 
         $container->setSingleton(
             CheckGlobalInteractionOptionsMiddleware::class,
             new CheckGlobalInteractionOptionsMiddleware(
                 config: $container->getSingleton(CliInteractionConfigContract::class),
-                noInteractionOptionName: $noInteractionOptionName,
-                noInteractionOptionShortName: $noInteractionOptionShortName,
-                quietOptionName: $isQuietOptionName,
-                quietOptionShortName: $isQuietOptionShortName,
-                silentOptionName: $isSilentOptionName,
-                silentOptionShortName: $isSilentOptionShortName
+                noInteractionOptionName: $noInteractionConfig->noInteractionOptionName,
+                noInteractionOptionShortName: $noInteractionConfig->noInteractionOptionShortName,
+                quietOptionName: $quietConfig->quietOptionName,
+                quietOptionShortName: $quietConfig->quietOptionShortName,
+                silentOptionName: $silentConfig->silentOptionName,
+                silentOptionShortName: $silentConfig->silentOptionShortName
             )
         );
     }
@@ -275,6 +315,11 @@ class CliServerServiceProvider implements ServiceProviderContract
     public function publishers(): array
     {
         return [
+            CliHelpCommandConfigContract::class            => [self::class, 'publishHelpCommandConfig'],
+            CliVersionCommandConfigContract::class         => [self::class, 'publishVersionCommandConfig'],
+            CliNoInteractionConfigContract::class          => [self::class, 'publishNoInteractionConfig'],
+            CliQuietInteractionConfigContract::class       => [self::class, 'publishQuietInteractionConfig'],
+            CliSilentInteractionConfigContract::class      => [self::class, 'publishSilentInteractionConfig'],
             InputHandlerContract::class                    => [self::class, 'publishInputHandler'],
             HelpCommand::class                             => [self::class, 'publishHelpCommand'],
             ListBashCommand::class                         => [self::class, 'publishListBashCommand'],

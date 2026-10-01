@@ -33,6 +33,11 @@ use Valkyrja\Cli\Routing\Dispatcher\Router;
 use Valkyrja\Cli\Server\Command\ListBashCommand;
 use Valkyrja\Cli\Server\Command\ListCommand;
 use Valkyrja\Cli\Server\Command\VersionCommand;
+use Valkyrja\Cli\Server\Data\Contract\CliHelpCommandConfigContract;
+use Valkyrja\Cli\Server\Data\Contract\CliNoInteractionConfigContract;
+use Valkyrja\Cli\Server\Data\Contract\CliQuietInteractionConfigContract;
+use Valkyrja\Cli\Server\Data\Contract\CliSilentInteractionConfigContract;
+use Valkyrja\Cli\Server\Data\Contract\CliVersionCommandConfigContract;
 use Valkyrja\Cli\Server\Middleware\InputReceived\CheckForHelpOptionsMiddleware;
 use Valkyrja\Cli\Server\Middleware\InputReceived\CheckForVersionOptionsMiddleware;
 use Valkyrja\Cli\Server\Middleware\InputReceived\CheckGlobalInteractionOptionsMiddleware;
@@ -192,6 +197,11 @@ final class CommandParameterPresenceTest extends TestCase
         $container->setFromData(
             new ContainerData(
                 callbacks: [
+                    CliHelpCommandConfigContract::class            => [CliServerServiceProvider::class, 'publishHelpCommandConfig'],
+                    CliVersionCommandConfigContract::class         => [CliServerServiceProvider::class, 'publishVersionCommandConfig'],
+                    CliNoInteractionConfigContract::class          => [CliServerServiceProvider::class, 'publishNoInteractionConfig'],
+                    CliQuietInteractionConfigContract::class       => [CliServerServiceProvider::class, 'publishQuietInteractionConfig'],
+                    CliSilentInteractionConfigContract::class      => [CliServerServiceProvider::class, 'publishSilentInteractionConfig'],
                     ListBashCommand::class                         => [CliServerServiceProvider::class, 'publishListBashCommand'],
                     ListCommand::class                             => [CliServerServiceProvider::class, 'publishListCommand'],
                     VersionCommand::class                          => [CliServerServiceProvider::class, 'publishVersionCommand'],
