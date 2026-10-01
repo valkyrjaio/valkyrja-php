@@ -914,7 +914,8 @@ its own maps in one of four ways:
 - It returns the copy it holds.
 - It runs its own binding.
 - It publishes a provider it holds, and answers with what that publisher
-  registered.
+  registered. Only `ChildContainer` hands that lookup over, because
+  `NativeChildContainer` resolves every unrun publisher in the child.
 - It throws `ContainerInvalidReferenceException`, when it holds no registration
   for the target.
 
@@ -1002,15 +1003,16 @@ to it, so the chain has no end. Four checks reject one:
 - `ChildContainer` walking the parent's aliases checks the hops of one walk.
   `NativeChildContainer` reads the parent's own map, which the first two checks
   keep acyclic, so it carries no such check.
-- A child resolving a parent-declared alias checks the target it returns to. A
-  factory that registered the target while it ran has broken the chain, so the
-  lookup answers with what the factory registered.
+- A child resolving a parent-declared alias checks the target it returns to. The
+  check sits on the container that resolves, so a parent which is itself a child
+  throws from its own. A factory that registered the target while it ran has
+  broken the chain, so the lookup answers with what the factory registered.
 
 The exception extends the SPL `InvalidArgumentException`. The first two checks
 run at registration, and a container installs no map before its walk ends, so a
 caller that catches the exception keeps the container it had. A container that
 writes an alias after a child reads through it is outside registration. A chain
-no check sees ends in one of five ways:
+no check sees ends in one of four ways:
 
 - It resolves through the first hop the parent would answer.
 - It ends with a missing reference, when no hop answers. `NativeChildContainer`
@@ -1018,8 +1020,6 @@ no check sees ends in one of five ways:
 - It does not end, when a factory asks again for the id that reached it.
 - It does not end, when an alias the child declares closes a chain through a
   factory the child runs. No check sits on that path.
-- It throws, when the parent is itself a child and that parent's own walk sees
-  the whole chain.
 
 All three implement `Valkyrja\Container\Throwable\Contract\ContainerThrowable`,
 so one catch covers everything the container throws:
