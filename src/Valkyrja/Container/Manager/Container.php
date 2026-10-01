@@ -20,6 +20,7 @@ use Valkyrja\Container\Manager\Trait\ProvidersAware;
 use Valkyrja\Container\Throwable\Exception\ContainerCyclicAliasException;
 use Valkyrja\Container\Throwable\Exception\ContainerInvalidReferenceException;
 
+use function array_keys;
 use function array_merge;
 use function is_object;
 
@@ -423,7 +424,7 @@ class Container implements ContainerContract
      */
     protected function validateAliasMapIsNotCyclic(array $aliases, Closure $installed): void
     {
-        foreach ($aliases as $alias => $id) {
+        foreach (array_keys($aliases) as $alias) {
             $seen    = [$alias => true];
             $current = $alias;
 
