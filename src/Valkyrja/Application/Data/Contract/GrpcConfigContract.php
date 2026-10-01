@@ -28,13 +28,6 @@ interface GrpcConfigContract extends ConfigContract
     /**
      * The upper bound on inbound messages per call, which the adapter enforces.
      *
-     * Under the buffered model the adapter caps the messages it buffers before dispatch, and the
-     * adapter rejects an over-limit call with RESOURCE_EXHAUSTED.
-     *
-     * Under the streaming model the adapter reads the same number as the high-water mark of the
-     * live inbound queue. The adapter pauses the transport at that mark and resumes as the handler
-     * drains, and the adapter rejects no call. A higher mark raises the memory one call holds.
-     *
      * @var positive-int
      */
     public int $maxInboundMessages {
