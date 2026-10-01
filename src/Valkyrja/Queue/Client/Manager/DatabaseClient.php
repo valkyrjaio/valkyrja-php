@@ -87,7 +87,7 @@ class DatabaseClient extends Client
         $statement->bindValue(new Value('queue', $this->queue));
         $statement->bindValue(new Value('envelope', $this->factory->toJson($job)));
         $statement->bindValue(new Value('priority', $job->getPriority()));
-        $statement->bindValue(new Value('available_at_ms', Microtime::now() + $delayMs));
+        $statement->bindValue(new Value('available_at_ms', Microtime::getMilliseconds() + $delayMs));
 
         $statement->execute();
     }
