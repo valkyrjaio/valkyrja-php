@@ -25,6 +25,10 @@ interface ServiceAdapterContract
      * the adapter pauses the drain and resumes it later. A paused drain is not a cancelled call:
      * cancellation ends the drain, and backpressure only pauses it.
      *
+     * The adapter also keeps the handler off the path that delivers the transport's callbacks,
+     * because that path carries the resume signal the paused drain waits for. A handler that
+     * occupies the path blocks its own resume, and the call deadlocks.
+     *
      * @param ServiceHandlerContract $handler The kernel entry point
      */
     public function start(ServiceHandlerContract $handler): void;
