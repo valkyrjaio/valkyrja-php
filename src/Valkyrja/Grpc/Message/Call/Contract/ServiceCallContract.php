@@ -92,7 +92,11 @@ interface ServiceCallContract
     public function send(mixed $message): void;
 
     /**
-     * Get the resolved route, or null if the call has not yet been routed (or no route matched).
+     * Get the resolved route, or null if the call has not yet been routed, or no route matched.
+     *
+     * Only the RouteMatched and RouteDispatched stages take a route as a parameter. Every other
+     * stage reads it here, so the router keeps this accessor current: when RouteMatched middleware
+     * returns a replacement route, the router sets that route on the call before it continues.
      */
     public function getRoute(): RouteContract|null;
 
@@ -104,10 +108,8 @@ interface ServiceCallContract
     /**
      * Create a new call with the resolved route set.
      *
-     * The route reaches a stage twice: as this accessor, and as the parameter the pipeline
-     * threads. RouteMatched middleware may return a replacement route, so the router calls this
-     * method again with whatever that stage returned. A framework that set the route only at
-     * map-lookup time would answer every later stage with the route the middleware discarded.
+     * The router calls this method again with the route RouteMatched middleware returned, which
+     * is the ordering `getRoute()` describes.
      */
     public function withRoute(RouteContract $route): static;
 

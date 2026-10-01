@@ -46,8 +46,8 @@ interface RouteContract
     /**
      * Get the generated protobuf request message type, or null if unspecified.
      *
-     * `GRPC.md` declares this field non-null. A PHP route is built from an attribute whose
-     * argument is optional, so an unattributed method leaves the type unknown.
+     * `GRPC.md` declares this field non-null. The framework reads neither message type, and
+     * carries both for the adapter, so a route that names no type still dispatches.
      *
      * @return class-string|null
      */
