@@ -14,7 +14,7 @@ namespace Valkyrja\Application\Entry\PubSub;
 
 use Google\ApiCore\ApiException;
 use Google\Cloud\PubSub\Message;
-use Google\Cloud\PubSub\PubSubClient as GooglePubSubClient;
+use Google\Cloud\PubSub\PubSubClient;
 use Google\Cloud\PubSub\Subscription;
 use Google\Rpc\Code;
 use GuzzleHttp\Exception\ConnectException;
@@ -136,7 +136,7 @@ class PubSubQueue extends PullQueue
      */
     protected static function getSubscription(QueuePubSubClientConfigContract $config): Subscription
     {
-        return new GooglePubSubClient(['projectId' => $config->pubSubProjectId])
+        return new PubSubClient(['projectId' => $config->pubSubProjectId])
             ->subscription(static::$subscriptionName ?? $config->pubSubTopic);
     }
 
