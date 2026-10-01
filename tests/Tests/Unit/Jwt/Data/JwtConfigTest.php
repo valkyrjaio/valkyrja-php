@@ -14,7 +14,6 @@ namespace Valkyrja\Tests\Unit\Jwt\Data;
 
 use Valkyrja\Jwt\Data\Contract\JwtConfigContract;
 use Valkyrja\Jwt\Data\JwtConfig;
-use Valkyrja\Jwt\Enum\Algorithm;
 use Valkyrja\Jwt\Manager\FirebaseJwt;
 use Valkyrja\Jwt\Manager\NullJwt;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -31,17 +30,12 @@ final class JwtConfigTest extends TestCase
         $config = new JwtConfig();
 
         self::assertSame(FirebaseJwt::class, $config->defaultJwt);
-        self::assertSame(Algorithm::HS256, $config->algorithm);
     }
 
     public function testCustomValuesAreStored(): void
     {
-        $config = new JwtConfig(
-            defaultJwt: NullJwt::class,
-            algorithm: Algorithm::RS256,
-        );
+        $config = new JwtConfig(defaultJwt: NullJwt::class);
 
         self::assertSame(NullJwt::class, $config->defaultJwt);
-        self::assertSame(Algorithm::RS256, $config->algorithm);
     }
 }

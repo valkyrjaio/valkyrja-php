@@ -12,12 +12,11 @@ declare(strict_types=1);
 
 namespace Valkyrja\Jwt\Data\Contract;
 
-use Valkyrja\Jwt\Manager\Contract\JwtContract;
+use Valkyrja\Jwt\Enum\Algorithm;
 
-interface JwtConfigContract
+interface JwtFirebaseConfigContract
 {
-    /** @var class-string<JwtContract> */
-    public string $defaultJwt {
+    public Algorithm $firebaseAlgorithm {
         get;
     }
 }

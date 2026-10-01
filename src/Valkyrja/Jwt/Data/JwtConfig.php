@@ -13,7 +13,6 @@ declare(strict_types=1);
 namespace Valkyrja\Jwt\Data;
 
 use Valkyrja\Jwt\Data\Contract\JwtConfigContract;
-use Valkyrja\Jwt\Enum\Algorithm;
 use Valkyrja\Jwt\Manager\Contract\JwtContract;
 use Valkyrja\Jwt\Manager\FirebaseJwt;
 
@@ -21,11 +20,9 @@ class JwtConfig implements JwtConfigContract
 {
     /**
      * @param class-string<JwtContract> $defaultJwt The jwt manager to use by default
-     * @param Algorithm                 $algorithm  The algorithm that signs a token
      */
     public function __construct(
         public readonly string $defaultJwt = FirebaseJwt::class,
-        public readonly Algorithm $algorithm = Algorithm::HS256,
     ) {
     }
 }

@@ -15,6 +15,7 @@ namespace Valkyrja\Tests\Fixtures\Jwt\Data;
 use Valkyrja\Application\Data\Config;
 use Valkyrja\Jwt\Data\Contract\JwtConfigContract;
 use Valkyrja\Jwt\Data\Contract\JwtEdDsaConfigContract;
+use Valkyrja\Jwt\Data\Contract\JwtFirebaseConfigContract;
 use Valkyrja\Jwt\Data\Contract\JwtHsConfigContract;
 use Valkyrja\Jwt\Data\Contract\JwtRsConfigContract;
 use Valkyrja\Jwt\Enum\Algorithm;
@@ -24,7 +25,7 @@ use Valkyrja\Jwt\Manager\NullJwt;
 /**
  * An application config that implements every jwt contract at once.
  */
-final class JwtConfigFixture extends Config implements JwtConfigContract, JwtHsConfigContract, JwtRsConfigContract, JwtEdDsaConfigContract
+final class JwtConfigFixture extends Config implements JwtConfigContract, JwtHsConfigContract, JwtRsConfigContract, JwtEdDsaConfigContract, JwtFirebaseConfigContract
 {
     /**
      * @param class-string<JwtContract> $defaultJwt
@@ -36,7 +37,7 @@ final class JwtConfigFixture extends Config implements JwtConfigContract, JwtHsC
      */
     public function __construct(
         public string $defaultJwt = NullJwt::class,
-        public Algorithm $algorithm = Algorithm::HS256,
+        public Algorithm $firebaseAlgorithm = Algorithm::HS256,
         public string $hsKey = 'test-key',
         public string $rsPrivateKey = 'test-rs-private',
         public string $rsPublicKey = 'test-rs-public',
