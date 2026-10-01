@@ -170,7 +170,7 @@ gives one request the deferred jobs of the request before it.
 
 ## The Database Table
 
-`DatabaseClient` and `DatabasePuller` read and write one table. The application
+`DatabaseClient` and `DatabaseQueue` read and write one table. The application
 owns the table, so the application creates it:
 
 ```sql
@@ -199,6 +199,7 @@ free, so a row that a crashed worker abandoned returns to the queue.
 | `AmqpQueue`       | a worker that consumes an AMQP queue                  |
 | `SqsQueue`        | a worker that long-polls an SQS queue                 |
 | `BeanstalkdQueue` | a worker that reserves jobs from a tube               |
+| `DatabaseQueue`   | a worker that claims rows from a table                |
 | `PushQueue`       | one job that a broker delivers over HTTP              |
 | `InternalQueue`   | each job that `SyncClient` or `DeferredClient` pushes |
 
