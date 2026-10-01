@@ -16,6 +16,7 @@ use Override;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Queue\Message\Payload\Payload;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -230,6 +231,32 @@ final class JobFactoryTest extends TestCase
         );
 
         self::assertJson($this->factory->toJson($job));
+    }
+
+    public function testToJsonWritesTheEmptyMapsAsObjects(): void
+    {
+        $job = new Job(
+            name: self::NAME,
+            id: '01JABCDEF0123456789ABCDEFG',
+            enqueuedAtMs: self::FROZEN_MS,
+        );
+
+        $json = $this->factory->toJson($job);
+
+        // The envelope types both fields as objects, and a strict consumer in
+        // another language rejects [] where it expects a map
+        self::assertStringContainsString('"attributes":{}', $json);
+        self::assertStringContainsString('"payload":{}', $json);
+    }
+
+    public function testToJsonWritesAnIntegerKeyedMapAsAnObject(): void
+    {
+        $job = new Job(
+            name: self::NAME,
+            payload: Payload::fromArray([0 => 'first']),
+        );
+
+        self::assertStringContainsString('"payload":{"0":"first"}', $this->factory->toJson($job));
     }
 
     public function testJsonRoundTrip(): void
