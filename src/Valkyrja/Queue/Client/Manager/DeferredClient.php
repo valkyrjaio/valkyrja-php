@@ -24,7 +24,8 @@ class DeferredClient extends InternalClient
     /**
      * Run everything buffered, emptying the buffer.
      *
-     * The bridge middleware calls this once the host has finished its response.
+     * The application calls this from the terminate stage of its host, because
+     * nothing in the framework drains the buffer.
      */
     public function drain(): void
     {
