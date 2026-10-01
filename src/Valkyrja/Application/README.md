@@ -638,11 +638,12 @@ matching contract:
 | `getGrpcProviders()`      | `Valkyrja\Grpc\Routing\Provider\Contract\GrpcRouteProviderContract`   | gRPC routes           |
 
 **Service providers** map service ids to resolution logic in the container.
-**Route providers** (CLI, HTTP, queue, and gRPC) register commands, routes,
-queue routes, and gRPC routes. **Listener providers** register event listeners. Each component's own
-README documents its provider contract. The application collects each kind
-lazily, on the first call to the matching `get*Providers()` method, and caches
-the result. Nothing is instantiated at collection time. The framework pays the
+**Route providers** (CLI, HTTP, queue, and gRPC) register the routes of their
+own protocol. **Listener providers** register event listeners. Each
+component's own README documents its provider contract. The application
+collects each kind lazily, on the first call to the matching
+`get*Providers()` method, and caches the result. Nothing is instantiated at
+collection time. The framework pays the
 cost when a service is first requested.
 
 ### Writing a Component Provider
