@@ -138,7 +138,7 @@ class NativeChildContainer extends Container
         // The parent would resolve this target for the first time, and the child holds
         // the same registration, so letting the parent do it would leave the request
         // with one copy for the alias and another for the id.
-        if ($this->isResolvedInChild($target)) {
+        if ($this->resolvesInChild($target)) {
             return $this->getTargetOnce($id, $target, $arguments);
         }
 
@@ -223,7 +223,7 @@ class NativeChildContainer extends Container
      *
      * @param class-string $id The target id
      */
-    private function isResolvedInChild(string $id): bool
+    private function resolvesInChild(string $id): bool
     {
         // The parent publishes before it reads any map, so this test comes first.
         if ($this->parent->isDeferred($id) && ! $this->parent->isPublished($id)) {
@@ -249,8 +249,16 @@ class NativeChildContainer extends Container
     private function getTargetOnce(string $id, string $target, array $arguments): object
     {
         // A walk ends at the first hop the parent would answer, so a chain that closes
-        // across two of them returns here rather than to one walk. Name the pair.
+        // across two of them returns here rather than to one walk. A factory that
+        // registered its own id while it runs has broken the chain, so read that first,
+        // and name the pair only when nothing can answer.
         if (isset($this->targetsInFlight[$target])) {
+            $registered = $this->getSingletonInstance($target);
+
+            if ($registered !== null) {
+                return $registered;
+            }
+
             throw new ContainerCyclicAliasException($id, $target);
         }
 

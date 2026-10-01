@@ -760,6 +760,37 @@ final class ChildContainerTest extends TestCase
         self::assertInstanceOf(SingletonFixture::class, $child->getAliased('parentAlias'));
     }
 
+    public function testGetAliasedAnswersAFactoryThatRegisteredItsOwnIdWhileItRan(): void
+    {
+        $this->parent->bindSingleton(
+            'cyclic',
+            static function (ContainerContract $container): SingletonFixture {
+                $instance = new SingletonFixture();
+                // Register first, the way a factory breaks a chain that returns to it
+                $container->setSingleton('cyclic', $instance);
+                $container->get('cyclicAlias');
+
+                return $instance;
+            },
+        );
+        $this->parent->bindAlias('cyclicAlias', 'cyclic');
+        $child = $this->createChild();
+        // This class hands a parent factory to the parent, so the child runs its own
+        $child->bindSingleton(
+            'cyclic',
+            static function (ContainerContract $container): SingletonFixture {
+                $instance = new SingletonFixture();
+                $container->setSingleton('cyclic', $instance);
+                $container->get('cyclicAlias');
+
+                return $instance;
+            },
+        );
+
+        // The factory registered the target, so the alias answers rather than throwing
+        self::assertInstanceOf(SingletonFixture::class, $child->getAliased('cyclicAlias'));
+    }
+
     /**
      * Create a ChildContainer from the current parent state.
      * The ContainerData is built from the parent and passed explicitly.

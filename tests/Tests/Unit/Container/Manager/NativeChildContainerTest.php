@@ -688,4 +688,23 @@ final class NativeChildContainerTest extends TestCase
 
         $this->child->getAliased('parentAlias');
     }
+
+    public function testGetAliasedAnswersAFactoryThatRegisteredItsOwnIdWhileItRan(): void
+    {
+        $this->parent->bindSingleton(
+            'cyclic',
+            static function (ContainerContract $container): SingletonFixture {
+                $instance = new SingletonFixture();
+                // Register first, the way a factory breaks a chain that returns to it
+                $container->setSingleton('cyclic', $instance);
+                $container->get('cyclicAlias');
+
+                return $instance;
+            },
+        );
+        $this->parent->bindAlias('cyclicAlias', 'cyclic');
+
+        // The factory registered the target, so the alias answers rather than throwing
+        self::assertInstanceOf(SingletonFixture::class, $this->child->getAliased('cyclicAlias'));
+    }
 }
