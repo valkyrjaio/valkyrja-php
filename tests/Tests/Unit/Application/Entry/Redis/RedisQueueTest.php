@@ -119,6 +119,22 @@ final class RedisQueueTest extends TestCase
         self::assertNull(RedisQueueFixture::receive());
     }
 
+    public function testReceiveToleratesABodyThatIsNotJson(): void
+    {
+        $this->redis->returns['blpop'] = [self::QUEUE, 'not json at all'];
+
+        // The pop already removed it, so throwing would lose the job and take
+        // the worker down with it
+        self::assertNull(RedisQueueFixture::receive());
+    }
+
+    public function testReceiveToleratesAnEnvelopeWithoutAName(): void
+    {
+        $this->redis->returns['blpop'] = [self::QUEUE, (string) json_encode(['attempts' => 2])];
+
+        self::assertNull(RedisQueueFixture::receive());
+    }
+
     public function testReceiveDecodesTheEnvelope(): void
     {
         $this->redis->returns['blpop'] = [
