@@ -15,18 +15,17 @@ namespace Valkyrja\Tests\Functional\Queue;
 use Override;
 use PDO;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Directory\Directory;
-use Valkyrja\Application\Entry\PullQueue;
 use Valkyrja\Container\Manager\Container;
 use Valkyrja\Orm\Manager\MysqlManager;
+use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Manager\DatabaseClient;
-use Valkyrja\Queue\Client\Puller\DatabasePuller;
 use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Tests\Fixtures\Application\Data\DatabaseWorkerConfigFixture;
+use Valkyrja\Tests\Fixtures\Application\Entry\DatabaseQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
-use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Functional\Abstract\TestCase;
 
@@ -70,11 +69,15 @@ final class DatabaseIntegrationTest extends TestCase
         $this->createTable();
 
         ResultLogMiddlewareFixture::reset();
+
+        DatabaseQueueFixture::inject($this->manager, self::QUEUE, self::TABLE);
     }
 
     #[Override]
     protected function tearDown(): void
     {
+        DatabaseQueueFixture::reset();
+
         if (isset($this->manager)) {
             $this->manager->query('DROP TABLE IF EXISTS ' . self::TABLE);
         }
@@ -97,7 +100,7 @@ final class DatabaseIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        $received = $this->puller()->receive();
+        $received = $this->poll();
 
         self::assertNotNull($received);
         // The envelope is the cross-language contract, so every field must survive
@@ -108,7 +111,7 @@ final class DatabaseIntegrationTest extends TestCase
     {
         $this->client()->push(new Job(name: QueueRoutingProviderFixture::ALWAYS_ACK, delayMs: 60_000));
 
-        self::assertNull($this->puller()->receive());
+        self::assertNull($this->poll());
         self::assertSame(1, $this->rowCount());
     }
 
@@ -118,16 +121,16 @@ final class DatabaseIntegrationTest extends TestCase
 
         usleep(5_000);
 
-        self::assertNotNull($this->puller()->receive());
+        self::assertNotNull($this->poll());
     }
 
     public function testAReservedRowIsNotHandedOutTwice(): void
     {
         $this->client()->push(new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK));
 
-        self::assertNotNull($this->puller()->receive());
+        self::assertNotNull($this->poll());
         // A second worker looking at the same table must not see it
-        self::assertNull($this->puller()->receive());
+        self::assertNull($this->poll());
     }
 
     public function testAnAcknowledgedJobLeavesTheTable(): void
@@ -137,13 +140,7 @@ final class DatabaseIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
-            config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
-            maxJobs: 1,
-            requeuer: $puller,
-        );
+        $this->work($client);
 
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
         self::assertSame(0, $this->rowCount());
@@ -156,19 +153,13 @@ final class DatabaseIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
-            config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
-            maxJobs: 1,
-            requeuer: $puller,
-        );
+        $this->work($client);
 
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
         // The spent row went and exactly one replacement took its place
         self::assertSame(1, $this->rowCount());
 
-        $requeued = $this->puller()->receive();
+        $requeued = $this->poll();
 
         self::assertNotNull($requeued);
         self::assertSame(2, $requeued->getAttempts());
@@ -188,16 +179,10 @@ final class DatabaseIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
-            config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
-            maxJobs: 1,
-            requeuer: $puller,
-        );
+        $this->work($client);
 
         self::assertSame(1, $this->rowCount());
-        self::assertNull($this->puller()->receive());
+        self::assertNull($this->poll());
     }
 
     public function testADeadLetteredJobLeavesTheTable(): void
@@ -207,13 +192,7 @@ final class DatabaseIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
-            config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
-            maxJobs: 1,
-            requeuer: $puller,
-        );
+        $this->work($client);
 
         self::assertSame([JobResult::FAIL], ResultLogMiddlewareFixture::getResults($job->getId()));
         self::assertSame(0, $this->rowCount());
@@ -221,23 +200,42 @@ final class DatabaseIntegrationTest extends TestCase
 
     public function testAnEmptyTableYieldsNothing(): void
     {
-        self::assertNull($this->puller()->receive());
+        self::assertNull($this->poll());
     }
 
     public function testDisconnectHandsAReservedRowBack(): void
     {
         $this->client()->push(new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK));
 
-        $puller = $this->puller();
-        $puller->connect();
-
-        self::assertNotNull($puller->receive());
+        self::assertNotNull(DatabaseQueueFixture::receive());
 
         // A worker shutting down mid-job must not leave a row no other worker
         // will ever claim
-        $puller->disconnect();
+        DatabaseQueueFixture::disconnect();
 
-        self::assertNotNull($this->puller()->receive());
+        self::assertNotNull($this->poll());
+    }
+
+    /**
+     * Run one job through a worker whose client writes to the test table.
+     */
+    private function work(DatabaseClient $client): void
+    {
+        $app = DatabaseQueueFixture::bootstrap($this->config());
+
+        $app->getContainer()->setSingleton(ClientContract::class, $client);
+
+        DatabaseQueueFixture::loop($app, maxJobs: 1);
+    }
+
+    /**
+     * Poll on a re-established manager, because a finished worker disconnects.
+     */
+    private function poll(): JobContract|null
+    {
+        DatabaseQueueFixture::inject($this->manager, self::QUEUE, self::TABLE);
+
+        return DatabaseQueueFixture::receive();
     }
 
     private function client(): DatabaseClient
@@ -245,17 +243,11 @@ final class DatabaseIntegrationTest extends TestCase
         return new DatabaseClient(manager: $this->manager, queue: self::QUEUE, table: self::TABLE);
     }
 
-    private function puller(): DatabasePuller
-    {
-        return new DatabasePuller(manager: $this->manager, queue: self::QUEUE, table: self::TABLE);
-    }
-
     private function config(): QueueConfigContract
     {
-        return new QueueConfig(
-            dir: Directory::$basePath,
-            providers: [new QueueTestComponentProviderFixture()],
-            resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
+        return new DatabaseWorkerConfigFixture(
+            databaseQueue: self::QUEUE,
+            databaseTable: self::TABLE,
         );
     }
 

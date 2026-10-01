@@ -10,27 +10,28 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Queue\Client\Puller;
+namespace Valkyrja\Application\Entry\Database;
 
 use JsonException;
 use Override;
+use Valkyrja\Application\Entry\Abstract\PullQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Orm\Data\Value;
 use Valkyrja\Orm\Manager\Contract\ManagerContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueDatabaseClientConfigContract;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Manager\DatabaseClient;
-use Valkyrja\Queue\Client\Puller\Contract\PullerContract;
-use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
-use Valkyrja\Queue\Client\Requeuer\Requeuer;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
-use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
 
 use function is_int;
 use function is_string;
 
-class DatabasePuller implements PullerContract, RequeuerContract
+class DatabaseQueue extends PullQueue
 {
     /**
      * The age at which a claim is treated as abandoned, in milliseconds.
@@ -44,35 +45,37 @@ class DatabasePuller implements PullerContract, RequeuerContract
      */
     public const int DEFAULT_RESERVATION_TIMEOUT_MS = 300_000;
 
+    /** @var int<1, max> The age at which a claim is abandoned */
+    protected static int $reservationTimeoutMs = self::DEFAULT_RESERVATION_TIMEOUT_MS;
+
+    protected static ManagerContract|null $manager = null;
+
+    /** @var non-empty-string */
+    protected static string $queue = 'default';
+
+    /** @var non-empty-string */
+    protected static string $table = DatabaseClient::DEFAULT_TABLE;
+
     /**
      * The id of the row currently reserved, if any.
      *
-     * A pull worker handles one job at a time, so a single slot is enough — and
+     * A pull worker handles one job at a time, so a single slot is enough, and
      * it is cleared on settlement so a second settle cannot act twice.
      */
-    protected int|null $current = null;
-
-    /**
-     * @param non-empty-string $queue                The queue jobs are consumed from
-     * @param non-empty-string $table                The table jobs are stored in
-     * @param int<1, max>      $reservationTimeoutMs The age at which a claim is abandoned
-     */
-    public function __construct(
-        protected ManagerContract $manager,
-        protected string $queue = 'default',
-        protected string $table = DatabaseClient::DEFAULT_TABLE,
-        protected int $reservationTimeoutMs = self::DEFAULT_RESERVATION_TIMEOUT_MS,
-        protected RequeuerContract $requeuer = new Requeuer(),
-        protected JobFactoryContract $factory = new JobFactory(),
-    ) {
-    }
+    protected static int|null $current = null;
 
     /**
      * @inheritDoc
      */
     #[Override]
-    public function connect(): void
+    public static function connect(ApplicationContract $app): void
     {
+        $container = $app->getContainer();
+        $config    = $container->getSingleton(QueueDatabaseClientConfigContract::class);
+
+        static::$queue   = $config->databaseQueue;
+        static::$table   = $config->databaseTable;
+        static::$manager = static::getManager($container);
     }
 
     /**
@@ -81,9 +84,9 @@ class DatabasePuller implements PullerContract, RequeuerContract
      * @throws JsonException
      */
     #[Override]
-    public function receive(): JobContract|null
+    public static function receive(): JobContract|null
     {
-        $row = $this->findEligible();
+        $row = static::findEligible();
 
         if ($row === null) {
             return null;
@@ -91,47 +94,71 @@ class DatabasePuller implements PullerContract, RequeuerContract
 
         [$id, $envelope] = $row;
 
-        if (! $this->claim($id)) {
+        if (! static::claim($id)) {
             // Another worker claimed the row between the read and the write.
             // The loop asks again rather than this one waiting for a winner.
             return null;
         }
 
-        $this->current = $id;
+        static::$current = $id;
 
-        return $this->factory->fromJson($envelope);
+        return new JobFactory()->fromJson($envelope);
     }
 
     /**
      * @inheritDoc
      */
     #[Override]
-    public function disconnect(): void
+    public static function disconnect(): void
     {
         // Anything still reserved was not completed, so hand it back rather
         // than leaving a row no worker will ever claim again
-        $this->releaseCurrent();
+        static::releaseCurrent();
+
+        static::$manager = null;
     }
 
     /**
      * @inheritDoc
      */
     #[Override]
-    public function settle(JobContract $job, JobResult $result, ClientContract $client): void
+    public static function settle(JobContract $job, JobResult $result, ClientContract $client): void
     {
-        $id = $this->current;
+        $id = static::$current;
 
         if ($id === null) {
             return;
         }
 
-        $this->current = null;
+        static::$current = null;
 
         // The reserved row is spent whatever the outcome: a retry arrives as a
         // fresh row carrying the incremented attempt count
-        $this->delete($id);
+        static::delete($id);
 
-        $this->requeuer->settle($job, $result, $client);
+        // A table owns no retry loop, so the framework publishes the job again
+        if ($result === JobResult::RETRY) {
+            $client->requeue($job);
+        }
+    }
+
+    /**
+     * Get the manager the loop reads the table with.
+     */
+    protected static function getManager(ContainerContract $container): ManagerContract
+    {
+        return $container->getSingleton(ManagerContract::class);
+    }
+
+    /**
+     * Get the manager that connect() resolved.
+     *
+     * @throws QueueServerNotConnectedException
+     */
+    protected static function getConnection(): ManagerContract
+    {
+        return static::$manager
+            ?? throw new QueueServerNotConnectedException('The database queue has no manager to read with.');
     }
 
     /**
@@ -141,20 +168,21 @@ class DatabasePuller implements PullerContract, RequeuerContract
      *
      * @return array{0: int, 1: string}|null
      */
-    protected function findEligible(): array|null
+    protected static function findEligible(): array|null
     {
-        $now = Microtime::now();
+        $now   = Microtime::now();
+        $table = static::$table;
 
-        $statement = $this->manager->prepare(
-            "SELECT id, envelope FROM $this->table"
+        $statement = static::getConnection()->prepare(
+            "SELECT id, envelope FROM $table"
             . ' WHERE queue = :queue AND available_at_ms <= :now'
             . ' AND (reserved_at_ms IS NULL OR reserved_at_ms <= :stale)'
             . ' ORDER BY priority DESC, id ASC LIMIT 1'
         );
 
-        $statement->bindValue(new Value('queue', $this->queue));
+        $statement->bindValue(new Value('queue', static::$queue));
         $statement->bindValue(new Value('now', $now));
-        $statement->bindValue(new Value('stale', $now - $this->reservationTimeoutMs));
+        $statement->bindValue(new Value('stale', $now - static::$reservationTimeoutMs));
         $statement->execute();
 
         // fetchAll, not fetch: the ORM treats an empty result as an error, and
@@ -177,17 +205,18 @@ class DatabasePuller implements PullerContract, RequeuerContract
      * The write is conditional, so two workers reading the same row cannot both
      * win: the second one updates nothing.
      */
-    protected function claim(int $id): bool
+    protected static function claim(int $id): bool
     {
-        $now = Microtime::now();
+        $now   = Microtime::now();
+        $table = static::$table;
 
-        $statement = $this->manager->prepare(
-            "UPDATE $this->table SET reserved_at_ms = :now"
+        $statement = static::getConnection()->prepare(
+            "UPDATE $table SET reserved_at_ms = :now"
             . ' WHERE id = :id AND (reserved_at_ms IS NULL OR reserved_at_ms <= :stale)'
         );
 
         $statement->bindValue(new Value('now', $now));
-        $statement->bindValue(new Value('stale', $now - $this->reservationTimeoutMs));
+        $statement->bindValue(new Value('stale', $now - static::$reservationTimeoutMs));
         $statement->bindValue(new Value('id', $id));
         $statement->execute();
 
@@ -197,15 +226,16 @@ class DatabasePuller implements PullerContract, RequeuerContract
     /**
      * Hand any reserved row back to the queue.
      */
-    protected function releaseCurrent(): void
+    protected static function releaseCurrent(): void
     {
-        $id = $this->current;
+        $id = static::$current;
 
         if ($id !== null) {
-            $this->current = null;
+            static::$current = null;
+            $table           = static::$table;
 
-            $statement = $this->manager->prepare(
-                "UPDATE $this->table SET reserved_at_ms = NULL WHERE id = :id"
+            $statement = static::getConnection()->prepare(
+                "UPDATE $table SET reserved_at_ms = NULL WHERE id = :id"
             );
 
             $statement->bindValue(new Value('id', $id));
@@ -216,9 +246,11 @@ class DatabasePuller implements PullerContract, RequeuerContract
     /**
      * Take a row off the table for good.
      */
-    protected function delete(int $id): void
+    protected static function delete(int $id): void
     {
-        $statement = $this->manager->prepare("DELETE FROM $this->table WHERE id = :id");
+        $table = static::$table;
+
+        $statement = static::getConnection()->prepare("DELETE FROM $table WHERE id = :id");
 
         $statement->bindValue(new Value('id', $id));
         $statement->execute();
