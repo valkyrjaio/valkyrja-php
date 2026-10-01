@@ -214,13 +214,15 @@ an application config that does not implement its contract.
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
-contracts cannot resolve `ClientContract`.
+contracts cannot resolve `ClientContract`. The list is the complete set rather
+than an addition to the default, so a host application names both providers.
 
 ```php
 use App\Queue\InternalApp;
 use Valkyrja\Application\Data\HttpConfig;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
+use Valkyrja\Application\Provider\HttpApplicationComponentProvider;
 use Valkyrja\Queue\Client\Manager\SyncClient;
 use Valkyrja\Queue\Client\Provider\QueueClientComponentProvider;
 
@@ -233,7 +235,10 @@ final class AppHttpConfig extends HttpConfig implements QueueClientConfigContrac
     public function __construct()
     {
         parent::__construct(
-            providers: [new QueueClientComponentProvider()],
+            providers: [
+                new HttpApplicationComponentProvider(),
+                new QueueClientComponentProvider(),
+            ],
         );
     }
 }
