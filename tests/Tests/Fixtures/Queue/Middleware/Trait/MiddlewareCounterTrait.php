@@ -36,18 +36,6 @@ trait MiddlewareCounterTrait
     }
 
     /**
-     * Get and reset the counter.
-     */
-    public static function getAndResetCounter(): int
-    {
-        $counter = static::getCounter();
-
-        static::resetCounter();
-
-        return $counter;
-    }
-
-    /**
      * Update the internal counter.
      */
     protected function updateCounter(): void
