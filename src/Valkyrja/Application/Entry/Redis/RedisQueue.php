@@ -24,6 +24,7 @@ use Valkyrja\Queue\Client\Manager\RedisClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
 
@@ -56,8 +57,6 @@ class RedisQueue extends PullQueue
 
     /**
      * @inheritDoc
-     *
-     * @throws JsonException
      */
     #[Override]
     public static function receive(): JobContract|null
@@ -73,7 +72,7 @@ class RedisQueue extends PullQueue
             return null;
         }
 
-        return new JobFactory()->fromJson($popped[1]);
+        return static::decode($popped[1]);
     }
 
     /**
@@ -97,6 +96,23 @@ class RedisQueue extends PullQueue
         // nothing. Redis owns no retry loop, so the framework publishes again.
         if ($result === JobResult::RETRY) {
             $client->requeue($job);
+        }
+    }
+
+    /**
+     * Read an envelope off the list, or nothing when it cannot be read.
+     *
+     * The shape guards above tolerate every other way a pop goes wrong, so a
+     * body that is a string but not a readable envelope is tolerated the same
+     * way. The pop already removed it, so throwing would lose the job and take
+     * the worker down with it.
+     */
+    protected static function decode(string $envelope): JobContract|null
+    {
+        try {
+            return new JobFactory()->fromJson($envelope);
+        } catch (JsonException|QueueMessageInvalidEnvelopeException) {
+            return null;
         }
     }
 
