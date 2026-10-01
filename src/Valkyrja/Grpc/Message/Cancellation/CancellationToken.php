@@ -89,6 +89,8 @@ class CancellationToken implements CancellationTokenContract
      * once.
      *
      * @param CancellationReason $reason The cause of cancellation
+     *
+     * @throws Throwable The first throwable a listener raised, after every listener has run
      */
     public function cancel(CancellationReason $reason): void
     {
