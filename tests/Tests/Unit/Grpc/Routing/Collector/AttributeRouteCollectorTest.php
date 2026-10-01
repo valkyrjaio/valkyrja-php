@@ -20,12 +20,15 @@ use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingInvalidHandlerException;
 use Valkyrja\Grpc\Throwable\Exception\CancelledException;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\ResponseSentMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\BadHandlerControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\CancellingControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\GreeterControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\NonPublicHandlerControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\NonStaticHandlerControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\OverriddenHandlerControllerFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\SingleStageMiddlewareControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\UnattributedControllerFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
@@ -108,6 +111,21 @@ final class AttributeRouteCollectorTest extends TestCase
         self::assertSame([OverriddenHandlerControllerFixture::OVERRIDDEN], $response->getMessages());
     }
 
+    public function testAnOverriddenHandlerExemptsTheAttributedMethodFromTheStaticCheck(): void
+    {
+        $routes = new AttributeRouteCollector()->getRoutes(OverriddenHandlerControllerFixture::class);
+        $route  = self::byMethod($routes, '/pkg.Overridden/DoInstanceThing');
+
+        // The method is an instance method, which the scan rejects only when the scan-derived
+        // handler would call it statically.
+        $handler = $route->getHandler();
+
+        self::assertSame(
+            [OverriddenHandlerControllerFixture::OVERRIDDEN],
+            $handler(new Container(), $route)->getMessages()
+        );
+    }
+
     public function testAMiddlewareLandsInEveryStageItImplements(): void
     {
         $routes = new AttributeRouteCollector()->getRoutes(GreeterControllerFixture::class);
@@ -118,6 +136,30 @@ final class AttributeRouteCollectorTest extends TestCase
         self::assertSame([AllMiddlewareFixture::class], $route->getThrowableCaughtMiddleware());
         self::assertSame([AllMiddlewareFixture::class], $route->getSendingResponseMiddleware());
         self::assertSame([AllMiddlewareFixture::class], $route->getResponseSentMiddleware());
+    }
+
+    public function testASingleStageMiddlewareLandsInOnlyItsOwnBucket(): void
+    {
+        $routes = new AttributeRouteCollector()->getRoutes(SingleStageMiddlewareControllerFixture::class);
+        $route  = self::byMethod($routes, '/pkg.SingleStage/Matched');
+
+        self::assertSame([RouteMatchedMiddlewareFixture::class], $route->getRouteMatchedMiddleware());
+        self::assertSame([], $route->getRouteDispatchedMiddleware());
+        self::assertSame([], $route->getThrowableCaughtMiddleware());
+        self::assertSame([], $route->getSendingResponseMiddleware());
+        self::assertSame([], $route->getResponseSentMiddleware());
+    }
+
+    public function testAResponseSentOnlyMiddlewareSkipsTheRouteMatchedBucket(): void
+    {
+        $routes = new AttributeRouteCollector()->getRoutes(SingleStageMiddlewareControllerFixture::class);
+        $route  = self::byMethod($routes, '/pkg.SingleStage/Sent');
+
+        self::assertSame([ResponseSentMiddlewareFixture::class], $route->getResponseSentMiddleware());
+        self::assertSame([], $route->getRouteMatchedMiddleware());
+        self::assertSame([], $route->getRouteDispatchedMiddleware());
+        self::assertSame([], $route->getThrowableCaughtMiddleware());
+        self::assertSame([], $route->getSendingResponseMiddleware());
     }
 
     public function testAMethodWithoutMiddlewareGetsNone(): void
@@ -141,7 +183,7 @@ final class AttributeRouteCollectorTest extends TestCase
             OverriddenHandlerControllerFixture::class
         );
 
-        self::assertCount(4, $routes);
+        self::assertCount(5, $routes);
     }
 
     public function testWithNoControllers(): void
