@@ -47,6 +47,8 @@ class JobFactory implements JobFactoryContract
 
     /**
      * @inheritDoc
+     *
+     * @throws QueueMessageInvalidEnvelopeException
      */
     #[Override]
     public function fromArray(array $data): JobContract
@@ -82,6 +84,7 @@ class JobFactory implements JobFactoryContract
      * @inheritDoc
      *
      * @throws JsonException
+     * @throws QueueMessageInvalidEnvelopeException
      */
     #[Override]
     public function fromJson(string $json): JobContract
