@@ -10,27 +10,29 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Queue\Client\Puller;
+namespace Valkyrja\Application\Entry\Amqp;
 
 use JsonException;
 use Override;
 use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
+use Valkyrja\Application\Entry\Abstract\PullQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
-use Valkyrja\Queue\Client\Puller\Contract\PullerContract;
-use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
-use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
 use function is_array;
 use function is_int;
 use function max;
 use function sleep;
 
-class AmqpPuller implements PullerContract, RequeuerContract
+class AmqpQueue extends PullQueue
 {
     /**
      * The header a quorum queue uses to report how many times it redelivered.
@@ -39,36 +41,39 @@ class AmqpPuller implements PullerContract, RequeuerContract
      */
     public const string DELIVERY_COUNT_HEADER = 'x-delivery-count';
 
+    /** @var int<0, max> The seconds to wait for a delivery; 0 to poll without blocking */
+    protected static int $timeout = 1;
+
+    protected static AMQPChannel|null $channel = null;
+
+    /** @var non-empty-string */
+    protected static string $queue = 'queues.default';
+
     /**
      * The delivery currently in flight, if any.
      *
-     * A pull worker handles one job at a time, so a single slot is enough — and
+     * A pull worker handles one job at a time, so a single slot is enough, and
      * it is cleared on settlement so a second settle cannot double-ack.
      */
-    protected AMQPMessage|null $current = null;
-
-    /**
-     * @param non-empty-string $queue   The queue jobs are consumed from
-     * @param int<0, max>      $timeout The seconds to wait for a delivery; 0 to poll without blocking
-     */
-    public function __construct(
-        protected AMQPChannel $channel,
-        protected string $queue = 'queues.default',
-        protected int $timeout = 1,
-        protected JobFactoryContract $factory = new JobFactory(),
-    ) {
-    }
+    protected static AMQPMessage|null $current = null;
 
     /**
      * @inheritDoc
      */
     #[Override]
-    public function connect(): void
+    public static function connect(ApplicationContract $app): void
     {
+        $config = $app->getContainer()->getSingleton(QueueAmqpClientConfigContract::class);
+
+        static::$queue   = $config->amqpQueue;
+        static::$channel = static::getChannel($config);
+
+        $channel = static::getConnection();
+
         // Declaring is idempotent, so a consumer may start before any producer
-        $this->channel->queue_declare($this->queue, false, true, false, false);
+        $channel->queue_declare(static::$queue, false, true, false, false);
         // One unacknowledged delivery at a time, matching the single in-flight slot
-        $this->channel->basic_qos(0, 1, false);
+        $channel->basic_qos(0, 1, false);
     }
 
     /**
@@ -77,47 +82,49 @@ class AmqpPuller implements PullerContract, RequeuerContract
      * @throws JsonException
      */
     #[Override]
-    public function receive(): JobContract|null
+    public static function receive(): JobContract|null
     {
-        $message = $this->channel->basic_get($this->queue);
+        $message = static::getConnection()->basic_get(static::$queue);
 
         if (! $message instanceof AMQPMessage) {
-            $this->wait();
+            static::wait();
 
             return null;
         }
 
-        $this->current = $message;
+        static::$current = $message;
 
-        return $this->withNormalizedAttempts($this->factory->fromJson($message->getBody()), $message);
+        return static::withNormalizedAttempts(new JobFactory()->fromJson($message->getBody()), $message);
     }
 
     /**
      * @inheritDoc
      */
     #[Override]
-    public function disconnect(): void
+    public static function disconnect(): void
     {
         // Anything still in flight was not completed, so hand it back rather
         // than letting it wait out the broker's own timeout
-        $this->releaseCurrent();
+        static::releaseCurrent();
 
-        $this->channel->close();
+        static::getConnection()->close();
+
+        static::$channel = null;
     }
 
     /**
      * @inheritDoc
      */
     #[Override]
-    public function settle(JobContract $job, JobResult $result, ClientContract $client): void
+    public static function settle(JobContract $job, JobResult $result, ClientContract $client): void
     {
-        $message = $this->current;
+        $message = static::$current;
 
         if (! $message instanceof AMQPMessage) {
             return;
         }
 
-        $this->current = null;
+        static::$current = null;
 
         if ($result === JobResult::RETRY) {
             // Requeue: the broker redelivers and owns the attempt counting
@@ -153,9 +160,9 @@ class AmqpPuller implements PullerContract, RequeuerContract
      * Give the queue a dead-letter policy, or declare it as a quorum queue, when
      * the ceiling has to hold.
      */
-    protected function withNormalizedAttempts(JobContract $job, AMQPMessage $message): JobContract
+    protected static function withNormalizedAttempts(JobContract $job, AMQPMessage $message): JobContract
     {
-        $count = $this->getDeliveryCount($message);
+        $count = static::getDeliveryCount($message);
 
         if ($count === null) {
             return $message->isRedelivered()
@@ -171,7 +178,7 @@ class AmqpPuller implements PullerContract, RequeuerContract
      *
      * @return int<0, max>|null
      */
-    protected function getDeliveryCount(AMQPMessage $message): int|null
+    protected static function getDeliveryCount(AMQPMessage $message): int|null
     {
         if (! $message->has('application_headers')) {
             return null;
@@ -198,14 +205,39 @@ class AmqpPuller implements PullerContract, RequeuerContract
     }
 
     /**
+     * Open the channel the loop consumes from.
+     */
+    protected static function getChannel(QueueAmqpClientConfigContract $config): AMQPChannel
+    {
+        return new AMQPStreamConnection(
+            $config->amqpHost,
+            $config->amqpPort,
+            $config->amqpUser,
+            $config->amqpPassword,
+            $config->amqpVhost,
+        )->channel();
+    }
+
+    /**
+     * Get the channel that connect() opened.
+     *
+     * @throws QueueServerNotConnectedException
+     */
+    protected static function getConnection(): AMQPChannel
+    {
+        return static::$channel
+            ?? throw new QueueServerNotConnectedException('The AMQP queue has no channel to consume from.');
+    }
+
+    /**
      * Hand any in-flight delivery back to the broker.
      */
-    protected function releaseCurrent(): void
+    protected static function releaseCurrent(): void
     {
-        $message = $this->current;
+        $message = static::$current;
 
         if ($message instanceof AMQPMessage) {
-            $this->current = null;
+            static::$current = null;
 
             $message->nack(true);
         }
@@ -217,10 +249,10 @@ class AmqpPuller implements PullerContract, RequeuerContract
      * A polling consumer must yield, or the entry's loop bounds and graceful
      * shutdown would never get a chance to run.
      */
-    protected function wait(): void
+    protected static function wait(): void
     {
-        if ($this->timeout > 0) {
-            $this->pause($this->timeout);
+        if (static::$timeout > 0) {
+            static::pause(static::$timeout);
         }
     }
 
@@ -234,7 +266,7 @@ class AmqpPuller implements PullerContract, RequeuerContract
      *
      * @codeCoverageIgnore
      */
-    protected function pause(int $seconds): void
+    protected static function pause(int $seconds): void
     {
         sleep($seconds);
     }
