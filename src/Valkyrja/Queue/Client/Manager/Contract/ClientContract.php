@@ -49,4 +49,12 @@ interface ClientContract
      * @return JobContract[]
      */
     public function getPushed(): array;
+
+    /**
+     * Drop the record, ending the unit of work it belongs to.
+     *
+     * A long-running worker holds one client for its whole life, so the record
+     * has to end with each job rather than with the process.
+     */
+    public function clearPushed(): void;
 }
