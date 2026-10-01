@@ -150,7 +150,7 @@ final class AmqpIntegrationTest extends TestCase
         $client->declareQueue();
         $client->push($job);
 
-        $this->consumeOne($client);
+        $this->consumeOne();
 
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
         self::assertSame(0, $this->depth());
@@ -164,7 +164,7 @@ final class AmqpIntegrationTest extends TestCase
         $client->declareQueue();
         $client->push($job);
 
-        $this->consumeOne($client);
+        $this->consumeOne();
 
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
         // The broker holds it again — nothing was published, it was nacked back
@@ -181,7 +181,7 @@ final class AmqpIntegrationTest extends TestCase
         $client->declareQueue();
         $client->push($job);
 
-        $this->consumeOne($client);
+        $this->consumeOne();
 
         self::assertSame([JobResult::FAIL], ResultLogMiddlewareFixture::getResults($job->getId()));
         // Dropped rather than requeued: with no dead-letter exchange bound, the
@@ -216,7 +216,7 @@ final class AmqpIntegrationTest extends TestCase
     /**
      * Run one job through the worker, with the entry settling its own outcome.
      */
-    private function consumeOne(AmqpClient $client): void
+    private function consumeOne(): void
     {
         AmqpQueueFixture::run(
             config: $this->config(),
