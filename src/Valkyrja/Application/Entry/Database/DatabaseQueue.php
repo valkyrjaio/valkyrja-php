@@ -172,7 +172,7 @@ class DatabaseQueue extends PullQueue
      */
     protected static function findEligible(): array|null
     {
-        $now   = Microtime::now();
+        $now   = Microtime::getMilliseconds();
         $table = static::$table;
 
         $statement = static::getConnection()->prepare(
@@ -209,7 +209,7 @@ class DatabaseQueue extends PullQueue
      */
     protected static function claim(int $id): bool
     {
-        $now   = Microtime::now();
+        $now   = Microtime::getMilliseconds();
         $table = static::$table;
 
         $statement = static::getConnection()->prepare(
