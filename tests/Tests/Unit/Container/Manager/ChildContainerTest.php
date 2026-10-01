@@ -791,6 +791,26 @@ final class ChildContainerTest extends TestCase
         self::assertInstanceOf(SingletonFixture::class, $child->getAliased('cyclicAlias'));
     }
 
+    public function testGetAliasedThrowsForAChainAFactoryCloses(): void
+    {
+        $this->parent->bindSingleton('cyclic', [SingletonFixture::class, 'make']);
+        $this->parent->bindAlias('cyclicAlias', 'cyclic');
+        $child = $this->createChild();
+        // The factory registers nothing for its own id, so the chain returns to it
+        $child->bindSingleton(
+            'cyclic',
+            static function (ContainerContract $container): SingletonFixture {
+                $container->get('cyclicAlias');
+
+                return new SingletonFixture();
+            },
+        );
+
+        $this->expectException(ContainerCyclicAliasException::class);
+
+        $child->getAliased('cyclicAlias');
+    }
+
     /**
      * Create a ChildContainer from the current parent state.
      * The ContainerData is built from the parent and passed explicitly.
