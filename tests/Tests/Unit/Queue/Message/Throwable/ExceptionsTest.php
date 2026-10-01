@@ -17,6 +17,7 @@ use Valkyrja\Queue\Message\Throwable\Contract\QueueMessageThrowable;
 use Valkyrja\Queue\Message\Throwable\Exception\Abstract\QueueMessageInvalidArgumentException;
 use Valkyrja\Queue\Message\Throwable\Exception\Abstract\QueueMessageRuntimeException;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidAttributeNameException;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidAttributeValueException;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
 use Valkyrja\Queue\Throwable\Contract\QueueThrowable;
@@ -47,6 +48,7 @@ final class ExceptionsTest extends TestCase
     public function testInvalidAttributeNameException(): void
     {
         self::isA(QueueMessageInvalidArgumentException::class, QueueMessageInvalidAttributeNameException::class);
+        self::isA(QueueMessageInvalidArgumentException::class, QueueMessageInvalidAttributeValueException::class);
     }
 
     public function testInvalidEnvelopeException(): void

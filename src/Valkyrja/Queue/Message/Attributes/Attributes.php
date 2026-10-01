@@ -15,6 +15,7 @@ namespace Valkyrja\Queue\Message\Attributes;
 use Override;
 use Valkyrja\Queue\Message\Attributes\Contract\AttributesContract;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidAttributeNameException;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidAttributeValueException;
 
 use function array_filter;
 use function array_values;
@@ -91,7 +92,7 @@ class Attributes implements AttributesContract
     protected static function normalizeValue(mixed $value): string
     {
         if (! is_scalar($value)) {
-            throw new QueueMessageInvalidAttributeNameException('Attribute values must be scalar');
+            throw new QueueMessageInvalidAttributeValueException('Attribute values must be scalar');
         }
 
         return (string) $value;
