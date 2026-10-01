@@ -91,14 +91,18 @@ abstract class WorkerGrpc extends App
     /**
      * Handle a single streaming-model (bidirectional) call.
      *
-     * Unlike dispatch(), the handler is invoked immediately — not after half-close — and emits
-     * messages through the call's push sink while it reads live inbound; the adapter runs this on
-     * its own per-call execution unit.
+     * Unlike dispatch(), the handler is invoked immediately, and not after half-close. It emits
+     * messages through the call's push sink while it reads live inbound, and the adapter runs this
+     * on its own per-call execution unit.
      *
-     * The pipeline still runs once per call: SendingResponse fires once at stream open (the first
-     * emit, or the close when the handler emits nothing) against an OK shell whose initial metadata
-     * becomes the response headers; the handler's returned terminal response supplies the final
-     * status and trailing metadata; and ResponseSent fires once at close.
+     * The pipeline still runs once per call. SendingResponse fires once at stream open, which is
+     * the first emit, or the close when the handler emits nothing. It runs against an OK shell
+     * whose initial metadata becomes the response headers. The handler's returned terminal
+     * response supplies the final status and the trailing metadata. ResponseSent fires once at
+     * close.
+     *
+     * A throwable this method raises leaves the stream closed whenever it had been opened, so an
+     * adapter that catches one must not send a status of its own.
      *
      * @param ApplicationContract                              $app         The frozen parent application
      * @param ContainerData                                    $data        The container data snapshot
