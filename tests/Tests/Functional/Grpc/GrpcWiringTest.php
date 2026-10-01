@@ -27,6 +27,7 @@ use Valkyrja\Grpc\Middleware\Contract\ResponseSentMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\SendingResponseMiddlewareContract;
 use Valkyrja\Grpc\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
+use Valkyrja\Grpc\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddleware;
 use Valkyrja\Tests\Abstract\TestCase;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\CounterControllerFixture;
@@ -193,6 +194,18 @@ final class GrpcWiringTest extends TestCase
         // The handler produced exactly what was consumed. `maxInboundMessages` bounds the inbound
         // direction only; outbound stays bounded because the drain never runs ahead of the reader.
         self::assertSame(3, CounterControllerFixture::$produced);
+    }
+
+    public function testTheDefaultThrowableCaughtMiddlewareResolves(): void
+    {
+        $container = $this->bootstrap()->getContainer();
+
+        // The gRPC config schedules this middleware by default, so a gRPC application has to be
+        // able to resolve it — and the logger it takes — without naming the Log component itself.
+        self::assertInstanceOf(
+            LogThrowableCaughtMiddleware::class,
+            $container->getSingleton(LogThrowableCaughtMiddleware::class)
+        );
     }
 
     public function testTheRouteHandlerInvokesTheAttributedControllerMethod(): void
