@@ -24,8 +24,6 @@ use Valkyrja\Queue\Middleware\Handler\Contract\ThrowableCaughtHandlerContract;
 use Valkyrja\Queue\Routing\Dispatcher\Contract\RouterContract;
 use Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract;
 use Valkyrja\Queue\Server\Handler\JobHandler;
-use Valkyrja\Queue\Server\Mapper\Contract\RequestMapperContract;
-use Valkyrja\Queue\Server\Mapper\RequestMapper;
 use Valkyrja\Queue\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddleware;
 use Valkyrja\Queue\Server\Middleware\ThrowableCaught\RetryPolicyThrowableCaughtMiddleware;
 
@@ -83,19 +81,6 @@ class QueueServerServiceProvider implements ServiceProviderContract
     }
 
     /**
-     * Publish the request mapper service.
-     *
-     * @param ContainerContract $container The container
-     */
-    public static function publishRequestMapper(ContainerContract $container): void
-    {
-        $container->setSingleton(
-            RequestMapperContract::class,
-            new RequestMapper()
-        );
-    }
-
-    /**
      * @inheritDoc
      */
     #[Override]
@@ -103,7 +88,6 @@ class QueueServerServiceProvider implements ServiceProviderContract
     {
         return [
             JobHandlerContract::class                   => [self::class, 'publishJobHandler'],
-            RequestMapperContract::class                => [self::class, 'publishRequestMapper'],
             LogThrowableCaughtMiddleware::class         => [self::class, 'publishLogThrowableCaughtMiddleware'],
             RetryPolicyThrowableCaughtMiddleware::class => [self::class, 'publishRetryPolicyThrowableCaughtMiddleware'],
         ];
