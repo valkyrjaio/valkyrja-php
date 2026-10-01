@@ -139,7 +139,17 @@ class PubSubQueue extends PullQueue
     protected static function getSubscription(QueuePubSubClientConfigContract $config): Subscription
     {
         return new PubSubClient(['projectId' => $config->pubSubProjectId])
-            ->subscription(static::$subscriptionName ?? $config->pubSubTopic);
+            ->subscription(static::getSubscriptionName($config));
+    }
+
+    /**
+     * Read the name of the subscription the worker pulls from.
+     *
+     * @return non-empty-string
+     */
+    protected static function getSubscriptionName(QueuePubSubClientConfigContract $config): string
+    {
+        return static::$subscriptionName ?? $config->pubSubTopic;
     }
 
     /**

@@ -87,8 +87,13 @@ final class PubSubIntegrationTest extends TestCase
     {
         PubSubQueueFixture::reset();
 
+        // Guarded separately: a failed subscribe leaves the topic behind, and
+        // the name repeats on every later run, so the next one cannot create it
         if (isset($this->subscription)) {
             $this->subscription->delete();
+        }
+
+        if (isset($this->topic)) {
             $this->topic->delete();
         }
 

@@ -41,10 +41,31 @@ final class PubSubQueueFixture extends PubSubQueue
      */
     public static function reset(): void
     {
-        self::$injected       = null;
-        self::$subscription   = null;
-        self::$current        = null;
-        self::$timeoutMs      = 1000;
+        self::$injected         = null;
+        self::$subscription     = null;
+        self::$current          = null;
+        self::$timeoutMs        = 1000;
+        self::$subscriptionName = null;
+    }
+
+    /**
+     * Name the subscription, as an application does on its own entry.
+     *
+     * @param non-empty-string|null $name The subscription name, or null for the topic's
+     */
+    public static function nameSubscription(string|null $name): void
+    {
+        self::$subscriptionName = $name;
+    }
+
+    /**
+     * Read the resolved subscription name, which is protected on the entry.
+     *
+     * @return non-empty-string
+     */
+    public static function readSubscriptionName(QueuePubSubClientConfigContract $config): string
+    {
+        return self::getSubscriptionName($config);
     }
 
     /**
