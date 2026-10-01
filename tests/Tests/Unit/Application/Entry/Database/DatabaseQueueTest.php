@@ -10,21 +10,22 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Tests\Unit\Queue\Client\Puller;
+namespace Valkyrja\Tests\Unit\Application\Entry\Database;
 
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Valkyrja\Application\Entry\Database\DatabaseQueue;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
-use Valkyrja\Queue\Client\Puller\DatabasePuller;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Support\Time\Microtime;
+use Valkyrja\Tests\Fixtures\Application\Entry\DatabaseQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\DatabaseManagerFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\RecordingClientFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-final class DatabasePullerTest extends TestCase
+final class DatabaseQueueTest extends TestCase
 {
     /** @var non-empty-string */
     protected const string NAME = 'SendWelcomeEmail';
@@ -59,11 +60,15 @@ final class DatabasePullerTest extends TestCase
         Microtime::freeze(1768564798.0);
 
         $this->manager = new DatabaseManagerFixture();
+
+        DatabaseQueueFixture::inject($this->manager, self::QUEUE);
     }
 
     #[Override]
     protected function tearDown(): void
     {
+        DatabaseQueueFixture::reset();
+
         Microtime::unfreeze();
 
         parent::tearDown();
@@ -71,12 +76,12 @@ final class DatabasePullerTest extends TestCase
 
     public function testAnEmptyTableYieldsNothing(): void
     {
-        self::assertNull($this->puller()->receive());
+        self::assertNull(DatabaseQueueFixture::receive());
     }
 
     public function testTheSelectSkipsHeldAndReservedRows(): void
     {
-        $this->puller()->receive();
+        DatabaseQueueFixture::receive();
 
         $select = $this->manager->getStatements('SELECT')[0];
 
@@ -92,7 +97,7 @@ final class DatabasePullerTest extends TestCase
         // A row the adapter cannot read is not one it may claim
         $this->manager->rows = [['id' => self::ROW_ID]];
 
-        self::assertNull($this->puller()->receive());
+        self::assertNull(DatabaseQueueFixture::receive());
         self::assertSame([], $this->manager->getStatements('UPDATE'));
     }
 
@@ -100,7 +105,7 @@ final class DatabasePullerTest extends TestCase
     {
         $this->manager->rows = [['envelope' => new JobFactory()->toJson(new JobFactory()->create(self::NAME))]];
 
-        self::assertNull($this->puller()->receive());
+        self::assertNull(DatabaseQueueFixture::receive());
         self::assertSame([], $this->manager->getStatements('UPDATE'));
     }
 
@@ -115,7 +120,7 @@ final class DatabasePullerTest extends TestCase
             ],
         ];
 
-        $job = $this->puller()->receive();
+        $job = DatabaseQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(self::ROW_ID, $this->manager->getStatements('UPDATE')[0]->bound['id']);
@@ -125,13 +130,13 @@ final class DatabasePullerTest extends TestCase
     {
         // A worker that dies between the claim and the settle leaves the row
         // reserved. Without the staleness window no worker could ever take it.
-        $this->puller()->receive();
+        DatabaseQueueFixture::receive();
 
         $select = $this->manager->getStatements('SELECT')[0];
 
         self::assertStringContainsString('reserved_at_ms IS NULL OR reserved_at_ms <= :stale', $select->query);
         self::assertSame(
-            self::FROZEN_MS - DatabasePuller::DEFAULT_RESERVATION_TIMEOUT_MS,
+            self::FROZEN_MS - DatabaseQueue::DEFAULT_RESERVATION_TIMEOUT_MS,
             $select->bound['stale']
         );
     }
@@ -140,7 +145,7 @@ final class DatabasePullerTest extends TestCase
     {
         $this->seed(new JobFactory()->create(self::NAME));
 
-        $this->puller()->receive();
+        DatabaseQueueFixture::receive();
 
         $update = $this->manager->getStatements('UPDATE')[0];
 
@@ -148,7 +153,7 @@ final class DatabasePullerTest extends TestCase
         // row would be selected forever and never actually taken
         self::assertStringContainsString('reserved_at_ms IS NULL OR reserved_at_ms <= :stale', $update->query);
         self::assertSame(
-            self::FROZEN_MS - DatabasePuller::DEFAULT_RESERVATION_TIMEOUT_MS,
+            self::FROZEN_MS - DatabaseQueue::DEFAULT_RESERVATION_TIMEOUT_MS,
             $update->bound['stale']
         );
     }
@@ -157,7 +162,7 @@ final class DatabasePullerTest extends TestCase
     {
         $this->seed(new JobFactory()->create(self::NAME, ['user_id' => 42]));
 
-        $job = $this->puller()->receive();
+        $job = DatabaseQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(self::NAME, $job->getName());
@@ -168,7 +173,7 @@ final class DatabasePullerTest extends TestCase
     {
         $this->seed(new JobFactory()->create(self::NAME));
 
-        $this->puller()->receive();
+        DatabaseQueueFixture::receive();
 
         $update = $this->manager->getStatements('UPDATE')[0];
 
@@ -185,15 +190,15 @@ final class DatabasePullerTest extends TestCase
         // conditional update matches nothing, so the race was lost
         $this->manager->rowCounts = [1, 0];
 
-        self::assertNull($this->puller()->receive());
+        self::assertNull(DatabaseQueueFixture::receive());
     }
 
     #[DataProvider('terminalProvider')]
     public function testATerminalOutcomeTakesTheRowOffTheTable(JobResult $result): void
     {
-        $puller = $this->reserved();
+        $this->reserved();
 
-        $puller->settle(new JobFactory()->create(self::NAME), $result, new InMemoryClient());
+        DatabaseQueueFixture::settle(new JobFactory()->create(self::NAME), $result, new InMemoryClient());
 
         $deletes = $this->manager->getStatements('DELETE');
 
@@ -203,10 +208,10 @@ final class DatabasePullerTest extends TestCase
 
     public function testARetryTakesTheRowOffAndHandsBackAnIncrementedJob(): void
     {
-        $puller = $this->reserved();
+        $this->reserved();
         $client = new InMemoryClient();
 
-        $puller->settle(new Job(name: self::NAME, attempts: 2), JobResult::RETRY, $client);
+        DatabaseQueueFixture::settle(new Job(name: self::NAME, attempts: 2), JobResult::RETRY, $client);
 
         // The spent row goes; the retry arrives as a fresh one
         self::assertCount(1, $this->manager->getStatements('DELETE'));
@@ -217,10 +222,10 @@ final class DatabasePullerTest extends TestCase
     {
         // Unlike AMQP or SQS, a database has no backoff of its own, so the
         // ramp applies here exactly as it does for Redis
-        $puller = $this->reserved();
+        $this->reserved();
         $client = new RecordingClientFixture();
 
-        $puller->settle(
+        DatabaseQueueFixture::settle(
             new Job(name: self::NAME, attempts: 2, retryDelayMs: 1000, retryDelayMultiplyByAttempt: true),
             JobResult::RETRY,
             $client
@@ -231,28 +236,28 @@ final class DatabasePullerTest extends TestCase
 
     public function testSettlingWithNothingReservedDoesNothing(): void
     {
-        $this->puller()->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        DatabaseQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertSame([], $this->manager->getStatements('DELETE'));
     }
 
     public function testARowIsSettledOnlyOnce(): void
     {
-        $puller = $this->reserved();
+        $this->reserved();
 
-        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
-        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        DatabaseQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        DatabaseQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertCount(1, $this->manager->getStatements('DELETE'));
     }
 
     public function testDisconnectHandsAReservedRowBack(): void
     {
-        $puller = $this->reserved();
+        $this->reserved();
 
         // A worker shutting down mid-job must not leave a row no other worker
         // will ever claim
-        $puller->disconnect();
+        DatabaseQueueFixture::disconnect();
 
         $updates = $this->manager->getStatements('UPDATE');
 
@@ -263,9 +268,7 @@ final class DatabasePullerTest extends TestCase
 
     public function testDisconnectWithNothingReservedHandsBackNothing(): void
     {
-        $puller = $this->puller();
-        $puller->connect();
-        $puller->disconnect();
+        DatabaseQueueFixture::disconnect();
 
         self::assertSame([], $this->manager->getStatements('UPDATE'));
     }
@@ -280,18 +283,10 @@ final class DatabasePullerTest extends TestCase
         ];
     }
 
-    protected function reserved(): DatabasePuller
+    protected function reserved(): void
     {
         $this->seed(new JobFactory()->create(self::NAME));
 
-        $puller = $this->puller();
-        $puller->receive();
-
-        return $puller;
-    }
-
-    protected function puller(): DatabasePuller
-    {
-        return new DatabasePuller($this->manager, self::QUEUE);
+        DatabaseQueueFixture::receive();
     }
 }
