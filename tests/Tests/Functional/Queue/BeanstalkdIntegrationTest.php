@@ -18,11 +18,11 @@ use Pheanstalk\Pheanstalk;
 use Pheanstalk\Values\TubeName;
 use Pheanstalk\Values\TubeStats;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
+use Valkyrja\Application\Entry\Beanstalkd\BeanstalkdQueue;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Client\Manager\BeanstalkdClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
-use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Fixtures\Application\Data\BeanstalkdWorkerConfigFixture;
@@ -216,16 +216,6 @@ final class BeanstalkdIntegrationTest extends TestCase
     }
 
     /**
-     * Poll on a re-established connection, because a finished worker disconnects.
-     */
-    private function poll(): JobContract|null
-    {
-        BeanstalkdQueueFixture::inject($this->pheanstalk, self::TUBE, timeout: 0);
-
-        return BeanstalkdQueueFixture::receive();
-    }
-
-    /**
      * Build an application whose container carries the beanstalkd client config.
      */
     private function application(): ApplicationContract
@@ -292,6 +282,12 @@ final class BeanstalkdIntegrationTest extends TestCase
 
         $this->pheanstalk->watch($tube);
         $this->pheanstalk->useTube($tube);
+
+        // A fresh connection watches `default` as well, and a reserve would then
+        // take a job another producer put there
+        if (self::TUBE !== BeanstalkdQueue::DEFAULT_TUBE) {
+            $this->pheanstalk->ignore(new TubeName(BeanstalkdQueue::DEFAULT_TUBE));
+        }
 
         while (($job = $this->pheanstalk->reserveWithTimeout(0)) !== null) {
             $this->pheanstalk->delete($job);
