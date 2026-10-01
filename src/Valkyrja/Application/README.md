@@ -8,9 +8,9 @@ This component also carries the entry classes, the config classes, the
 `Directory` path helper, and the built-in component providers. This document
 covers each in turn:
 
-- [Entry Points](#entry-points) — HTTP, CLI, and the persistent worker
+- [Entry Points](#entry-points) — HTTP, CLI, gRPC, and the persistent worker
   runtimes
-- [Configuration](#configuration) — the three config classes, environment
+- [Configuration](#configuration) — the four config classes, environment
   sourcing, your own config class, and callbacks
 - [The Bootstrap Sequence](#the-bootstrap-sequence) — what `run()` does, step
   by step
@@ -306,16 +306,16 @@ two names and six middleware lists:
 `providers` default to `[GrpcApplicationComponentProvider]`, and adds one cap
 and seven middleware lists:
 
-| Property                    | Default                                                   |
-| --------------------------- | --------------------------------------------------------- |
-| `maxInboundMessages`        | `1000` — the most messages one call may send inbound      |
-| `callReceivedMiddleware`    | `[]`                                                      |
-| `routeMatchedMiddleware`    | `[]`                                                      |
-| `routeNotMatchedMiddleware` | `[]`                                                      |
-| `routeDispatchedMiddleware` | `[]`                                                      |
-| `throwableCaughtMiddleware` | `[LogThrowableCaughtMiddleware::class]`                   |
-| `sendingResponseMiddleware` | `[]`                                                      |
-| `responseSentMiddleware`    | `[]`                                                      |
+| Property                    | Default                                              |
+| --------------------------- | ---------------------------------------------------- |
+| `maxInboundMessages`        | `1000` — the most messages one call may send inbound |
+| `callReceivedMiddleware`    | `[]`                                                 |
+| `routeMatchedMiddleware`    | `[]`                                                 |
+| `routeNotMatchedMiddleware` | `[]`                                                 |
+| `routeDispatchedMiddleware` | `[]`                                                 |
+| `throwableCaughtMiddleware` | `[LogThrowableCaughtMiddleware::class]`              |
+| `sendingResponseMiddleware` | `[]`                                                 |
+| `responseSentMiddleware`    | `[]`                                                 |
 
 Warning: `maxInboundMessages` bounds the inbound direction only. The framework
 puts no bound on the outbound direction, so a worker adapter applies its own
@@ -802,10 +802,14 @@ The invariant: **the parent application and its container are frozen after
 
 `Valkyrja\Application\Entry\Abstract\WorkerGrpc` holds the same invariant for
 gRPC. It bootstraps once, freezes the parent, and gives every call its own child
-container. Its own surface differs: `bootstrap()` takes a `GrpcConfigContract`,
-`dispatch()` handles one buffered call and hands the response to a writer, and
-`dispatchStreaming()` handles one streaming call against an outbound stream. The
-steps below describe `WorkerHttp`, whose signatures `WorkerGrpc` does not share.
+container. Its own surface differs:
+
+- `bootstrap()` takes a `GrpcConfigContract`.
+- `dispatch()` handles one buffered call and hands the response to a writer.
+- `dispatchStreaming()` handles one streaming call against an outbound stream.
+
+The steps below describe `WorkerHttp`. `WorkerGrpc` shares none of those
+signatures.
 
 ```mermaid
 flowchart TD
