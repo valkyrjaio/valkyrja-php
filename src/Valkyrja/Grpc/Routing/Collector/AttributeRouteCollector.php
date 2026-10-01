@@ -71,10 +71,16 @@ class AttributeRouteCollector implements RouteCollectorContract
                 /** @var non-empty-string $method */
                 $method = $reflection->getName();
 
-                $this->validateHandler($class, $method);
+                $route    = $this->convertAttributeToData($service, $methodAttribute, $class, $method);
+                $override = $this->updateHandler($route, $class, $method);
 
-                $route = $this->convertAttributeToData($service, $methodAttribute, $class, $method);
-                $route = $this->updateHandler($route, $class, $method);
+                // An override replaces the scan-derived handler, so the attributed method is never
+                // called statically and its visibility stops mattering.
+                if ($override === $route) {
+                    $this->validateHandler($class, $method);
+                }
+
+                $route = $override;
 
                 $routes[] = $this->updateMiddleware($route, $class, $method);
             }
@@ -86,9 +92,9 @@ class AttributeRouteCollector implements RouteCollectorContract
     /**
      * Reject an attributed method the scan-derived handler could never call.
      *
-     * The handler calls the method statically, so a non-public or non-static method fails at
-     * dispatch as a raw `Error` that the status mapping reports as INTERNAL. The scan is where the
-     * developer can still act on it.
+     * The scan-derived handler calls the method statically, so a non-public or non-static method
+     * fails at dispatch as a raw `Error` that the status mapping reports as INTERNAL. The scan is
+     * where the developer can still act on it.
      *
      * @param class-string     $class  The class name
      * @param non-empty-string $method The method name

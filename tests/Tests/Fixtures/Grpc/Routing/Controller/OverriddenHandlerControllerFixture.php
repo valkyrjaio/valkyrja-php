@@ -41,4 +41,11 @@ final class OverriddenHandlerControllerFixture
     {
         return ServiceResponse::ok('not used');
     }
+
+    #[Method(name: 'DoInstanceThing')]
+    #[MethodHandler([self::class, 'actualHandler'])]
+    public function doInstanceThing(ContainerContract $container, RouteContract $route): ServiceResponseContract
+    {
+        return ServiceResponse::ok('not used either');
+    }
 }
