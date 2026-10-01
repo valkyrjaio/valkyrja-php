@@ -15,6 +15,7 @@ namespace Valkyrja\Tests\Unit\Application\Data;
 use Valkyrja\Application\Data\Contract\GrpcConfigContract;
 use Valkyrja\Application\Data\GrpcConfig;
 use Valkyrja\Application\Provider\GrpcApplicationComponentProvider;
+use Valkyrja\Grpc\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddleware;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class GrpcConfigTest extends TestCase
@@ -42,7 +43,7 @@ final class GrpcConfigTest extends TestCase
         self::assertSame([], $config->routeMatchedMiddleware);
         self::assertSame([], $config->routeNotMatchedMiddleware);
         self::assertSame([], $config->routeDispatchedMiddleware);
-        self::assertSame([], $config->throwableCaughtMiddleware);
+        self::assertSame([LogThrowableCaughtMiddleware::class], $config->throwableCaughtMiddleware);
         self::assertSame([], $config->sendingResponseMiddleware);
         self::assertSame([], $config->responseSentMiddleware);
     }
