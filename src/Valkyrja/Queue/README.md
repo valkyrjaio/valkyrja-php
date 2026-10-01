@@ -169,6 +169,7 @@ gives one request the deferred jobs of the request before it.
 | `PullQueue`     | the poll loop that a processor entry extends          |
 | `RedisQueue`    | a worker that takes jobs from a redis list            |
 | `AmqpQueue`     | a worker that consumes an AMQP queue                  |
+| `SqsQueue`      | a worker that long-polls an SQS queue                 |
 | `PushQueue`     | one job that a broker delivers over HTTP              |
 | `InternalQueue` | each job that `SyncClient` or `DeferredClient` pushes |
 
