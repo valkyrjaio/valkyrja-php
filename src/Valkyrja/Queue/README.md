@@ -80,12 +80,18 @@ hold comes from the job that was dispatched, read before the increment, so the
 ramp is keyed to the attempt that just failed.
 
 A broker that redelivers a job itself owns the retry counter instead. A retry is
-signalled by the consumer — a nack, a shortened visibility timeout, a release —
+signaled by the consumer — a nack, a shortened visibility timeout, a release —
 and never by publishing the job again. Publishing again would duplicate the
 message, because the original delivery is still unacknowledged. The broker owns
 its own backoff, so the framework's ramp does not apply. The entry of such a
 broker answers it directly from `settle`, and never calls
 `ClientContract::requeue()`.
+
+Warning: the count such a broker reports has to reach the ceiling, or nothing
+dead-letters. A classic AMQP queue reports only that a delivery is a
+redelivery, not which one, so `AmqpQueue` cannot count past the second attempt.
+Give the queue a dead-letter policy, or declare it as a quorum queue, when the
+ceiling has to hold.
 
 ## Clients
 
@@ -260,6 +266,11 @@ an application config that does not implement its contract.
 | `amqpVhost`    | `'/'`              | The virtual host to connect to                         |
 | `amqpQueue`    | `'queues.default'` | The queue jobs are published to                        |
 | `amqpExchange` | `''`               | The exchange to publish through; empty for the default |
+
+Warning: the framework declares the queue and never declares an exchange or
+binds one to it. A non-empty `amqpExchange` with no binding for the queue's name
+makes the broker discard every publish while `push()` still returns, so an
+application that sets it declares and binds the exchange itself.
 
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
