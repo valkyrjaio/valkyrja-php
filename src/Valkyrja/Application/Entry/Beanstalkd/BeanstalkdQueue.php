@@ -14,6 +14,7 @@ namespace Valkyrja\Application\Entry\Beanstalkd;
 
 use JsonException;
 use Override;
+use Pheanstalk\Contract\PheanstalkManagerInterface;
 use Pheanstalk\Contract\PheanstalkSubscriberInterface;
 use Pheanstalk\Pheanstalk;
 use Pheanstalk\Values\Job;
@@ -21,11 +22,16 @@ use Pheanstalk\Values\TubeName;
 use Valkyrja\Application\Entry\Abstract\PullQueue;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
+use Valkyrja\Queue\Client\Manager\BeanstalkdClient;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
+
+use function ceil;
+use function max;
+use function min;
 
 class BeanstalkdQueue extends PullQueue
 {
@@ -39,7 +45,7 @@ class BeanstalkdQueue extends PullQueue
     /** @var int<0, max> The seconds a reserve blocks; 0 polls without blocking */
     protected static int $timeout = 1;
 
-    protected static PheanstalkSubscriberInterface|null $pheanstalk = null;
+    protected static (PheanstalkManagerInterface&PheanstalkSubscriberInterface)|null $pheanstalk = null;
 
     /** @var non-empty-string */
     protected static string $tube = 'default';
@@ -91,7 +97,7 @@ class BeanstalkdQueue extends PullQueue
 
         static::$current = $reserved;
 
-        return new JobFactory()->fromJson($reserved->getData());
+        return static::withNormalizedAttempts(new JobFactory()->fromJson($reserved->getData()), $reserved);
     }
 
     /**
@@ -126,8 +132,10 @@ class BeanstalkdQueue extends PullQueue
         $pheanstalk = static::getConnection();
 
         if ($result === JobResult::RETRY) {
-            // Release: beanstalkd puts it back on the tube and redelivers
-            $pheanstalk->release($reserved);
+            // Release assigns a new priority and delay rather than keeping the
+            // job's own, so both are passed: the default would drop every retry
+            // to the least urgent priority and redeliver with no hold at all
+            $pheanstalk->release($reserved, static::getPriority($job), static::getDelaySeconds($job));
 
             return;
         }
@@ -145,11 +153,58 @@ class BeanstalkdQueue extends PullQueue
     }
 
     /**
+     * Read the reserve count back off the server and onto the job.
+     *
+     * A processor-owned adapter never rewrites the envelope, so the `attempts`
+     * the producer published never advances on its own. beanstalkd counts the
+     * reserves, and the adapter normalizes that count, which is what lets
+     * `max_attempts` stop a failing chain. beanstalkd has no dead-letter policy
+     * of its own, so burying at the ceiling is the framework's call and it
+     * cannot make it without the count.
+     */
+    protected static function withNormalizedAttempts(JobContract $job, Job $reserved): JobContract
+    {
+        return $job->withAttempts(max(1, static::getConnection()->statsJob($reserved)->reserves));
+    }
+
+    /**
+     * Invert the job's priority into beanstalkd's scale.
+     *
+     * beanstalkd treats 0 as the most urgent, so a higher envelope priority
+     * becomes a lower beanstalkd one.
+     *
+     * @return int<0, max>
+     */
+    protected static function getPriority(JobContract $job): int
+    {
+        $priority = max(0, min($job->getPriority(), BeanstalkdClient::LOWEST_PRIORITY));
+
+        return BeanstalkdClient::LOWEST_PRIORITY - $priority;
+    }
+
+    /**
+     * Read the hold of the next attempt, in whole seconds.
+     *
+     * beanstalkd takes a delay in seconds, and the envelope holds milliseconds,
+     * so a sub-second hold rounds up rather than down to no hold at all.
+     *
+     * @return int<0, max>
+     */
+    protected static function getDelaySeconds(JobContract $job): int
+    {
+        $milliseconds = $job->getRetryDelayForAttemptMs();
+
+        return $milliseconds === 0
+            ? 0
+            : max(1, (int) ceil($milliseconds / 1000));
+    }
+
+    /**
      * Open the connection the loop reserves from.
      *
      * @codeCoverageIgnore A real beanstalkd server is unavailable in a test.
      */
-    protected static function getPheanstalk(QueueBeanstalkdClientConfigContract $config): PheanstalkSubscriberInterface
+    protected static function getPheanstalk(QueueBeanstalkdClientConfigContract $config): PheanstalkManagerInterface&PheanstalkSubscriberInterface
     {
         return Pheanstalk::create($config->beanstalkdHost, $config->beanstalkdPort);
     }
@@ -159,7 +214,7 @@ class BeanstalkdQueue extends PullQueue
      *
      * @throws QueueServerNotConnectedException
      */
-    protected static function getConnection(): PheanstalkSubscriberInterface
+    protected static function getConnection(): PheanstalkManagerInterface&PheanstalkSubscriberInterface
     {
         return static::$pheanstalk
             ?? throw new QueueServerNotConnectedException('The beanstalkd queue has no connection to reserve from.');

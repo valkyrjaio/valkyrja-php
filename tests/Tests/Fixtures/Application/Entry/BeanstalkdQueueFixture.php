@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Fixtures\Application\Entry;
 
 use Override;
+use Pheanstalk\Contract\PheanstalkManagerInterface;
 use Pheanstalk\Contract\PheanstalkSubscriberInterface;
 use Valkyrja\Application\Entry\Beanstalkd\BeanstalkdQueue;
 use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
@@ -22,7 +23,7 @@ use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
  */
 final class BeanstalkdQueueFixture extends BeanstalkdQueue
 {
-    private static PheanstalkSubscriberInterface|null $injected = null;
+    private static (PheanstalkManagerInterface&PheanstalkSubscriberInterface)|null $injected = null;
 
     /**
      * Point the entry at a connection, as though connect() had opened it.
@@ -31,7 +32,7 @@ final class BeanstalkdQueueFixture extends BeanstalkdQueue
      * @param int<0, max>      $timeout The seconds a reserve blocks
      */
     public static function inject(
-        PheanstalkSubscriberInterface $pheanstalk,
+        PheanstalkManagerInterface&PheanstalkSubscriberInterface $pheanstalk,
         string $tube = 'default',
         int $timeout = 0,
     ): void {
@@ -57,7 +58,7 @@ final class BeanstalkdQueueFixture extends BeanstalkdQueue
      * @inheritDoc
      */
     #[Override]
-    protected static function getPheanstalk(QueueBeanstalkdClientConfigContract $config): PheanstalkSubscriberInterface
+    protected static function getPheanstalk(QueueBeanstalkdClientConfigContract $config): PheanstalkManagerInterface&PheanstalkSubscriberInterface
     {
         return self::$injected ?? parent::getPheanstalk($config);
     }
