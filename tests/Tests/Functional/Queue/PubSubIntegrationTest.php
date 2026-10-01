@@ -147,8 +147,10 @@ final class PubSubIntegrationTest extends TestCase
         $this->work($client);
 
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
-        // A processor-owned retry is not a re-publish, so the client is untouched
-        self::assertCount(1, $client->getPushed());
+        // A processor-owned retry is not a re-publish, so the worker enqueued
+        // nothing of its own. The record is empty rather than holding the push
+        // above, because the worker ends the unit of work with each job.
+        self::assertSame([], $client->getPushed());
         self::assertNotNull($this->redelivered());
     }
 
