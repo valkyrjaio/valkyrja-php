@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Queue\Message\Job\Factory;
 
 use Override;
+use stdClass;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
@@ -20,6 +21,8 @@ use Valkyrja\Queue\Message\Payload\Payload;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
+
+use function json_encode;
 
 final class JobFactoryTest extends TestCase
 {
@@ -247,6 +250,32 @@ final class JobFactoryTest extends TestCase
         // another language rejects [] where it expects a map
         self::assertStringContainsString('"attributes":{}', $json);
         self::assertStringContainsString('"payload":{}', $json);
+    }
+
+    public function testToJsonWritesANestedEmptyMapAsAnObject(): void
+    {
+        $job = new Job(
+            name: self::NAME,
+            payload: Payload::fromArray(['meta' => [], 'tags' => ['a', 'b']]),
+        );
+
+        $json = $this->factory->toJson($job);
+
+        // A nested empty map is the same cross-language failure one level down
+        self::assertStringContainsString('"meta":{}', $json);
+        // A list keeps its integer keys, so it stays a JSON array
+        self::assertStringContainsString('"tags":["a","b"]', $json);
+    }
+
+    public function testANestedEmptyMapSurvivesARoundTrip(): void
+    {
+        $job = $this->factory->fromJson((string) json_encode([
+            'name'    => self::NAME,
+            'payload' => ['meta' => new stdClass()],
+        ]));
+
+        // Reading a {} and writing back a [] would change the envelope
+        self::assertStringContainsString('"meta":{}', $this->factory->toJson($job));
     }
 
     public function testToJsonWritesAnIntegerKeyedMapAsAnObject(): void
