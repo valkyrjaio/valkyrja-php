@@ -18,8 +18,8 @@ use Valkyrja\Container\Throwable\Exception\Abstract\ContainerInvalidArgumentExce
 class ContainerCyclicAliasException extends ContainerInvalidArgumentException
 {
     /**
-     * @param class-string $alias The alias being bound
-     * @param class-string $id    The id the alias points at
+     * @param class-string $alias The id the chain leaves from
+     * @param class-string $id    The id it points at, which reaches the first again
      */
     public function __construct(
         string $alias,
@@ -27,7 +27,7 @@ class ContainerCyclicAliasException extends ContainerInvalidArgumentException
         int $code = 0,
         Throwable|null $previous = null
     ) {
-        $message = "Alias `$alias` cannot point at `$id`, because `$id` already resolves to `$alias`.";
+        $message = "Alias `$alias` cannot point at `$id`, because `$id` already reaches `$alias`.";
 
         parent::__construct($message, $code, $previous);
     }
