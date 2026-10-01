@@ -48,10 +48,14 @@ twice runs twice.
 
 ## Redelivery
 
-Redis and a database have no native retry, so the framework re-queues the job.
-`Requeuer` builds a new job with the attempt incremented and hands it back to
-the client. The hold comes from the job the re-queuer dispatched, read before
-the increment, so the ramp is keyed to the attempt that just failed.
+Each processor settles its own outcomes, so the entry of the processor owns
+redelivery. A broker with a native retry loop translates the outcome into its
+own signal. Redis and a database have no native retry, so their entry calls
+`ClientContract::requeue()` instead.
+
+`requeue()` builds a new job with the attempt incremented and publishes it. The
+hold comes from the job that was dispatched, read before the increment, so the
+ramp is keyed to the attempt that just failed.
 
 ## Clients
 
@@ -88,12 +92,19 @@ gives one request the deferred jobs of the request before it.
 | Entry           | Runs                                                  |
 | --------------- | ----------------------------------------------------- |
 | `Queue`         | one job, then exits                                   |
-| `PullQueue`     | a worker that takes jobs from a broker                |
+| `PullQueue`     | the poll loop that a processor entry extends          |
+| `RedisQueue`    | a worker that takes jobs from a redis list            |
 | `PushQueue`     | one job that a broker delivers over HTTP              |
 | `InternalQueue` | each job that `SyncClient` or `DeferredClient` pushes |
 
+`PullQueue` is abstract, because polling and settling are specific to one
+processor. An entry such as `RedisQueue` implements `connect`, `receive`,
+`disconnect`, and `settle`, and inherits the loop. `PushQueue` is concrete,
+because the default envelope needs no processor-specific mapping.
+
 `Queue` is single-shot, so a host that pushes repeatedly pays a full boot per
-push. `WorkerQueue` boots the application once and then gives each job a fresh
+push. It settles nothing, because the signal that settles an outcome belongs to
+a processor. `WorkerQueue` boots the application once and then gives each job a fresh
 child container, which is the shape a real broker worker loops over.
 
 Every job runs through an entry point, never through `JobHandler` directly. The

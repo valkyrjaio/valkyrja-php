@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Valkyrja\Application\Entry;
 
+use JsonException;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
 use Valkyrja\Application\Entry\Abstract\App;
 use Valkyrja\Http\Message\Enum\StatusCode;
@@ -19,13 +20,10 @@ use Valkyrja\Http\Message\Request\Contract\ServerRequestContract;
 use Valkyrja\Http\Message\Request\Factory\RequestFactory;
 use Valkyrja\Http\Message\Response\Contract\ResponseContract;
 use Valkyrja\Http\Message\Response\Response;
-use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
-use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
-use Valkyrja\Queue\Client\Requeuer\Requeuer;
 use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
+use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract;
-use Valkyrja\Queue\Server\Mapper\Contract\RequestMapperContract;
-use Valkyrja\Queue\Server\Mapper\RequestMapper;
 
 class PushQueue extends App
 {
@@ -35,9 +33,6 @@ class PushQueue extends App
     public static function run(
         QueueConfigContract $config,
         ServerRequestContract|null $request = null,
-        ClientContract|null $client = null,
-        RequestMapperContract $mapper = new RequestMapper(),
-        RequeuerContract $requeuer = new Requeuer(),
     ): void {
         $app = static::start(
             config: $config,
@@ -47,18 +42,13 @@ class PushQueue extends App
 
         self::bootstrapThrowableHandler($app, $container);
 
-        $job = $mapper->map($request ?? static::getRequest());
+        $job = static::mapRequest($request ?? static::getRequest());
 
         $handler = $container->getSingleton(JobHandlerContract::class);
 
         $result = $handler->run($job);
 
-        // A processor-owned push has no client to re-queue through: the status
-        // *is* the retry signal, so settlement only runs when one was supplied
-        if ($client !== null) {
-            $requeuer->settle($job, $result, $client);
-        }
-
+        // A push has no connection to settle through: the status *is* the signal
         static::send(static::respond($result));
 
         $handler->resultSettled($job, $result);
@@ -84,6 +74,19 @@ class PushQueue extends App
     public static function getRequest(): ServerRequestContract
     {
         return RequestFactory::fromGlobals();
+    }
+
+    /**
+     * Map a pushed request's body into a job.
+     *
+     * The default reads the wire envelope straight off the body. A processor
+     * that wraps the envelope in its own payload overrides this.
+     *
+     * @throws JsonException
+     */
+    public static function mapRequest(ServerRequestContract $request): JobContract
+    {
+        return new JobFactory()->fromJson((string) $request->getBody());
     }
 
     /**

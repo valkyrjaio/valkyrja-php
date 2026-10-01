@@ -19,7 +19,7 @@ use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Container\Manager\ChildContainer;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
-use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
+use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract;
@@ -56,14 +56,13 @@ abstract class WorkerQueue extends App
         ContainerData $data,
         JobContract $job,
         ClientContract $client,
-        RequeuerContract $requeuer,
     ): void {
         $childContainer = static::getChildContainer($app, $data);
         $childApp       = static::getChildApplication($app, $childContainer);
 
         static::bootstrapChildContainer($childApp, $childContainer);
 
-        static::handleJob($childContainer, $job, $client, $requeuer);
+        static::handleJob($childContainer, $job, $client);
     }
 
     /**
@@ -100,13 +99,12 @@ abstract class WorkerQueue extends App
         ContainerContract $container,
         JobContract $job,
         ClientContract $client,
-        RequeuerContract $requeuer,
     ): void {
         $handler = $container->getSingleton(JobHandlerContract::class);
 
         $result = $handler->run($job);
 
-        $requeuer->settle($job, $result, $client);
+        static::settle($job, $result, $client);
 
         $handler->resultSettled($job, $result);
     }
@@ -121,4 +119,12 @@ abstract class WorkerQueue extends App
     {
         $app->getContainer()->getSingleton(RouteCollectionContract::class);
     }
+
+    /**
+     * Settle an outcome with the processor.
+     *
+     * A processor with native redelivery translates the outcome into its own
+     * signal. A processor without one re-publishes the job through the client.
+     */
+    abstract public static function settle(JobContract $job, JobResult $result, ClientContract $client): void;
 }

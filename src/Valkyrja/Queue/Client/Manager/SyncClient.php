@@ -14,8 +14,6 @@ namespace Valkyrja\Queue\Client\Manager;
 
 use Override;
 use Valkyrja\Queue\Client\Manager\Abstract\InternalClient;
-use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
-use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientSyncJobFailedException;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
@@ -23,7 +21,7 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use function array_shift;
 use function sprintf;
 
-class SyncClient extends InternalClient implements RequeuerContract
+class SyncClient extends InternalClient
 {
     /** @var JobContract[] */
     protected array $buffer = [];
@@ -38,9 +36,9 @@ class SyncClient extends InternalClient implements RequeuerContract
      * @inheritDoc
      */
     #[Override]
-    public function settle(JobContract $job, JobResult $result, ClientContract $client): void
+    public function settle(JobContract $job, JobResult $result): void
     {
-        $this->requeuer->settle($job, $result, $client);
+        parent::settle($job, $result);
 
         // The first failure is the one the caller pushed, so a later failure
         // from a job that this one pushed must not replace it
@@ -68,7 +66,7 @@ class SyncClient extends InternalClient implements RequeuerContract
             while (($next = array_shift($this->buffer)) !== null) {
                 // Settling through this client shows it the terminal outcome,
                 // and puts a retry back in the buffer that this loop drains
-                $this->run($next, $this);
+                $this->run($next);
             }
 
             $this->throwOnFailure();
