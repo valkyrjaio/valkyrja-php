@@ -829,8 +829,7 @@ request should share. An id resolved here lives in the frozen parent, and each
 child reuses that one instance. A child still delegates any other id to the
 parent, and the parent answers it as it would for any caller. The exception is a
 parent-declared alias onto a target the parent has not resolved, which the child
-resolves itself. For a singleton binding the child needs that registration too;
-for a publisher the parent's state alone decides. The base implementation
+resolves itself when it holds that registration too. The base implementation
 resolves the route collection, so an override calls
 `parent::bootstrapParentServices($app)` first.
 

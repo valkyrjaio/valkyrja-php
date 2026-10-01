@@ -869,20 +869,14 @@ an alias. When the parent holds a resolved instance and the child holds none, a
 direct child lookup reuses the parent's instance.
 
 The parent answers the target as it would for any caller, with one exception.
-The child resolves a target the parent would build for the first time. Letting
-the parent do it would leave the request with one copy for the alias and another
-for the id. The two arms of that rule read different state:
-
-- **A singleton the parent registered and never built** — the child resolves it
-  when it holds the binding too. A child without it leaves the lookup to the
-  parent.
-- **A publisher the parent has not run** — the parent's state alone decides. A
-  child that holds a registration for the target answers from it. A child that
-  holds none reports a missing reference.
-
-A worker takes one snapshot after boot, so a request holds every registration
-either way. Anything the parent has already built or published is reused as it
-stands.
+The child resolves a target the parent would build for the first time, when the
+child holds that registration too. That is a singleton the parent registered
+and never built, or a publisher it has not run. Letting the parent do it would
+leave the request with one copy for the alias and another for the id. A child
+that holds neither leaves the whole lookup to the parent, and the parent
+answers it. A worker takes one snapshot after boot, so a request holds every
+registration. Anything the parent has already built or published is reused as
+it stands.
 
 Warning: that exception also decides which binding the alias reaches. The child
 resolves the target itself, so the child's own registration answers. Give the
@@ -931,9 +925,8 @@ The two answer `isDeferred()` and `isSingletonBinding()` about **themselves**
 differently, because they hold different state. `ChildContainer` copies the
 callbacks and the markers, so it answers for its own maps.
 `NativeChildContainer` copies nothing, so it answers for the child and the
-parent. `isSingletonBinding()` is one of the reads that decides the carve-out
-above. `isDeferred()` decides what the child publishes once it has taken that
-path.
+parent. The carve-out above reads both, so the two classes take it on different
+state for one id.
 
 ### Using a Child Container
 
