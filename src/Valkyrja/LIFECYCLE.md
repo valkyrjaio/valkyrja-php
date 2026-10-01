@@ -291,17 +291,18 @@ public static function bootstrapParentServices(ApplicationContract $app): void
 }
 ```
 
-Anything resolved here lives in the frozen parent and is shared read-only across
-all requests. A child that holds the publish callback, or the singleton binding
-from the data, builds the id fresh in the child's own scope. That is correct,
-and the build costs time on every request.
+Anything resolved here lives in the frozen parent, and every request reads it.
+The parent also publishes a deferred id, and caches a singleton, when it
+answers a lookup a child handed to it. A child that holds the publish callback,
+or the singleton binding from the data, builds the id fresh in the child's own
+scope. That is correct, and the build costs time on every request.
 
 An id the child cannot answer from its own maps goes to the parent, and the
 parent answers it as it would for any caller. A parent-declared alias is the
 exception: the child resolves a target the parent has not resolved, when the
-child holds that registration too. Resolve here whatever every
-request should share. See
-[Where an Alias Resolves](Container/README.md#where-an-alias-resolves).
+child holds that registration too. Resolve here whatever every request should
+share. See [Where an Alias Resolves](Container/README.md#where-an-alias-
+resolves).
 
 ### Child Container Variants
 

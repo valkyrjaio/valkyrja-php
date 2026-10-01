@@ -118,7 +118,9 @@ $same   = $container->getSingleton(LoggerContract::class); // Later calls return
 Warning: the container keeps the first instance its map holds for an id. A
 factory that registers the id it is building, the way one breaks a chain that
 returns to it, decides what every reader gets. The object that factory returns
-is discarded then.
+is discarded then. The registration lands in the container the factory receives,
+which under `ChildContainer` is the parent
+([Where a Factory Runs](#where-a-factory-runs)).
 
 ### bindAlias()
 
@@ -737,7 +739,9 @@ OpenSwoole, RoadRunner) use to keep request-scoped state out of the parent.
 ### The Parent/Child Invariant
 
 The parent container bootstraps once when the worker process starts. The parent
-is then **frozen**: its registrations do not change again. Each incoming request
+is then **frozen**: its registrations do not change again. It still publishes a
+deferred id, and caches a singleton, when it answers a lookup a child handed to
+it. That is a shared service resolving once. Each incoming request
 receives a fresh child container built from one snapshot of the parent, so the
 child holds the parent's singleton markers and publish callbacks and answers
 almost everything itself.
@@ -874,20 +878,24 @@ child holds that registration too. Letting the parent do it would leave the
 request with one copy for the alias and another for the id. Three cases:
 
 - **A singleton the parent registered and never built** — the child resolves it
-  when its own `singletons` map carries the marker.
-- **A publisher the parent has not run** — the child resolves it when its own
-  `callbacks` map carries the callback.
-- **The child carries no registration for the target** — the parent answers the
-  whole lookup.
+  when the child reports that binding.
+- **A publisher the parent has not run** — the child resolves it when the child
+  reports that callback.
+- **Every other target** — the parent answers the whole lookup, whatever the
+  child carries.
 
 A worker takes one snapshot after boot, so a request carries every registration.
 Anything the parent has already built or published is reused as it stands.
 
-Warning: that exception also decides which binding the alias reaches. The child
-resolves the target itself, so the factory of the **child** answers. The child
-needs the marker for that id, from its snapshot or from its own
-`bindSingleton()`. Give the parent a singleton it never builds, and the alias
-reaches the child's factory.
+What the child reports differs by implementation. `ChildContainer` answers from
+the maps its snapshot copied. `NativeChildContainer` copies none, so it answers
+from the parent's maps.
+
+Warning: that exception also decides which binding the alias reaches. Give the
+parent a singleton it never builds. Give the child the marker for that id, from
+its snapshot or from its own `bindSingleton()`, and a factory of its own. The
+alias then reaches the factory of the **child**. A child that holds the marker
+and no factory reaches the parent's factory instead.
 
 Warning: outside that exception, a **parent-declared** alias hands the call to
 the parent in both implementations, so a parent-bound factory receives the
@@ -991,7 +999,7 @@ The first two run at registration. A container installs no map before its walk
 ends, so a caller that catches the exception keeps the container it had. A
 container that writes an alias after a child reads through it is outside
 registration. The last two checks cover the shapes a child then walks into. A
-A chain that neither one sees ends in one of three ways. It resolves through the
+chain that neither one sees ends in one of three ways. It resolves through the
 first hop the parent would answer. It ends with a missing reference, when no hop
 answers. It does not end, when a factory the parent runs asks for its own id
 again. It extends the SPL `InvalidArgumentException`.
