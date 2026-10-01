@@ -24,6 +24,7 @@ interface ClientContract
     /**
      * Re-enqueue an already incremented job for a retry.
      *
+     * @param JobContract $job     The incremented copy, not the dispatched job
      * @param int<0, max> $delayMs The hold before the job becomes eligible again
      */
     public function retry(JobContract $job, int $delayMs): void;
@@ -31,14 +32,19 @@ interface ClientContract
     /**
      * Re-enqueue a job for its next attempt.
      *
-     * Bumps the attempt count and holds the job for the ramp of the attempt
-     * that just failed, so a processor without native redelivery settles a
-     * retry by calling this.
+     * This bumps the attempt count and derives the hold from the ramp of the
+     * attempt that just failed. A processor without native redelivery settles
+     * a retry by calling this.
+     *
+     * @param JobContract $job The job as dispatched, before any increment
      */
     public function requeue(JobContract $job): void;
 
     /**
      * Get the stamped jobs handed to this client during this unit of work.
+     *
+     * A redelivery is recorded, so a job appears once for each delivery that
+     * this client enqueued.
      *
      * @return JobContract[]
      */
