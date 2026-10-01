@@ -134,7 +134,8 @@ final class BeanstalkdIntegrationTest extends TestCase
 
     public function testAReleasedJobIsRedeliveredByTheServer(): void
     {
-        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5);
+        // A zero hold releases the job straight back onto the ready list
+        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5, retryDelayMs: 0);
 
         $client = $this->client();
         $client->push($job);
@@ -148,6 +149,45 @@ final class BeanstalkdIntegrationTest extends TestCase
         // Released back onto the tube — nothing was published
         self::assertSame(1, $this->readyCount());
         self::assertCount(1, $client->getPushed());
+    }
+
+    public function testAReleasedJobIsHeldForItsRetryDelay(): void
+    {
+        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5, retryDelayMs: 60_000);
+
+        $this->client()->push($job);
+
+        BeanstalkdQueueFixture::run(
+            config: $this->config(),
+            maxJobs: 1,
+        );
+
+        // A release assigns the hold, so the retry is paced rather than a tight
+        // loop that re-reserves the job the instant it is let go
+        self::assertSame(0, $this->readyCount());
+        self::assertSame(1, $this->delayedCount());
+    }
+
+    public function testAFailingJobIsBuriedAtTheAttemptCeiling(): void
+    {
+        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 3, retryDelayMs: 0);
+
+        $this->client()->push($job);
+
+        // beanstalkd counts the reserves, so the ceiling is reachable. The
+        // bound is the number of deliveries, not of jobs: a worker waiting for
+        // a fourth delivery that never comes would never return.
+        BeanstalkdQueueFixture::run(
+            config: $this->config(),
+            maxJobs: 3,
+        );
+
+        self::assertSame(
+            [JobResult::RETRY, JobResult::RETRY, JobResult::DEAD_LETTER],
+            ResultLogMiddlewareFixture::getResults($job->getId())
+        );
+        self::assertSame(0, $this->readyCount());
+        self::assertSame(1, $this->buriedCount());
     }
 
     public function testADeadLetteredJobIsBuriedRatherThanDropped(): void
@@ -218,6 +258,11 @@ final class BeanstalkdIntegrationTest extends TestCase
         return $this->stats()?->currentJobsReady ?? 0;
     }
 
+    private function delayedCount(): int
+    {
+        return $this->stats()?->currentJobsDelayed ?? 0;
+    }
+
     private function buriedCount(): int
     {
         return $this->stats()?->currentJobsBuried ?? 0;
@@ -254,6 +299,12 @@ final class BeanstalkdIntegrationTest extends TestCase
 
         while (($buried = $this->pheanstalk->peekBuried()) !== null) {
             $this->pheanstalk->delete($buried);
+        }
+
+        // A reserve never sees a delayed job, so a held retry would otherwise
+        // outlive the test that produced it and be counted by the next one
+        while (($delayed = $this->pheanstalk->peekDelayed()) !== null) {
+            $this->pheanstalk->delete($delayed);
         }
     }
 }
