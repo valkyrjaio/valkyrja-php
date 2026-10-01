@@ -254,7 +254,9 @@ class NativeChildContainer extends Container
         // registered its own id while it runs has broken the chain, so read that first,
         // and name the pair only when nothing can answer.
         if (isset($this->targetsInFlight[$target])) {
-            $registered = $this->getSingletonInstance($target);
+            // The factory receives the child, so only the child's map can hold what it
+            // registered. A target the parent built never reaches the carve-out.
+            $registered = $this->instances[$target] ?? null;
 
             if ($registered !== null) {
                 return $registered;

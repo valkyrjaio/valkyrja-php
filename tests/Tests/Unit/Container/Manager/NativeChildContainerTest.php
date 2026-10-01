@@ -726,4 +726,14 @@ final class NativeChildContainerTest extends TestCase
 
         $this->child->getAliased('cyclicAlias');
     }
+
+    public function testGetAliasedReachesTheChildBindingWhenTheParentNeverBuiltTheSingleton(): void
+    {
+        $this->parent->bindSingleton(ServiceFixture::class, [ServiceFixture::class, 'make']);
+        $this->parent->bindAlias('parentAlias', ServiceFixture::class);
+        $this->child->bind(ServiceFixture::class, [SingletonFixture::class, 'make']);
+
+        // The parent's marker is the child's too, so the child's own binding answers
+        self::assertInstanceOf(SingletonFixture::class, $this->child->getAliased('parentAlias'));
+    }
 }
