@@ -155,6 +155,20 @@ final class QueueEntryTest extends TestCase
         self::assertSame(StatusCode::SERVICE_UNAVAILABLE, PushQueueFixture::$sent->getStatusCode());
     }
 
+    public function testThePushEntryReadsTheRequestFromItsSeamWhenNoneIsGiven(): void
+    {
+        $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
+
+        PushQueueFixture::$request = $this->request($job);
+
+        // A real push entry has no request handed to it; it reads the globals
+        PushQueueFixture::run(config: $this->config());
+
+        self::assertNotNull(PushQueueFixture::$sent);
+        self::assertSame(StatusCode::NO_CONTENT, PushQueueFixture::$sent->getStatusCode());
+        self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
+    }
+
     public function testTheSingleShotEntryRunsOneJob(): void
     {
         $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
