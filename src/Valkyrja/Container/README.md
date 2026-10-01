@@ -980,9 +980,9 @@ ends, so a caller that catches the exception keeps the container it had. A
 container that writes an alias after a child reads through it is outside
 registration. The last two checks cover the shapes a child then walks into. A
 chain that neither one sees resolves through the first answerable hop, or ends
-with a missing reference. `NativeChildContainer` reports that for a parent which
-is itself a child, because it reads the parent's own map alone. It extends the
-SPL `InvalidArgumentException`.
+with a missing reference. It extends the SPL `InvalidArgumentException`.
+`NativeChildContainer` reports that missing reference for a parent which is
+itself a child, because it reads the parent's own map alone.
 
 All three implement `Valkyrja\Container\Throwable\Contract\ContainerThrowable`,
 so one catch covers everything the container throws:
