@@ -21,12 +21,12 @@ use Valkyrja\Application\Entry\Abstract\PullQueue;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
+use Valkyrja\Queue\Client\Manager\SqsClient as ValkyrjaSqsClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
-use function array_filter;
 use function max;
 use function preg_match;
 
@@ -184,18 +184,7 @@ class SqsQueue extends PullQueue
      */
     protected static function getSqs(QueueSqsClientConfigContract $config): SqsClient
     {
-        return new SqsClient(
-            array_filter(
-                [
-                    'region'          => $config->sqsRegion,
-                    'endpoint'        => $config->sqsEndpoint,
-                    'accessKeyId'     => $config->sqsAccessKeyId,
-                    'accessKeySecret' => $config->sqsAccessKeySecret,
-                ],
-                // A null option falls back to the default of the SDK
-                static fn (string|null $value): bool => $value !== null
-            )
-        );
+        return ValkyrjaSqsClient::createSqs($config);
     }
 
     /**

@@ -12,7 +12,6 @@ declare(strict_types=1);
 
 namespace Valkyrja\Queue\Client\Provider;
 
-use AsyncAws\Sqs\SqsClient as Sqs;
 use Override;
 use PhpAmqpLib\Connection\AMQPLazyConnection;
 use Predis\Client;
@@ -38,7 +37,6 @@ use Valkyrja\Queue\Client\Manager\SqsClient;
 use Valkyrja\Queue\Client\Manager\SyncClient;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientConfigNotFoundException;
 
-use function array_filter;
 use function sprintf;
 
 class QueueClientServiceProvider implements ServiceProviderContract
@@ -271,18 +269,7 @@ class QueueClientServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             SqsClient::class,
             new SqsClient(
-                sqs: new Sqs(
-                    array_filter(
-                        [
-                            'region'          => $config->sqsRegion,
-                            'endpoint'        => $config->sqsEndpoint,
-                            'accessKeyId'     => $config->sqsAccessKeyId,
-                            'accessKeySecret' => $config->sqsAccessKeySecret,
-                        ],
-                        // A null option falls back to the default of the SDK
-                        static fn (string|null $value): bool => $value !== null
-                    )
-                ),
+                sqs: SqsClient::createSqs($config),
                 queueUrl: $config->sqsQueueUrl,
                 applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
             )
