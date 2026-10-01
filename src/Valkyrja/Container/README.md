@@ -115,10 +115,10 @@ $logger = $container->getSingleton(LoggerContract::class); // The first call bui
 $same   = $container->getSingleton(LoggerContract::class); // Later calls return the cached instance.
 ```
 
-Warning: the container caches by publishing into its instance map, not by
-writing over it. A factory that registers the id it is building, the way one
-breaks a chain that returns to it, decides what every reader gets. The object
-the factory returns is discarded then.
+Warning: the container keeps the first instance its map holds for an id. A
+factory that registers the id it is building, the way one breaks a chain that
+returns to it, decides what every reader gets. The object that factory returns
+is discarded then.
 
 ### bindAlias()
 
@@ -870,13 +870,18 @@ direct child lookup reuses the parent's instance.
 
 The parent answers the target as it would for any caller, with one exception.
 The child resolves a target the parent would build for the first time, when the
-child holds that registration too. That is a singleton the parent registered
-and never built, or a publisher it has not run. Letting the parent do it would
-leave the request with one copy for the alias and another for the id. A child
-that holds neither leaves the whole lookup to the parent, and the parent
-answers it. A worker takes one snapshot after boot, so a request holds every
-registration. Anything the parent has already built or published is reused as
-it stands.
+child holds that registration too. Letting the parent do it would leave the
+request with one copy for the alias and another for the id. Three cases:
+
+- **A singleton the parent registered and never built** — the child resolves it
+  when its own `singletons` map carries the marker.
+- **A publisher the parent has not run** — the child resolves it when its own
+  `callbacks` map carries the callback.
+- **The child carries no registration for the target** — the parent answers the
+  whole lookup.
+
+A worker takes one snapshot after boot, so a request carries every registration.
+Anything the parent has already built or published is reused as it stands.
 
 Warning: that exception also decides which binding the alias reaches. The child
 resolves the target itself, so the factory of the **child** answers. The child
@@ -916,7 +921,8 @@ $child->get(TimeSourceContract::class);  // $requestClock
 Off that path the receiver follows the implementation, not the alias.
 `NativeChildContainer` invokes a parent-bound factory itself and gives it the
 child. `ChildContainer` hands the same call to the parent and gives it the
-parent. The exception path above follows the same rule. A singleton the child
+parent. The exception path above follows the same rule, and the child's own
+factory runs when the child declares one for that id. A singleton the child
 builds on that path caches in the child. A publisher decides what it registers,
 so a publisher that binds a `bind()` factory caches nothing. A deferred target
 is the one case both give the child, because the publish callback runs in the
@@ -977,16 +983,18 @@ to it, so the chain has no end. Four checks reject one:
   chain those aliases reach.
 - A child walking the parent's aliases checks the hops of one walk.
 - A child resolving a parent-declared alias checks the target it returns to. The
-  chain returns to the child only when the target's factory runs there. A
-  factory that registered that id while it ran has broken the chain, so the
-  lookup answers with what the factory registered.
+  chain returns through an alias the child declares, or through a factory the
+  child runs. A factory that registered that id while it ran has broken the
+  chain, so the lookup answers with what the factory registered.
 
 The first two run at registration. A container installs no map before its walk
 ends, so a caller that catches the exception keeps the container it had. A
 container that writes an alias after a child reads through it is outside
 registration. The last two checks cover the shapes a child then walks into. A
-chain that neither one sees resolves through the first answerable hop, or ends
-with a missing reference. It extends the SPL `InvalidArgumentException`.
+A chain that neither one sees ends in one of three ways. It resolves through the
+first hop the parent would answer. It ends with a missing reference, when no hop
+answers. It does not end, when a factory the parent runs asks for its own id
+again. It extends the SPL `InvalidArgumentException`.
 `NativeChildContainer` reports that missing reference for a parent which is
 itself a child, because it reads the parent's own map alone.
 
