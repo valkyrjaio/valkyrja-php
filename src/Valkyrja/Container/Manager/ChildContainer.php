@@ -204,8 +204,14 @@ class ChildContainer extends Container
      */
     private function resolvesInChild(string $id): bool
     {
-        // The parent publishes before it reads any map, so this test comes first.
-        if ($this->parent->isDeferred($id) && ! $this->parent->isPublished($id)) {
+        // The parent publishes before it reads any map, so this test comes first. Both
+        // containers answer it: the parent's state is what makes this a target it would
+        // publish for the first time, and the child's callback is what lets the child
+        // publish it instead.
+        if ($this->parent->isDeferred($id)
+            && ! $this->parent->isPublished($id)
+            && $this->isDeferred($id)
+        ) {
             return true;
         }
 

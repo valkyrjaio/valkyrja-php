@@ -738,15 +738,15 @@ final class ChildContainerTest extends TestCase
         $child->getAliased('parentAlias');
     }
 
-    public function testGetAliasedThrowsWhenTheSnapshotOmitsTheParentCallback(): void
+    public function testGetAliasedDelegatesWhenTheSnapshotOmitsTheParentCallback(): void
     {
         $this->parent->register(new PublishingProviderFixture());
         $this->parent->bindAlias('providedAlias', ProvidedFixture::class);
         $child = new ChildContainer($this->parent, new ContainerData());
-        // The child takes the carve-out on the parent's state and cannot publish it
-        $this->expectException(ContainerInvalidReferenceException::class);
 
-        $child->getAliased('providedAlias');
+        // The child holds no callback, so it leaves the publish to the parent
+        self::assertInstanceOf(ProvidedFixture::class, $child->getAliased('providedAlias'));
+        self::assertTrue($this->parent->isPublished(ProvidedFixture::class));
     }
 
     public function testGetAliasedReachesTheChildBindingWhenTheParentNeverBuiltTheSingleton(): void

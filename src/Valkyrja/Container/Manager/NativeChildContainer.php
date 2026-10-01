@@ -225,7 +225,8 @@ class NativeChildContainer extends Container
      */
     private function resolvesInChild(string $id): bool
     {
-        // The parent publishes before it reads any map, so this test comes first.
+        // The parent publishes before it reads any map, so this test comes first. This
+        // class copies no callback map, so the parent's callback is the child's as well.
         if ($this->parent->isDeferred($id) && ! $this->parent->isPublished($id)) {
             return true;
         }
