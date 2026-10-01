@@ -81,7 +81,7 @@ final class DatabaseQueueTest extends TestCase
     {
         $container = self::createStub(ContainerContract::class);
         $container->method('getSingleton')->willReturn(
-            new QueueDatabaseClientConfig(databaseQueue: 'emails', databaseTable: 'queue_jobs')
+            new QueueDatabaseClientConfig(databaseQueue: 'emails', databaseTable: 'jobs_test')
         );
 
         $app = self::createStub(ApplicationContract::class);
@@ -92,7 +92,9 @@ final class DatabaseQueueTest extends TestCase
 
         $select = $this->manager->getStatements('SELECT')[0];
 
-        self::assertStringContainsString('FROM queue_jobs', $select->query);
+        // A table that differs from the injected default, so the assertion
+        // fails if connect() stops reading the table from the config
+        self::assertStringContainsString('FROM jobs_test', $select->query);
         self::assertSame('emails', $select->bound['queue']);
     }
 
