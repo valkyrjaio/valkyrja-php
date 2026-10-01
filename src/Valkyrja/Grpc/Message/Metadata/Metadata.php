@@ -213,7 +213,7 @@ class Metadata implements MetadataContract
     /**
      * @inheritDoc
      *
-     * @return Traversable<string, string[]>
+     * @return Traversable<array-key, string[]>
      */
     #[Override]
     public function getIterator(): Traversable

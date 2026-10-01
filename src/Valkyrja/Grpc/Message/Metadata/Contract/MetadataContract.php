@@ -17,7 +17,7 @@ use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidKeyException;
 use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidValueException;
 
 /**
- * @extends IteratorAggregate<string, string[]>
+ * @extends IteratorAggregate<array-key, string[]>
  */
 interface MetadataContract extends IteratorAggregate
 {
@@ -82,6 +82,9 @@ interface MetadataContract extends IteratorAggregate
 
     /**
      * Get an immutable snapshot as a map of lower-cased keys to value lists.
+     *
+     * A key is `array-key` rather than `string`, because PHP stores a numeric-string array key as
+     * an int. Every other port keys this map by string.
      *
      * @return array<array-key, string[]>
      */
