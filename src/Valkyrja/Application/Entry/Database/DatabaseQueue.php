@@ -30,6 +30,7 @@ use Valkyrja\Support\Time\Microtime;
 
 use function is_int;
 use function is_string;
+use function sleep;
 
 class DatabaseQueue extends PullQueue
 {
@@ -47,6 +48,9 @@ class DatabaseQueue extends PullQueue
 
     /** @var int<1, max> The age at which a claim is abandoned */
     protected static int $reservationTimeoutMs = self::DEFAULT_RESERVATION_TIMEOUT_MS;
+
+    /** @var int<0, max> The seconds to yield when nothing was waiting; 0 to poll without pausing */
+    protected static int $pollInterval = 1;
 
     protected static ManagerContract|null $manager = null;
 
@@ -89,6 +93,8 @@ class DatabaseQueue extends PullQueue
         $row = static::findEligible();
 
         if ($row === null) {
+            static::wait();
+
             return null;
         }
 
@@ -97,6 +103,8 @@ class DatabaseQueue extends PullQueue
         if (! static::claim($id)) {
             // Another worker claimed the row between the read and the write.
             // The loop asks again rather than this one waiting for a winner.
+            static::wait();
+
             return null;
         }
 
@@ -145,7 +153,7 @@ class DatabaseQueue extends PullQueue
     /**
      * Get the manager the loop reads the table with.
      *
-     * @codeCoverageIgnore The container of a booted worker is unavailable in a unit test.
+     * @codeCoverageIgnore A real database connection is unavailable in a test.
      */
     protected static function getManager(ContainerContract $container): ManagerContract
     {
@@ -161,6 +169,35 @@ class DatabaseQueue extends PullQueue
     {
         return static::$manager
             ?? throw new QueueServerNotConnectedException('The database queue has no manager to read with.');
+    }
+
+    /**
+     * Yield for the configured interval when nothing was waiting.
+     *
+     * A table does not block on a read, so this entry paces itself. Without the
+     * yield an idle worker issues one select as fast as PHP can, which pegs a
+     * core and streams queries at the database for the life of the process.
+     */
+    protected static function wait(): void
+    {
+        if (static::$pollInterval > 0) {
+            static::pause(static::$pollInterval);
+        }
+    }
+
+    /**
+     * Yield the process for the given seconds.
+     *
+     * An irreducible wall-clock call, isolated behind an overridable seam so a
+     * test can drive the surrounding branch without waiting it out.
+     *
+     * @param int<1, max> $seconds The seconds to pause
+     *
+     * @codeCoverageIgnore
+     */
+    protected static function pause(int $seconds): void
+    {
+        sleep($seconds);
     }
 
     /**
