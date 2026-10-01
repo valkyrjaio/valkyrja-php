@@ -336,19 +336,6 @@ class QueueClientServiceProvider implements ServiceProviderContract
     public function publishers(): array
     {
         return [
-            QueueClientConfigContract::class         => [self::class, 'publishConfig'],
-            QueueSyncClientConfigContract::class     => [self::class, 'publishSyncConfig'],
-            QueueDeferredClientConfigContract::class => [self::class, 'publishDeferredConfig'],
-            QueueRedisClientConfigContract::class    => [self::class, 'publishRedisConfig'],
-            QueueAmqpClientConfigContract::class     => [self::class, 'publishAmqpConfig'],
-            QueueSqsClientConfigContract::class      => [self::class, 'publishSqsConfig'],
-            ClientContract::class                    => [self::class, 'publishClient'],
-            SyncClient::class                        => [self::class, 'publishSyncClient'],
-            DeferredClient::class                    => [self::class, 'publishDeferredClient'],
-            InMemoryClient::class                    => [self::class, 'publishInMemoryClient'],
-            RedisClient::class                       => [self::class, 'publishRedisClient'],
-            AmqpClient::class                        => [self::class, 'publishAmqpClient'],
-            SqsClient::class                         => [self::class, 'publishSqsClient'],
             QueueClientConfigContract::class           => [self::class, 'publishConfig'],
             QueueSyncClientConfigContract::class       => [self::class, 'publishSyncConfig'],
             QueueDeferredClientConfigContract::class   => [self::class, 'publishDeferredConfig'],
