@@ -627,6 +627,11 @@ class AppComponentProvider implements ComponentProviderContract
     {
         return [];
     }
+
+    public function getGrpcProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }
 ```
 
@@ -792,6 +797,11 @@ class AppComponentProvider implements ComponentProviderContract
     }
 
     public function getQueueProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
+
+    public function getGrpcProviders(ApplicationContract $app): array
     {
         return [];
     }
