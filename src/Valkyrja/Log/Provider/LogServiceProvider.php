@@ -22,8 +22,9 @@ use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
 use Valkyrja\Log\Data\Contract\LogConfigContract;
+use Valkyrja\Log\Data\Contract\LogPsrConfigContract;
 use Valkyrja\Log\Data\LogConfig;
-use Valkyrja\Log\Enum\LogLevel;
+use Valkyrja\Log\Data\LogPsrConfig;
 use Valkyrja\Log\Logger\Contract\LoggerContract;
 use Valkyrja\Log\Logger\NullLogger;
 use Valkyrja\Log\Logger\PsrLogger;
@@ -48,6 +49,25 @@ class LogServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             LogConfigContract::class,
             new LogConfig()
+        );
+    }
+
+    /**
+     * Publish the psr logger config service.
+     */
+    public static function publishPsrConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof LogPsrConfigContract) {
+            $container->setSingleton(LogPsrConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(
+            LogPsrConfigContract::class,
+            new LogPsrConfig()
         );
     }
 
@@ -106,12 +126,14 @@ class LogServiceProvider implements ServiceProviderContract
      */
     public static function publishMonolog(ContainerContract $container): void
     {
-        $filePath = Directory::logsStoragePath();
-        $name     = 'valkyrja' . date('-Y-m-d');
+        $config = $container->getSingleton(LogPsrConfigContract::class);
+
+        $filePath = $config->psrFilePath ?? Directory::logsStoragePath();
+        $name     = $config->psrName ?? 'valkyrja' . date('-Y-m-d');
 
         $handler = new StreamHandler(
             "$filePath/$name.log",
-            LogLevel::DEBUG->name
+            $config->psrLevel->name
         );
 
         $formatter = new LineFormatter(
@@ -141,12 +163,13 @@ class LogServiceProvider implements ServiceProviderContract
     public function publishers(): array
     {
         return [
-            LogConfigContract::class => [self::class, 'publishConfig'],
-            LoggerContract::class    => [self::class, 'publishLogger'],
-            PsrLogger::class         => [self::class, 'publishPsrLogger'],
-            NullLogger::class        => [self::class, 'publishNullLogger'],
-            LoggerInterface::class   => [self::class, 'publishLoggerInterface'],
-            Logger::class            => [self::class, 'publishMonolog'],
+            LogConfigContract::class    => [self::class, 'publishConfig'],
+            LogPsrConfigContract::class => [self::class, 'publishPsrConfig'],
+            LoggerContract::class       => [self::class, 'publishLogger'],
+            PsrLogger::class            => [self::class, 'publishPsrLogger'],
+            NullLogger::class           => [self::class, 'publishNullLogger'],
+            LoggerInterface::class      => [self::class, 'publishLoggerInterface'],
+            Logger::class               => [self::class, 'publishMonolog'],
         ];
     }
 }
