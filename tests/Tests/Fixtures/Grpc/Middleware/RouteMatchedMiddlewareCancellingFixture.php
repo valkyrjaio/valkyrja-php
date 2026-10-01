@@ -21,6 +21,8 @@ use Valkyrja\Grpc\Middleware\Handler\Contract\RouteMatchedHandlerContract;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\Trait\MiddlewareCounterTrait;
 
+use function assert;
+
 /**
  * Fires the call's cancellation token mid-flight and returns the route, so the handler's post-check
  * detects a cancellation that arrived during middleware execution.
@@ -35,9 +37,11 @@ final class RouteMatchedMiddlewareCancellingFixture implements RouteMatchedMiddl
 
         $cancellation = $call->getCancellation();
 
-        if ($cancellation instanceof CancellationToken) {
-            $cancellation->cancel(CancellationReason::CLIENT_CANCELLED);
-        }
+        // The contract declares no cancel(), so the fixture narrows to the concrete token. An
+        // assert() narrows for the analyzers without leaving a branch no test can take.
+        assert($cancellation instanceof CancellationToken);
+
+        $cancellation->cancel(CancellationReason::CLIENT_CANCELLED);
 
         return $route;
     }
