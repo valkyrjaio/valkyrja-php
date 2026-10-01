@@ -959,21 +959,22 @@ type. It extends the SPL `InvalidArgumentException`.
 `RuntimeException`.
 
 **`ContainerCyclicAliasException`** — an alias points at a chain that returns
-to it, so the chain has no end. Three places reject one:
+to it, so the chain has no end. Four places reject one:
 
 - `bindAlias()` checks the pair it is asked to store.
 - The constructor and `setFromData()` check the aliases they receive, and the
   chain those aliases reach.
+- A child walking the parent's aliases checks the hops of one walk.
 - A child resolving a parent-declared alias checks the target it returns to.
 
-The first two run at registration. Nothing is installed before a walk ends, so a
-caller that catches the exception keeps the container it had. A container that
-writes an alias after a child reads through it is outside registration. The
-third check reports such a chain when resolving it returns to a target the child
-is already resolving. Otherwise the lookup ends with a missing reference, which
-is what `NativeChildContainer` reports for a parent that is itself a child,
-because it reads the parent's own map alone. It extends the SPL
-`InvalidArgumentException`.
+The first two run at registration, and nothing is installed before a walk ends,
+so a caller that catches the exception keeps the container it had. A container
+that writes an alias after a child reads through it is outside registration, and
+the last two checks cover the shapes a child can then walk into. A chain that
+neither one sees resolves to whatever the first answerable hop gives, or ends
+with a missing reference, which is what `NativeChildContainer` reports for a
+parent that is itself a child, because it reads the parent's own map alone. It
+extends the SPL `InvalidArgumentException`.
 
 All three implement `Valkyrja\Container\Throwable\Contract\ContainerThrowable`,
 so one catch covers everything the container throws:
