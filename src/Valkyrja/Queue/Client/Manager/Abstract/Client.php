@@ -100,7 +100,7 @@ abstract class Client implements ClientContract
      *
      * @param int<0, max> $delayMs The hold before the job becomes eligible again
      */
-    protected function republish(JobContract $job, int $delayMs = 0): void
+    protected function republish(JobContract $job, int $delayMs): void
     {
         $this->publish($job);
     }

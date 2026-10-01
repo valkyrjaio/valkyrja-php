@@ -62,7 +62,7 @@ class RedisClient extends Client
      * @throws JsonException
      */
     #[Override]
-    protected function republish(JobContract $job, int $delayMs = 0): void
+    protected function republish(JobContract $job, int $delayMs): void
     {
         $this->enqueue($job, $delayMs);
     }
