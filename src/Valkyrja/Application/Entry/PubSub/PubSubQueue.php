@@ -10,54 +10,65 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Queue\Client\Puller;
+namespace Valkyrja\Application\Entry\PubSub;
 
 use Google\ApiCore\ApiException;
 use Google\Cloud\PubSub\Message;
+use Google\Cloud\PubSub\PubSubClient as GooglePubSubClient;
 use Google\Cloud\PubSub\Subscription;
 use Google\Rpc\Code;
 use GuzzleHttp\Exception\ConnectException;
 use JsonException;
 use Override;
+use Valkyrja\Application\Entry\Abstract\PullQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Queue\Client\Data\Contract\QueuePubSubClientConfigContract;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
-use Valkyrja\Queue\Client\Puller\Contract\PullerContract;
-use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
-use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
-class PubSubPuller implements PullerContract, RequeuerContract
+class PubSubQueue extends PullQueue
 {
     /**
      * The cURL error number for a request that ran out its own deadline.
      */
     public const int CURL_OPERATION_TIMED_OUT = 28;
 
+    /** @var int<1, max> The deadline for one pull, in milliseconds */
+    protected static int $timeoutMs = 1000;
+
+    /**
+     * The subscription the worker pulls from.
+     *
+     * A subscription belongs to the consumer alone, so it is not part of the
+     * client config. It defaults to the name of the topic, and an application
+     * sets it on its own entry when the two names differ.
+     *
+     * @var non-empty-string|null
+     */
+    protected static string|null $subscriptionName = null;
+
+    protected static Subscription|null $subscription = null;
+
     /**
      * The delivery currently in flight, if any.
      *
-     * A pull worker handles one job at a time, so a single slot is enough — and
+     * A pull worker handles one job at a time, so a single slot is enough, and
      * it is cleared on settlement so a second settle cannot double-acknowledge.
      */
-    protected Message|null $current = null;
-
-    /**
-     * @param int<1, max> $timeoutMs The deadline for one pull, in milliseconds
-     */
-    public function __construct(
-        protected Subscription $subscription,
-        protected int $timeoutMs = 1000,
-        protected JobFactoryContract $factory = new JobFactory(),
-    ) {
-    }
+    protected static Message|null $current = null;
 
     /**
      * @inheritDoc
      */
     #[Override]
-    public function connect(): void
+    public static function connect(ApplicationContract $app): void
     {
+        $config = $app->getContainer()->getSingleton(QueuePubSubClientConfigContract::class);
+
+        static::$subscription = static::getSubscription($config);
     }
 
     /**
@@ -66,9 +77,9 @@ class PubSubPuller implements PullerContract, RequeuerContract
      * @throws JsonException
      */
     #[Override]
-    public function receive(): JobContract|null
+    public static function receive(): JobContract|null
     {
-        $messages = $this->pull();
+        $messages = static::pull();
 
         $message = $messages[0] ?? null;
 
@@ -76,38 +87,40 @@ class PubSubPuller implements PullerContract, RequeuerContract
             return null;
         }
 
-        $this->current = $message;
+        static::$current = $message;
 
-        return $this->factory->fromJson($message->data());
+        return new JobFactory()->fromJson($message->data());
     }
 
     /**
      * @inheritDoc
      */
     #[Override]
-    public function disconnect(): void
+    public static function disconnect(): void
     {
         // Anything still in flight was not completed, so hand it back rather
         // than letting it wait out the whole acknowledgement deadline
-        $this->releaseCurrent();
+        static::releaseCurrent();
+
+        static::$subscription = null;
     }
 
     /**
      * @inheritDoc
      */
     #[Override]
-    public function settle(JobContract $job, JobResult $result, ClientContract $client): void
+    public static function settle(JobContract $job, JobResult $result, ClientContract $client): void
     {
-        $message = $this->current;
+        $message = static::$current;
 
         if (! $message instanceof Message) {
             return;
         }
 
-        $this->current = null;
+        static::$current = null;
 
         if ($result === JobResult::RETRY) {
-            $this->release($message);
+            static::release($message);
 
             return;
         }
@@ -115,7 +128,27 @@ class PubSubPuller implements PullerContract, RequeuerContract
         // A dead letter is terminal here as well. Pub/Sub moves a message to
         // the dead-letter topic on the delivery-attempt count, so the framework
         // acknowledging it is what stops the chain.
-        $this->subscription->acknowledge($message);
+        static::getConnection()->acknowledge($message);
+    }
+
+    /**
+     * Open the subscription the loop pulls from.
+     */
+    protected static function getSubscription(QueuePubSubClientConfigContract $config): Subscription
+    {
+        return new GooglePubSubClient(['projectId' => $config->pubSubProjectId])
+            ->subscription(static::$subscriptionName ?? $config->pubSubTopic);
+    }
+
+    /**
+     * Get the subscription that connect() opened.
+     *
+     * @throws QueueServerNotConnectedException
+     */
+    protected static function getConnection(): Subscription
+    {
+        return static::$subscription
+            ?? throw new QueueServerNotConnectedException('The Pub/Sub queue has no subscription to pull from.');
     }
 
     /**
@@ -131,15 +164,15 @@ class PubSubPuller implements PullerContract, RequeuerContract
      *
      * @return Message[]
      */
-    protected function pull(): array
+    protected static function pull(): array
     {
         try {
-            return $this->subscription->pull([
+            return static::getConnection()->pull([
                 'maxMessages'   => 1,
-                'timeoutMillis' => $this->timeoutMs,
+                'timeoutMillis' => static::$timeoutMs,
             ]);
         } catch (ConnectException $exception) {
-            if (! $this->isDeadline($exception)) {
+            if (! static::isDeadline($exception)) {
                 throw $exception;
             }
 
@@ -160,11 +193,11 @@ class PubSubPuller implements PullerContract, RequeuerContract
      * reports a refused connection, a failed name lookup, and a TLS failure the
      * same way. Only the timeout means that nothing arrived.
      *
-     * Warning: the entry's loop does not back off when a receive gives nothing,
-     * so treating an outage as an empty poll would spin the worker instead of
+     * Warning: the loop does not back off when a receive gives nothing, so
+     * treating an outage as an empty poll would spin the worker instead of
      * surfacing the failure.
      */
-    protected function isDeadline(ConnectException $exception): bool
+    protected static function isDeadline(ConnectException $exception): bool
     {
         /** @var mixed $errno */
         $errno = $exception->getHandlerContext()['errno'] ?? null;
@@ -175,14 +208,14 @@ class PubSubPuller implements PullerContract, RequeuerContract
     /**
      * Hand any in-flight delivery back to the subscription.
      */
-    protected function releaseCurrent(): void
+    protected static function releaseCurrent(): void
     {
-        $message = $this->current;
+        $message = static::$current;
 
         if ($message instanceof Message) {
-            $this->current = null;
+            static::$current = null;
 
-            $this->release($message);
+            static::release($message);
         }
     }
 
@@ -192,8 +225,8 @@ class PubSubPuller implements PullerContract, RequeuerContract
      * A zero deadline is Pub/Sub's nack: the message becomes available again
      * and its delivery-attempt count goes up.
      */
-    protected function release(Message $message): void
+    protected static function release(Message $message): void
     {
-        $this->subscription->modifyAckDeadline($message, 0);
+        static::getConnection()->modifyAckDeadline($message, 0);
     }
 }
