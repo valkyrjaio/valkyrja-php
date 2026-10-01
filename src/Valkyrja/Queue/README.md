@@ -141,12 +141,18 @@ CREATE TABLE queue_jobs (
     priority        INT             NOT NULL DEFAULT 0,
     available_at_ms BIGINT          NOT NULL,
     reserved_at_ms  BIGINT          NULL,
-    INDEX queue_jobs_claim (queue, reserved_at_ms, available_at_ms, priority)
+    INDEX queue_jobs_claim (queue, available_at_ms, priority)
 );
 ```
 
-The puller claims a row by stamping `reserved_at_ms`, which is what stops two
-workers taking the same job. A reservation older than the timeout counts as
+The index narrows on `queue` by equality and then on `available_at_ms` by range.
+It cannot serve the `ORDER BY priority DESC, id ASC` that the claim select ends
+with, because a b-tree stops narrowing at the first column carrying a range, so
+the database sorts the eligible rows on every poll. Tune the index for the
+queue's own shape when the eligible set grows large enough to matter.
+
+`DatabaseQueue` claims a row by stamping `reserved_at_ms`, which is what stops
+two workers taking the same job. A reservation older than the timeout counts as
 free, so a row that a crashed worker abandoned returns to the queue.
 
 ## Entry Points
