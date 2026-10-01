@@ -19,6 +19,7 @@ use Valkyrja\Auth\Authenticator\SessionAuthenticator;
 use Valkyrja\Auth\Data\AuthConfig;
 use Valkyrja\Auth\Data\AuthSessionConfig;
 use Valkyrja\Auth\Data\Contract\AuthConfigContract;
+use Valkyrja\Auth\Data\Contract\AuthSessionConfigContract;
 use Valkyrja\Auth\Hasher\Contract\PasswordHasherContract;
 use Valkyrja\Auth\Hasher\PhpPasswordHasher;
 use Valkyrja\Auth\Provider\AuthServiceProvider;
@@ -42,6 +43,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
     public function testExpectedPublishers(): void
     {
         self::assertArrayHasKey(AuthConfigContract::class, new AuthServiceProvider()->publishers());
+        self::assertArrayHasKey(AuthSessionConfigContract::class, new AuthServiceProvider()->publishers());
         self::assertArrayHasKey(AuthenticatorContract::class, new AuthServiceProvider()->publishers());
         self::assertArrayHasKey(SessionAuthenticator::class, new AuthServiceProvider()->publishers());
         self::assertArrayHasKey(StoreContract::class, new AuthServiceProvider()->publishers());
@@ -72,6 +74,26 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertSame(NullStore::class, $config->defaultStore);
     }
 
+    public function testPublishSessionConfig(): void
+    {
+        $callback = new AuthServiceProvider()->publishers()[AuthSessionConfigContract::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(AuthSessionConfig::class, $config = $this->container->getSingleton(AuthSessionConfigContract::class));
+        self::assertSame('auth.users', $config->sessionItemId);
+    }
+
+    public function testPublishSessionConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, $appConfig = new AuthConfigFixture());
+
+        $callback = new AuthServiceProvider()->publishers()[AuthSessionConfigContract::class];
+        $callback($this->container);
+
+        self::assertSame($appConfig, $config = $this->container->getSingleton(AuthSessionConfigContract::class));
+        self::assertSame('auth.fixture', $config->sessionItemId);
+    }
+
     /**
      * @throws Exception
      */
@@ -91,10 +113,16 @@ final class ServiceProviderTest extends ServiceProviderTestCase
      */
     public function testPublishSessionAuthenticator(): void
     {
-        $this->container->setSingleton(AuthConfigContract::class, new AuthConfig(
-            session: new AuthSessionConfig(itemId: 'auth.custom'),
-        ));
-        $this->container->setSingleton(SessionContract::class, self::createStub(SessionContract::class));
+        // The authenticator reads the session item as it is built, so the item id proves which config it took.
+        $session = $this->createMock(SessionContract::class);
+        $session->expects($this->once())
+            ->method('has')
+            ->with('auth.custom')
+            ->willReturn(false);
+
+        $this->container->setSingleton(AuthConfigContract::class, new AuthConfig());
+        $this->container->setSingleton(AuthSessionConfigContract::class, new AuthSessionConfig(sessionItemId: 'auth.custom'));
+        $this->container->setSingleton(SessionContract::class, $session);
         $this->container->setSingleton(StoreContract::class, self::createStub(StoreContract::class));
         $this->container->setSingleton(PasswordHasherContract::class, self::createStub(PasswordHasherContract::class));
 

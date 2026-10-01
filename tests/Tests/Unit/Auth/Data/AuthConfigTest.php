@@ -13,9 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Auth\Data;
 
 use Valkyrja\Auth\Authenticator\SessionAuthenticator;
-use Valkyrja\Auth\Constant\SessionItemId;
 use Valkyrja\Auth\Data\AuthConfig;
-use Valkyrja\Auth\Data\AuthSessionConfig;
 use Valkyrja\Auth\Data\Contract\AuthConfigContract;
 use Valkyrja\Auth\Entity\User;
 use Valkyrja\Auth\Store\NullStore;
@@ -36,19 +34,14 @@ final class AuthConfigTest extends TestCase
         self::assertSame(SessionAuthenticator::class, $config->defaultAuthenticator);
         self::assertSame(OrmStore::class, $config->defaultStore);
         self::assertSame(User::class, $config->defaultUserEntity);
-        self::assertSame(SessionItemId::AUTHENTICATED_USERS, $config->session->itemId);
     }
 
     public function testCustomValuesAreStored(): void
     {
-        $session = new AuthSessionConfig(itemId: 'auth.custom');
-
         $config = new AuthConfig(
             defaultStore: NullStore::class,
-            session: $session,
         );
 
         self::assertSame(NullStore::class, $config->defaultStore);
-        self::assertSame($session, $config->session);
     }
 }
