@@ -14,21 +14,31 @@ namespace Valkyrja\Tests\Fixtures\Queue\Client;
 
 use Override;
 use Pheanstalk\Contract\JobIdInterface;
+use Pheanstalk\Contract\PheanstalkManagerInterface;
 use Pheanstalk\Contract\PheanstalkPublisherInterface;
 use Pheanstalk\Contract\PheanstalkSubscriberInterface;
 use Pheanstalk\Values\Job;
 use Pheanstalk\Values\JobId;
+use Pheanstalk\Values\JobState;
+use Pheanstalk\Values\JobStats;
+use Pheanstalk\Values\ServerStats;
 use Pheanstalk\Values\TubeList;
 use Pheanstalk\Values\TubeName;
+use Pheanstalk\Values\TubeStats;
+
+use function array_fill_keys;
 
 /**
  * A recording stand-in for a beanstalkd connection.
  *
- * It answers both roles, because the adapter splits publishing and consuming
- * across two contracts that one connection satisfies.
+ * It answers all three roles, because the adapter splits publishing, consuming,
+ * and management across contracts that one connection satisfies.
  */
-final class BeanstalkdFixture implements PheanstalkPublisherInterface, PheanstalkSubscriberInterface
+final class BeanstalkdFixture implements PheanstalkManagerInterface, PheanstalkPublisherInterface, PheanstalkSubscriberInterface
 {
+    /** @var int<0, max> The reserve count that statsJob reports */
+    public int $reserves = 1;
+
     /** @var array<int, array{0: string, 1: array<int, mixed>}> */
     public array $calls = [];
 
@@ -200,5 +210,127 @@ final class BeanstalkdFixture implements PheanstalkPublisherInterface, Pheanstal
     public function listTubesWatched(): TubeList
     {
         return new TubeList(new TubeName('default'));
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function statsJob(JobIdInterface $job): JobStats
+    {
+        $this->calls[] = ['statsJob', [$job->getId()]];
+
+        return new JobStats(
+            id: new JobId($job->getId()),
+            tube: new TubeName('valkyrja'),
+            state: JobState::RESERVED,
+            priority: 1024,
+            age: 0,
+            delay: 0,
+            timeToRelease: 90,
+            timeLeft: 90,
+            file: 0,
+            reserves: $this->reserves,
+            timeouts: 0,
+            releases: 0,
+            buries: 0,
+            kicks: 0,
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function listTubes(): TubeList
+    {
+        return new TubeList();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function kick(int $max): int
+    {
+        return 0;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function kickJob(JobIdInterface $job): void
+    {
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function pauseTube(TubeName $tube, int $delay): void
+    {
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function resumeTube(TubeName $tube): void
+    {
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function peek(JobIdInterface $job): Job
+    {
+        return new Job(new JobId($job->getId()), '');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function peekReady(): Job|null
+    {
+        return null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function peekDelayed(): Job|null
+    {
+        return null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function peekBuried(): Job|null
+    {
+        return null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function statsTube(TubeName $tube): TubeStats
+    {
+        return new TubeStats(...array_fill_keys(TubeStats::FIELDS, 0));
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function stats(): ServerStats
+    {
+        return new ServerStats(...array_fill_keys(ServerStats::FIELDS, 0));
     }
 }
