@@ -32,8 +32,8 @@ final class PubSubQueueFixture extends PubSubQueue
     public static function inject(Subscription $subscription, int $timeoutMs = 1000): void
     {
         self::$injected         = $subscription;
-        static::$subscription   = $subscription;
-        static::$timeoutMs      = $timeoutMs;
+        self::$subscription     = $subscription;
+        self::$timeoutMs        = $timeoutMs;
     }
 
     /**
@@ -42,9 +42,9 @@ final class PubSubQueueFixture extends PubSubQueue
     public static function reset(): void
     {
         self::$injected       = null;
-        static::$subscription = null;
-        static::$current      = null;
-        static::$timeoutMs    = 1000;
+        self::$subscription   = null;
+        self::$current        = null;
+        self::$timeoutMs      = 1000;
     }
 
     /**
