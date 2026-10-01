@@ -15,6 +15,8 @@ namespace Valkyrja\Tests\Unit\Grpc\Routing\Provider;
 use Valkyrja\Application\Data\Contract\GrpcConfigContract;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Application\Kernel\Valkyrja;
+use Valkyrja\Attribute\Collector\Collector;
+use Valkyrja\Attribute\Collector\Contract\CollectorContract;
 use Valkyrja\Grpc\Middleware\Provider\GrpcMiddlewareServiceProvider;
 use Valkyrja\Grpc\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Grpc\Routing\Collection\RouteCollection;
@@ -25,6 +27,8 @@ use Valkyrja\Grpc\Routing\Dispatcher\Contract\RouterContract;
 use Valkyrja\Grpc\Routing\Dispatcher\Router;
 use Valkyrja\Grpc\Routing\Provider\GrpcRoutingServiceProvider;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
+use Valkyrja\Reflection\Reflector\Contract\ReflectorContract;
+use Valkyrja\Reflection\Reflector\Reflector;
 use Valkyrja\Tests\Fixtures\Application\Data\GrpcConfigFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\GrpcComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\GrpcRouteProviderWithRoutesFixture;
@@ -52,6 +56,26 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $callback = new GrpcRoutingServiceProvider()->publishers()[RouteCollectorContract::class];
         $callback($this->container);
 
+        self::assertInstanceOf(
+            AttributeRouteCollector::class,
+            $this->container->getSingleton(RouteCollectorContract::class)
+        );
+    }
+
+    public function testPublishAttributeRouteCollectorReusesABoundReflectorAndCollector(): void
+    {
+        $reflector = new Reflector();
+        $collector = new Collector(reflection: $reflector);
+
+        $this->container->setSingleton(ReflectorContract::class, $reflector);
+        $this->container->setSingleton(CollectorContract::class, $collector);
+
+        $callback = new GrpcRoutingServiceProvider()->publishers()[RouteCollectorContract::class];
+        $callback($this->container);
+
+        // The publisher must not replace a dependency the application already bound.
+        self::assertSame($reflector, $this->container->getSingleton(ReflectorContract::class));
+        self::assertSame($collector, $this->container->getSingleton(CollectorContract::class));
         self::assertInstanceOf(
             AttributeRouteCollector::class,
             $this->container->getSingleton(RouteCollectorContract::class)
