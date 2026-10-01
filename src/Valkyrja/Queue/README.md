@@ -167,6 +167,7 @@ free, so a row that a crashed worker abandoned returns to the queue.
 | `SqsQueue`        | a worker that long-polls an SQS queue                 |
 | `BeanstalkdQueue` | a worker that reserves jobs from a tube               |
 | `DatabaseQueue`   | a worker that claims rows from a table                |
+| `PubSubQueue`     | a worker that pulls a Pub/Sub subscription            |
 | `PushQueue`       | one job that a broker delivers over HTTP              |
 | `InternalQueue`   | each job that `SyncClient` or `DeferredClient` pushes |
 
