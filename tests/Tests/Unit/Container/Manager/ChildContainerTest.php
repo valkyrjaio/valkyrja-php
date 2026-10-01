@@ -749,6 +749,17 @@ final class ChildContainerTest extends TestCase
         $child->getAliased('providedAlias');
     }
 
+    public function testGetAliasedReachesTheChildBindingWhenTheParentNeverBuiltTheSingleton(): void
+    {
+        $this->parent->bindSingleton(ServiceFixture::class, [ServiceFixture::class, 'make']);
+        $this->parent->bindAlias('parentAlias', ServiceFixture::class);
+        $child = $this->createChild();
+        $child->bind(ServiceFixture::class, [SingletonFixture::class, 'make']);
+
+        // The child holds the copied marker, so it resolves the target with its own binding
+        self::assertInstanceOf(SingletonFixture::class, $child->getAliased('parentAlias'));
+    }
+
     /**
      * Create a ChildContainer from the current parent state.
      * The ContainerData is built from the parent and passed explicitly.
