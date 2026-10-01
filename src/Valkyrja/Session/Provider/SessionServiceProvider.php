@@ -25,12 +25,12 @@ use Valkyrja\Http\Message\Request\Contract\ServerRequestContract;
 use Valkyrja\Jwt\Manager\Contract\JwtContract;
 use Valkyrja\Log\Logger\Contract\LoggerContract;
 use Valkyrja\Session\Data\Contract\SessionConfigContract;
-use Valkyrja\Session\Data\Contract\SessionCookieConfigContract;
 use Valkyrja\Session\Data\Contract\SessionJwtConfigContract;
+use Valkyrja\Session\Data\Contract\SessionPhpConfigContract;
 use Valkyrja\Session\Data\Contract\SessionTokenConfigContract;
 use Valkyrja\Session\Data\SessionConfig;
-use Valkyrja\Session\Data\SessionCookieConfig;
 use Valkyrja\Session\Data\SessionJwtConfig;
+use Valkyrja\Session\Data\SessionPhpConfig;
 use Valkyrja\Session\Data\SessionTokenConfig;
 use Valkyrja\Session\Manager\CacheSession;
 use Valkyrja\Session\Manager\Contract\SessionContract;
@@ -69,17 +69,17 @@ class SessionServiceProvider implements ServiceProviderContract
     /**
      * Publish the cookie session config service.
      */
-    public static function publishCookieConfig(ContainerContract $container): void
+    public static function publishPhpConfig(ContainerContract $container): void
     {
         $config = $container->getSingleton(ConfigContract::class);
 
-        if ($config instanceof SessionCookieConfigContract) {
-            $container->setSingleton(SessionCookieConfigContract::class, $config);
+        if ($config instanceof SessionPhpConfigContract) {
+            $container->setSingleton(SessionPhpConfigContract::class, $config);
 
             return;
         }
 
-        $container->setSingleton(SessionCookieConfigContract::class, new SessionCookieConfig());
+        $container->setSingleton(SessionPhpConfigContract::class, new SessionPhpConfig());
     }
 
     /**
@@ -140,7 +140,7 @@ class SessionServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             PhpSession::class,
             new PhpSession(
-                cookieConfig: $container->getSingleton(SessionCookieConfigContract::class),
+                cookieConfig: $container->getSingleton(SessionPhpConfigContract::class),
                 sessionId: $sessionId,
                 sessionName: $sessionName,
             ),
@@ -447,7 +447,7 @@ class SessionServiceProvider implements ServiceProviderContract
     {
         return [
             SessionConfigContract::class       => [self::class, 'publishConfig'],
-            SessionCookieConfigContract::class => [self::class, 'publishCookieConfig'],
+            SessionPhpConfigContract::class    => [self::class, 'publishPhpConfig'],
             SessionJwtConfigContract::class    => [self::class, 'publishJwtConfig'],
             SessionTokenConfigContract::class  => [self::class, 'publishTokenConfig'],
             SessionContract::class             => [self::class, 'publishSession'],

@@ -25,12 +25,12 @@ use Valkyrja\Jwt\Manager\Contract\JwtContract;
 use Valkyrja\Log\Logger\Contract\LoggerContract;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
 use Valkyrja\Session\Data\Contract\SessionConfigContract;
-use Valkyrja\Session\Data\Contract\SessionCookieConfigContract;
 use Valkyrja\Session\Data\Contract\SessionJwtConfigContract;
+use Valkyrja\Session\Data\Contract\SessionPhpConfigContract;
 use Valkyrja\Session\Data\Contract\SessionTokenConfigContract;
 use Valkyrja\Session\Data\SessionConfig;
-use Valkyrja\Session\Data\SessionCookieConfig;
 use Valkyrja\Session\Data\SessionJwtConfig;
+use Valkyrja\Session\Data\SessionPhpConfig;
 use Valkyrja\Session\Data\SessionTokenConfig;
 use Valkyrja\Session\Manager\CacheSession;
 use Valkyrja\Session\Manager\Contract\SessionContract;
@@ -68,7 +68,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         parent::setUp();
 
         $this->container->setSingleton(SessionConfigContract::class, new SessionConfig());
-        $this->container->setSingleton(SessionCookieConfigContract::class, new SessionCookieConfig());
+        $this->container->setSingleton(SessionPhpConfigContract::class, new SessionPhpConfig());
         $this->container->setSingleton(SessionJwtConfigContract::class, new SessionJwtConfig());
         $this->container->setSingleton(SessionTokenConfigContract::class, new SessionTokenConfig());
     }
@@ -76,7 +76,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
     public function testExpectedPublishers(): void
     {
         self::assertArrayHasKey(SessionConfigContract::class, new SessionServiceProvider()->publishers());
-        self::assertArrayHasKey(SessionCookieConfigContract::class, new SessionServiceProvider()->publishers());
+        self::assertArrayHasKey(SessionPhpConfigContract::class, new SessionServiceProvider()->publishers());
         self::assertArrayHasKey(SessionJwtConfigContract::class, new SessionServiceProvider()->publishers());
         self::assertArrayHasKey(SessionTokenConfigContract::class, new SessionServiceProvider()->publishers());
         self::assertArrayHasKey(SessionContract::class, new SessionServiceProvider()->publishers());
@@ -123,23 +123,23 @@ final class ServiceProviderTest extends ServiceProviderTestCase
     {
         $this->container->setSingleton(ConfigContract::class, new Config());
 
-        $callback = new SessionServiceProvider()->publishers()[SessionCookieConfigContract::class];
+        $callback = new SessionServiceProvider()->publishers()[SessionPhpConfigContract::class];
         $callback($this->container);
 
-        self::assertInstanceOf(SessionCookieConfigContract::class, $config = $this->container->getSingleton(SessionCookieConfigContract::class));
-        self::assertSame('/', $config->cookiePath);
+        self::assertInstanceOf(SessionPhpConfigContract::class, $config = $this->container->getSingleton(SessionPhpConfigContract::class));
+        self::assertSame('/', $config->phpCookiePath);
     }
 
     public function testPublishCookieConfigWithApplicationConfig(): void
     {
         $this->container->setSingleton(ConfigContract::class, new SessionConfigFixture());
 
-        $callback = new SessionServiceProvider()->publishers()[SessionCookieConfigContract::class];
+        $callback = new SessionServiceProvider()->publishers()[SessionPhpConfigContract::class];
         $callback($this->container);
 
-        self::assertInstanceOf(SessionCookieConfigContract::class, $config = $this->container->getSingleton(SessionCookieConfigContract::class));
-        self::assertSame('/test', $config->cookiePath);
-        self::assertSame(SameSite::STRICT, $config->cookieSameSite);
+        self::assertInstanceOf(SessionPhpConfigContract::class, $config = $this->container->getSingleton(SessionPhpConfigContract::class));
+        self::assertSame('/test', $config->phpCookiePath);
+        self::assertSame(SameSite::STRICT, $config->phpCookieSameSite);
     }
 
     public function testPublishJwtConfig(): void
