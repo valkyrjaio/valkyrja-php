@@ -909,10 +909,12 @@ it could have answered itself.
 
 Warning: on that path the parent reads none of the child's maps. An instance the
 child holds for the target does not answer the alias. The parent answers from
-its own maps in one of three ways:
+its own maps in one of four ways:
 
 - It returns the copy it holds.
 - It runs its own binding.
+- It publishes a provider it holds, and answers with what that publisher
+  registered.
 - It throws `ContainerInvalidReferenceException`, when it holds no registration
   for the target.
 
@@ -1000,8 +1002,7 @@ to it, so the chain has no end. Four checks reject one:
 - `ChildContainer` walking the parent's aliases checks the hops of one walk.
   `NativeChildContainer` reads the parent's own map, which the first two checks
   keep acyclic, so it carries no such check.
-- A child resolving a parent-declared alias checks the target it returns to. The
-  check sees a chain that leaves the child and comes back to that target. A
+- A child resolving a parent-declared alias checks the target it returns to. A
   factory that registered the target while it ran has broken the chain, so the
   lookup answers with what the factory registered.
 
@@ -1009,14 +1010,16 @@ The exception extends the SPL `InvalidArgumentException`. The first two checks
 run at registration, and a container installs no map before its walk ends, so a
 caller that catches the exception keeps the container it had. A container that
 writes an alias after a child reads through it is outside registration. A chain
-no check sees ends in one of four ways:
+no check sees ends in one of five ways:
 
 - It resolves through the first hop the parent would answer.
 - It ends with a missing reference, when no hop answers. `NativeChildContainer`
   reports that for a parent which is itself a child.
 - It does not end, when a factory asks again for the id that reached it.
-- It does not end, when a chain starts at an alias the child declares. That
-  path resolves without the check above, so nothing bounds it.
+- It does not end, when an alias the child declares closes a chain through a
+  factory the child runs. No check sits on that path.
+- It throws, when the parent is itself a child and that parent's own walk sees
+  the whole chain.
 
 All three implement `Valkyrja\Container\Throwable\Contract\ContainerThrowable`,
 so one catch covers everything the container throws:
