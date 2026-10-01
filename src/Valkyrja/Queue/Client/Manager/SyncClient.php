@@ -40,8 +40,8 @@ class SyncClient extends InternalClient
     {
         parent::settle($job, $result);
 
-        // The first failure is the one the caller pushed, so a later failure
-        // from a job that this one pushed must not replace it
+        // The first failure of the drain is the one the caller sees, so a later
+        // failure from a job that an earlier one pushed must not replace it
         if ($result->isDeadLettered() && $this->failedResult === null) {
             $this->failedJob    = $job;
             $this->failedResult = $result;
