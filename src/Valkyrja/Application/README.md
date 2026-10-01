@@ -581,6 +581,7 @@ The full `ApplicationContract` surface:
 | `getCliProviders()`          | `CliRouteProviderContract[]`   | Every component's CLI route providers, merged          |
 | `getHttpProviders()`         | `HttpRouteProviderContract[]`  | Every component's HTTP route providers, merged         |
 | `getQueueProviders()`        | `QueueRouteProviderContract[]` | Every component's queue route providers, merged        |
+| `getGrpcProviders()`         | `GrpcRouteProviderContract[]`  | Every component's gRPC route providers, merged         |
 | `getDebugMode()`             | `bool`                         | `config->debugMode`                                    |
 | `getEnvironment()`           | `string`                       | `config->environment`                                  |
 | `getVersion()`               | `string`                       | `config->version`                                      |
