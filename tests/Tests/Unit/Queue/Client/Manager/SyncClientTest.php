@@ -19,6 +19,7 @@ use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Queue\Routing\Handler\JobOutcomeFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
@@ -36,6 +37,8 @@ final class SyncClientTest extends TestCase
     #[Override]
     protected function tearDown(): void
     {
+        JobOutcomeFixture::reset();
+
         ResultLogMiddlewareFixture::reset();
         InternalQueueFixture::reset();
 
@@ -73,6 +76,26 @@ final class SyncClientTest extends TestCase
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($first->getId()));
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($second->getId()));
         self::assertSame(1, InternalQueueFixture::$configCount);
+    }
+
+    public function testOnlyTheFirstTerminalFailureSurfaces(): void
+    {
+        $client = $this->client();
+        $outer  = new JobFactory()->create(QueueRoutingProviderFixture::PUSHES_THEN_FAILS);
+
+        // The handler pushes a second job through the same client, and that one
+        // also gives up, so the drain settles two terminal failures in a row
+        JobOutcomeFixture::$client = $client;
+        JobOutcomeFixture::$pushes = QueueRoutingProviderFixture::ALWAYS_FAIL;
+
+        try {
+            $client->push($outer);
+
+            self::fail('The drain did not surface a failure.');
+        } catch (QueueClientSyncJobFailedException $exception) {
+            // The first failure is the one that surfaces, not the later one
+            self::assertStringContainsString($outer->getId(), $exception->getMessage());
+        }
     }
 
     protected function client(): SyncClient

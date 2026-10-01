@@ -37,6 +37,9 @@ final class QueueRoutingProviderFixture implements QueueRouteProviderContract
     /** @var non-empty-string */
     public const string RECORD_PROCESS_STATE = 'RecordProcessState';
 
+    /** @var non-empty-string */
+    public const string PUSHES_THEN_FAILS = 'PushesThenFails';
+
     /**
      * @inheritDoc
      */
@@ -72,6 +75,11 @@ final class QueueRoutingProviderFixture implements QueueRouteProviderContract
                 name: self::ALWAYS_THROWS,
                 description: 'Always throws',
                 handler: [JobOutcomeFixture::class, 'throws'],
+            ),
+            new Route(
+                name: self::PUSHES_THEN_FAILS,
+                description: 'Pushes a second job and then gives up',
+                handler: [JobOutcomeFixture::class, 'pushesThenFails'],
             ),
             new Route(
                 name: self::RECORD_PROCESS_STATE,
