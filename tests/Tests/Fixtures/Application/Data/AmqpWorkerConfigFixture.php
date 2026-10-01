@@ -34,7 +34,7 @@ final class AmqpWorkerConfigFixture extends QueueConfig implements QueueClientCo
      * @param non-empty-string $amqpUser     The broker user
      * @param non-empty-string $amqpVhost    The broker virtual host
      * @param non-empty-string $amqpQueue    The queue jobs are published to
-     * @param non-empty-string $amqpExchange The exchange jobs are published through
+     * @param string           $amqpExchange The exchange jobs are published through; empty for the default
      */
     public function __construct(
         public string $amqpHost = '127.0.0.1',
