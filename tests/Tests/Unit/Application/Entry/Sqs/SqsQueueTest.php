@@ -10,20 +10,23 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Tests\Unit\Queue\Client\Puller;
+namespace Valkyrja\Tests\Unit\Application\Entry\Sqs;
 
 use AsyncAws\Sqs\ValueObject\Message;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Queue\Client\Data\QueueSqsClientConfig;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
-use Valkyrja\Queue\Client\Puller\SqsPuller;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Tests\Fixtures\Application\Entry\SqsQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\SqsFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-final class SqsPullerTest extends TestCase
+final class SqsQueueTest extends TestCase
 {
     /** @var non-empty-string */
     protected const string NAME = 'SendWelcomeEmail';
@@ -54,16 +57,26 @@ final class SqsPullerTest extends TestCase
         parent::setUp();
 
         $this->sqs = new SqsFixture();
+
+        SqsQueueFixture::inject($this->sqs, self::QUEUE_URL);
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        SqsQueueFixture::reset();
+
+        parent::tearDown();
     }
 
     public function testAnEmptyQueueYieldsNothing(): void
     {
-        self::assertNull($this->puller()->receive());
+        self::assertNull(SqsQueueFixture::receive());
     }
 
     public function testReceiveLongPollsWithTheConfiguredWait(): void
     {
-        $this->puller()->receive();
+        SqsQueueFixture::receive();
 
         $input = $this->sqs->getCalls('receiveMessage')[0];
 
@@ -77,7 +90,7 @@ final class SqsPullerTest extends TestCase
     {
         $this->seed(new JobFactory()->create(self::NAME, ['user_id' => 42]));
 
-        $job = $this->puller()->receive();
+        $job = SqsQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(self::NAME, $job->getName());
@@ -89,7 +102,7 @@ final class SqsPullerTest extends TestCase
         // SQS types the body as optional, so a body-less delivery is reachable
         $this->sqs->next = [new Message(['MessageId' => 'id-1', 'ReceiptHandle' => self::HANDLE])];
 
-        self::assertNull($this->puller()->receive());
+        self::assertNull(SqsQueueFixture::receive());
     }
 
     public function testADeliveryWithNoReceiptHandleIsSkipped(): void
@@ -104,12 +117,10 @@ final class SqsPullerTest extends TestCase
             ]),
         ];
 
-        $puller = $this->puller();
-
-        self::assertNull($puller->receive());
+        self::assertNull(SqsQueueFixture::receive());
 
         // Nothing is in flight, so a later settle must not touch the queue
-        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        SqsQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertSame([], $this->sqs->getCalls('deleteMessage'));
         self::assertSame([], $this->sqs->getCalls('changeMessageVisibility'));
@@ -120,12 +131,11 @@ final class SqsPullerTest extends TestCase
     {
         $this->seed(new JobFactory()->create(self::NAME));
 
-        $puller = $this->puller();
-        $job    = $puller->receive();
+        $job    = SqsQueueFixture::receive();
 
         self::assertNotNull($job);
 
-        $puller->settle($job, $result, new InMemoryClient());
+        SqsQueueFixture::settle($job, $result, new InMemoryClient());
 
         $calls = $this->sqs->getCalls('deleteMessage');
 
@@ -138,12 +148,11 @@ final class SqsPullerTest extends TestCase
     {
         $this->seed(new JobFactory()->create(self::NAME));
 
-        $puller = $this->puller();
-        $job    = $puller->receive();
+        $job    = SqsQueueFixture::receive();
 
         self::assertNotNull($job);
 
-        $puller->settle($job, JobResult::RETRY, new InMemoryClient());
+        SqsQueueFixture::settle($job, JobResult::RETRY, new InMemoryClient());
 
         $calls = $this->sqs->getCalls('changeMessageVisibility');
 
@@ -156,7 +165,7 @@ final class SqsPullerTest extends TestCase
 
     public function testSettlingWithNothingInFlightDoesNothing(): void
     {
-        $this->puller()->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        SqsQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertSame([], $this->sqs->getCalls('deleteMessage'));
         self::assertSame([], $this->sqs->getCalls('changeMessageVisibility'));
@@ -166,13 +175,12 @@ final class SqsPullerTest extends TestCase
     {
         $this->seed(new JobFactory()->create(self::NAME));
 
-        $puller = $this->puller();
-        $job    = $puller->receive();
+        $job    = SqsQueueFixture::receive();
 
         self::assertNotNull($job);
 
-        $puller->settle($job, JobResult::ACK, new InMemoryClient());
-        $puller->settle($job, JobResult::ACK, new InMemoryClient());
+        SqsQueueFixture::settle($job, JobResult::ACK, new InMemoryClient());
+        SqsQueueFixture::settle($job, JobResult::ACK, new InMemoryClient());
 
         self::assertCount(1, $this->sqs->getCalls('deleteMessage'));
     }
@@ -181,10 +189,9 @@ final class SqsPullerTest extends TestCase
     {
         $this->seed(new JobFactory()->create(self::NAME));
 
-        $puller = $this->puller();
-        $puller->connect();
-        $puller->receive();
-        $puller->disconnect();
+        SqsQueueFixture::connect($this->application());
+        SqsQueueFixture::receive();
+        SqsQueueFixture::disconnect();
 
         $calls = $this->sqs->getCalls('changeMessageVisibility');
 
@@ -194,9 +201,8 @@ final class SqsPullerTest extends TestCase
 
     public function testDisconnectWithNothingInFlightReleasesNothing(): void
     {
-        $puller = $this->puller();
-        $puller->connect();
-        $puller->disconnect();
+        SqsQueueFixture::connect($this->application());
+        SqsQueueFixture::disconnect();
 
         self::assertSame([], $this->sqs->getCalls('changeMessageVisibility'));
     }
@@ -212,8 +218,17 @@ final class SqsPullerTest extends TestCase
         ];
     }
 
-    protected function puller(): SqsPuller
+    /**
+     * Build an application whose container carries the SQS client config.
+     */
+    protected function application(): ApplicationContract
     {
-        return new SqsPuller($this->sqs, self::QUEUE_URL, waitTimeSeconds: 2, visibilityTimeout: 45);
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturn(new QueueSqsClientConfig());
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        return $app;
     }
 }

@@ -15,16 +15,16 @@ namespace Valkyrja\Tests\Functional\Queue;
 use AsyncAws\Sqs\SqsClient as Sqs;
 use Override;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Directory\Directory;
-use Valkyrja\Application\Entry\PullQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Client\Manager\SqsClient;
-use Valkyrja\Queue\Client\Puller\SqsPuller;
 use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Tests\Fixtures\Application\Data\SqsWorkerConfigFixture;
+use Valkyrja\Tests\Fixtures\Application\Entry\SqsQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
-use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Functional\Abstract\TestCase;
 
@@ -38,6 +38,9 @@ final class SqsIntegrationTest extends TestCase
 
     /** @var non-empty-string */
     private string $queueUrl;
+
+    /** @var non-empty-string */
+    private string $endpoint;
 
     #[Override]
     protected function setUp(): void
@@ -56,6 +59,7 @@ final class SqsIntegrationTest extends TestCase
         }
 
         $this->queueUrl = $queueUrl;
+        $this->endpoint = $endpoint;
         $this->sqs      = new Sqs([
             'endpoint'          => $endpoint,
             'region'            => 'us-east-1',
@@ -66,6 +70,8 @@ final class SqsIntegrationTest extends TestCase
 
         $this->purge();
 
+        SqsQueueFixture::inject($this->sqs, $this->queueUrl, waitTimeSeconds: 0, visibilityTimeout: 30);
+
         ResultLogMiddlewareFixture::reset();
     }
 
@@ -75,6 +81,8 @@ final class SqsIntegrationTest extends TestCase
         if (isset($this->sqs)) {
             $this->purge();
         }
+
+        SqsQueueFixture::reset();
 
         ResultLogMiddlewareFixture::reset();
 
@@ -94,14 +102,13 @@ final class SqsIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        $puller   = $this->puller();
-        $received = $puller->receive();
+        $received = SqsQueueFixture::receive();
 
         self::assertNotNull($received);
         // The envelope is the cross-language contract, so every field must survive
         self::assertSame($client->getPushed()[0]->asArray(), $received->asArray());
 
-        $puller->settle($received, JobResult::ACK, $client);
+        SqsQueueFixture::settle($received, JobResult::ACK, $client);
     }
 
     public function testAnAcknowledgedJobIsGoneForGood(): void
@@ -111,16 +118,13 @@ final class SqsIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
+        SqsQueueFixture::run(
             config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
             maxJobs: 1,
-            requeuer: $puller,
         );
 
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
-        self::assertNull($this->puller()->receive());
+        self::assertNull($this->poll());
     }
 
     public function testARetriedJobIsRedeliveredByTheQueue(): void
@@ -130,40 +134,44 @@ final class SqsIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
+        SqsQueueFixture::run(
             config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
             maxJobs: 1,
-            requeuer: $puller,
         );
 
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
         // A processor-owned retry is not a re-publish, so the client is untouched
         self::assertCount(1, $client->getPushed());
         // The queue made it visible again rather than dropping it
-        self::assertNotNull($this->puller()->receive());
+        self::assertNotNull($this->poll());
     }
 
     public function testAnEmptyQueueYieldsNothing(): void
     {
-        self::assertNull($this->puller()->receive());
+        self::assertNull(SqsQueueFixture::receive());
     }
 
     public function testDisconnectHandsAnInFlightDeliveryBack(): void
     {
         $this->client()->push(new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK));
 
-        $puller = $this->puller();
-        $puller->connect();
-
-        self::assertNotNull($puller->receive());
+        self::assertNotNull(SqsQueueFixture::receive());
 
         // A worker shutting down mid-job must not make the queue wait out the
         // whole visibility timeout before another worker can take it
-        $puller->disconnect();
+        SqsQueueFixture::disconnect();
 
-        self::assertNotNull($this->puller()->receive());
+        self::assertNotNull($this->poll());
+    }
+
+    /**
+     * Poll on a re-established client, because a finished worker disconnects.
+     */
+    private function poll(): JobContract|null
+    {
+        SqsQueueFixture::inject($this->sqs, $this->queueUrl, waitTimeSeconds: 0, visibilityTimeout: 30);
+
+        return SqsQueueFixture::receive();
     }
 
     private function client(): SqsClient
@@ -171,22 +179,25 @@ final class SqsIntegrationTest extends TestCase
         return new SqsClient(sqs: $this->sqs, queueUrl: $this->queueUrl);
     }
 
-    private function puller(): SqsPuller
+    /**
+     * Build an application whose container carries the SQS client config.
+     */
+    private function application(): ApplicationContract
     {
-        return new SqsPuller(
-            sqs: $this->sqs,
-            queueUrl: $this->queueUrl,
-            waitTimeSeconds: 0,
-            visibilityTimeout: 30,
-        );
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturn($this->config());
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        return $app;
     }
 
     private function config(): QueueConfigContract
     {
-        return new QueueConfig(
-            dir: Directory::$basePath,
-            providers: [new QueueTestComponentProviderFixture()],
-            resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
+        return new SqsWorkerConfigFixture(
+            sqsQueueUrl: $this->queueUrl,
+            sqsEndpoint: $this->endpoint,
         );
     }
 
