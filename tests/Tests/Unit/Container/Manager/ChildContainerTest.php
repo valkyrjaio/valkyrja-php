@@ -703,6 +703,17 @@ final class ChildContainerTest extends TestCase
         self::assertSame('first', $child->getAliasedId('fourth'));
     }
 
+    public function testGetAliasedDelegatesWhenTheSnapshotOmitsTheParentMarker(): void
+    {
+        $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
+        $this->parent->bindAlias('fromParent', SingletonFixture::class);
+        $child = new ChildContainer($this->parent, new ContainerData());
+
+        // The child holds no marker, so it leaves the target to the parent
+        self::assertSame($child->getAliased('fromParent'), $child->getAliased('fromParent'));
+        self::assertTrue($this->parent->isSingletonInstance(SingletonFixture::class));
+    }
+
     /**
      * Create a ChildContainer from the current parent state.
      * The ContainerData is built from the parent and passed explicitly.

@@ -234,7 +234,9 @@ class NativeChildContainer extends Container
             return false;
         }
 
-        return $this->parent->isSingletonBinding($id);
+        // The child reads its own marker here, because the child is the container that
+        // caches what it builds. A marker it does not hold leaves the lookup to the parent.
+        return $this->isSingletonBinding($id);
     }
 
     /**
