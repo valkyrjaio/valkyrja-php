@@ -12,7 +12,9 @@ declare(strict_types=1);
 
 namespace Valkyrja\Application\Entry\Sqs;
 
+use AsyncAws\Sqs\Enum\MessageSystemAttributeName;
 use AsyncAws\Sqs\SqsClient;
+use AsyncAws\Sqs\ValueObject\Message;
 use JsonException;
 use Override;
 use Valkyrja\Application\Entry\Abstract\PullQueue;
@@ -25,6 +27,8 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
 use function array_filter;
+use function max;
+use function preg_match;
 
 class SqsQueue extends PullQueue
 {
@@ -68,21 +72,17 @@ class SqsQueue extends PullQueue
     public static function receive(): JobContract|null
     {
         $result = static::getConnection()->receiveMessage([
-            'QueueUrl'            => static::getQueueUrl(),
-            'MaxNumberOfMessages' => 1,
-            'WaitTimeSeconds'     => static::$waitTimeSeconds,
-            'VisibilityTimeout'   => static::$visibilityTimeout,
+            'QueueUrl'                    => static::getQueueUrl(),
+            'MaxNumberOfMessages'         => 1,
+            'WaitTimeSeconds'             => static::$waitTimeSeconds,
+            'VisibilityTimeout'           => static::$visibilityTimeout,
+            // SQS owns the attempt count, and it only reports it when asked
+            'MessageSystemAttributeNames' => [MessageSystemAttributeName::APPROXIMATE_RECEIVE_COUNT],
         ]);
 
         $message = $result->getMessages()[0] ?? null;
 
         if ($message === null) {
-            return null;
-        }
-
-        $body = $message->getBody();
-
-        if ($body === null) {
             return null;
         }
 
@@ -95,9 +95,22 @@ class SqsQueue extends PullQueue
             return null;
         }
 
+        $body = $message->getBody();
+
+        // A delivery with no body cannot be run, and leaving it in flight would
+        // poison every later poll, so it is retired rather than handed back
+        if ($body === null) {
+            static::getConnection()->deleteMessage([
+                'QueueUrl'      => static::getQueueUrl(),
+                'ReceiptHandle' => $handle,
+            ]);
+
+            return null;
+        }
+
         static::$current = $handle;
 
-        return new JobFactory()->fromJson($body);
+        return static::withNormalizedAttempts(new JobFactory()->fromJson($body), $message);
     }
 
     /**
@@ -141,6 +154,27 @@ class SqsQueue extends PullQueue
             'QueueUrl'      => static::getQueueUrl(),
             'ReceiptHandle' => $handle,
         ]);
+    }
+
+    /**
+     * Read the receive count back off the queue and onto the job.
+     *
+     * A processor-owned adapter never rewrites the envelope, so the `attempts`
+     * the producer published never advances on its own. SQS owns the count, and
+     * the adapter normalizes it, which is what lets `max_attempts` stop a
+     * failing chain. A count that is absent or not a positive integer leaves
+     * the envelope's own value in place.
+     */
+    protected static function withNormalizedAttempts(JobContract $job, Message $message): JobContract
+    {
+        $count = $message->getAttributes()[MessageSystemAttributeName::APPROXIMATE_RECEIVE_COUNT] ?? null;
+
+        if ($count === null || preg_match('/^[1-9][0-9]*$/', $count) !== 1) {
+            return $job;
+        }
+
+        // The regex admits only a positive integer; max() is what narrows it
+        return $job->withAttempts(max(1, (int) $count));
     }
 
     /**
