@@ -677,4 +677,15 @@ final class NativeChildContainerTest extends TestCase
         self::assertInstanceOf(ServiceFixture::class, $this->child->getAliased('fromParent'));
         self::assertInstanceOf(SingletonFixture::class, $this->child->get(ServiceFixture::class));
     }
+
+    public function testGetAliasedThrowsWhenOnlyTheChildBindsTheTarget(): void
+    {
+        $this->parent->bindAlias('parentAlias', SingletonFixture::class);
+        $this->child->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
+
+        // The parent declares the alias and holds no target, so it has nothing to answer with
+        $this->expectException(ContainerInvalidReferenceException::class);
+
+        $this->child->getAliased('parentAlias');
+    }
 }
