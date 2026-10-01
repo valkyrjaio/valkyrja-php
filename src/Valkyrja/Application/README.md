@@ -8,7 +8,7 @@ This component also carries the entry classes, the config classes, the
 `Directory` path helper, and the built-in component providers. This document
 covers each in turn:
 
-- [Entry Points](#entry-points) — HTTP, CLI, queue, and the persistent
+- [Entry Points](#entry-points) — HTTP, CLI, queue, gRPC, and the persistent
   worker runtimes
 - [Configuration](#configuration) — the config classes, environment
   sourcing, your own config class, and callbacks
@@ -760,13 +760,14 @@ The framework ships the following aggregators in
 `Valkyrja\Application\Provider`. Each declares framework components through
 `getComponentProviders()` and returns `[]` from every other method.
 
-| Provider                                  | Composition                                                                                         | Default for  |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------ |
-| `ApplicationComponentProvider`            | Container, Event                                                                                    | `Config`     |
-| `CliApplicationComponentProvider`         | `ApplicationComponentProvider` + CLI Interaction, Middleware, Routing, Server + Log                 | —            |
-| `CliWithHttpApplicationComponentProvider` | `CliApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server           | `CliConfig`  |
-| `HttpApplicationComponentProvider`        | `ApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server + Log + View | `HttpConfig` |
-| `GrpcApplicationComponentProvider`        | `ApplicationComponentProvider` + gRPC Middleware, Routing, Server + Log                             | `GrpcConfig` |
+| Provider                                  | Composition                                                                                         | Default for   |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------- |
+| `ApplicationComponentProvider`            | Container, Event                                                                                    | `Config`      |
+| `CliApplicationComponentProvider`         | `ApplicationComponentProvider` + CLI Interaction, Middleware, Routing, Server + Log                 | —             |
+| `CliWithHttpApplicationComponentProvider` | `CliApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server           | `CliConfig`   |
+| `HttpApplicationComponentProvider`        | `ApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server + Log + View | `HttpConfig`  |
+| `QueueApplicationComponentProvider`       | `ApplicationComponentProvider` + Queue Message, Middleware, Routing + Log                           | `QueueConfig` |
+| `GrpcApplicationComponentProvider`        | `ApplicationComponentProvider` + gRPC Middleware, Routing, Server + Log                             | `GrpcConfig`  |
 
 Choose by application shape:
 
@@ -902,10 +903,14 @@ The invariant: **the parent application and its container are frozen after
 
 `Valkyrja\Application\Entry\Abstract\WorkerGrpc` holds the same invariant for
 gRPC. It bootstraps once, freezes the parent, and gives every call its own child
-container. Its own surface differs: `bootstrap()` takes a `GrpcConfigContract`,
-`dispatch()` handles one buffered call and hands the response to a writer, and
-`dispatchStreaming()` handles one streaming call against an outbound stream. The
-steps below describe `WorkerHttp`, whose signatures `WorkerGrpc` does not share.
+container. Its own surface differs:
+
+- `bootstrap()` takes a `GrpcConfigContract`.
+- `dispatch()` handles one buffered call and hands the response to a writer.
+- `dispatchStreaming()` handles one streaming call against an outbound stream.
+
+The steps below describe `WorkerHttp`. `WorkerGrpc` shares none of those
+signatures.
 
 ```mermaid
 flowchart TD
