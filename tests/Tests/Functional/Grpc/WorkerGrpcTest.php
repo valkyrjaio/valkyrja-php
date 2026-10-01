@@ -210,6 +210,33 @@ final class WorkerGrpcTest extends TestCase
         self::assertSame(1, ResponseSentMiddlewareFixture::getAndResetCounter());
     }
 
+    public function testAFailedRecoveryCloseKeepsTheHandlersThrowable(): void
+    {
+        $outbound               = new OutboundStreamFixture();
+        $outbound->throwOnClose = new RuntimeException('close blew up too');
+
+        try {
+            WorkerGrpc::dispatchStreaming(
+                $this->app,
+                $this->data,
+                static fn (callable $sink): ServiceCallContract => new ServiceCall(
+                    method: '/pkg.Cancelling/EmitThenFail',
+                    messages: ['one'],
+                    sink: $sink,
+                ),
+                $outbound
+            );
+
+            self::fail('Expected the handler throwable to propagate');
+        } catch (CancelledException $exception) {
+            // The recovery close failed in turn, and the first throwable is still the one raised.
+            self::assertSame('the handler stopped after emitting', $exception->getMessage());
+        }
+
+        self::assertSame(['headers', 'message', 'close'], $outbound->events);
+        self::assertSame(1, ResponseSentMiddlewareFixture::getAndResetCounter());
+    }
+
     public function testAnUnknownMethodIsUnimplemented(): void
     {
         $written = null;
