@@ -1011,14 +1011,15 @@ to it, so the chain has no end. Four checks reject one:
 The exception extends the SPL `InvalidArgumentException`. The first two checks
 run at registration, and a container installs no map before its walk ends, so a
 caller that catches the exception keeps the container it had. A container that
-writes an alias after a child reads through it is outside registration, and a
-chain that closes through a factory is outside every alias walk. A chain
-no check sees ends in one of four ways:
+writes an alias after a child reads through it is outside registration. The last
+two checks see one walk and one return, so a chain that reaches neither is
+unchecked. It ends in one of four ways:
 
 - It resolves through the first hop the parent would answer.
 - It ends with a missing reference, when no hop answers. `NativeChildContainer`
   reports that for a parent which is itself a child.
-- It does not end, when a factory asks again for the id that reached it.
+- It does not end, when a factory the parent runs asks again for the id that
+  reached it.
 - It does not end, when an alias the child declares closes a chain through a
   factory the child runs. No check sits on that path.
 
