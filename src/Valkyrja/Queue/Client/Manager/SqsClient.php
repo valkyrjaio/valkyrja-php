@@ -16,11 +16,13 @@ use AsyncAws\Sqs\SqsClient as Sqs;
 use JsonException;
 use Override;
 use Valkyrja\Application\Constant\ApplicationInfo;
+use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 
+use function array_filter;
 use function intdiv;
 use function max;
 use function min;
@@ -50,6 +52,27 @@ class SqsClient extends Client
         parent::__construct(
             applicationName: $applicationName,
             version: $version,
+        );
+    }
+
+    /**
+     * Build the SDK client this adapter and its entry both talk through.
+     *
+     * A null option falls back to the default of the SDK, and the producer and
+     * the consumer read the same config, so the mapping lives in one place.
+     */
+    public static function createSqs(QueueSqsClientConfigContract $config): Sqs
+    {
+        return new Sqs(
+            array_filter(
+                [
+                    'region'          => $config->sqsRegion,
+                    'endpoint'        => $config->sqsEndpoint,
+                    'accessKeyId'     => $config->sqsAccessKeyId,
+                    'accessKeySecret' => $config->sqsAccessKeySecret,
+                ],
+                static fn (string|null $value): bool => $value !== null
+            )
         );
     }
 
@@ -87,6 +110,8 @@ class SqsClient extends Client
      */
     protected function getDelaySeconds(int $delayMs): int
     {
+        // max() is what narrows the result to the declared int<0, 900>:
+        // the checker does not carry the parameter's own lower bound through intdiv
         return max(0, min(intdiv($delayMs, 1000), self::MAX_DELAY_SECONDS));
     }
 }
