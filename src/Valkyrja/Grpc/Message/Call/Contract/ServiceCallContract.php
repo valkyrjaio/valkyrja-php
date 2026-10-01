@@ -22,7 +22,7 @@ use Valkyrja\Grpc\Throwable\Exception\GrpcNonStreamingSendException;
 interface ServiceCallContract
 {
     /**
-     * Get the fully-qualified method, `/package.Service/Method` — the service-map key.
+     * Get the fully-qualified method, `/package.Service/Method`, which keys the service map.
      *
      * @return non-empty-string
      */
@@ -51,13 +51,13 @@ interface ServiceCallContract
     /**
      * Get the decoded inbound messages.
      *
-     * Under the buffered model this is the fixed list captured before dispatch; under the streaming
-     * model it is a live stream whose iteration waits for each message to arrive and ends when the
+     * Under the buffered model this is the fixed list captured before dispatch. Under the
+     * streaming model it is a live stream. Iteration waits for each message and ends when the
      * client half-closes.
      *
-     * Under the streaming model the stream also ends on cancellation — half-close and cancel both
-     * terminate iteration identically. A handler that needs to tell an orderly end from a cancelled
-     * one inspects `getCancellation()` after the loop.
+     * The streaming stream also ends on cancellation. Half-close and cancel terminate iteration
+     * identically. A handler that must tell an orderly end from a cancelled one inspects
+     * `getCancellation()` after the loop.
      *
      * @return iterable<array-key, mixed>
      */
@@ -67,8 +67,8 @@ interface ServiceCallContract
      * Determine whether this call was dispatched under the streaming model (a bidirectional
      * method).
      *
-     * When true, `getMessages()` is a live inbound stream and `send()` pushes outbound messages
-     * while the handler runs; when false (the buffered model) the handler instead returns a single
+     * When true, `getMessages()` is a live inbound stream, and `send()` pushes outbound messages
+     * while the handler runs. When false, the buffered model applies, and the handler returns one
      * ServiceResponse carrying its messages.
      */
     public function isStreaming(): bool;
@@ -76,9 +76,9 @@ interface ServiceCallContract
     /**
      * Push one outbound message to the client from within the handler (streaming model only).
      *
-     * Sends are serialized; the framework fires SendingResponse middleware once, on the first send
-     * (stream open). Not for buffered calls — those return their messages on the ServiceResponse
-     * instead.
+     * Sends are serialized. The framework fires SendingResponse middleware once, on the first
+     * send, which opens the stream. A buffered call takes no send. A buffered call returns its
+     * messages on the ServiceResponse instead.
      *
      * The transport is not re-entrant, so a send issued while another is in flight is rejected fast
      * rather than silently corrupting the stream.

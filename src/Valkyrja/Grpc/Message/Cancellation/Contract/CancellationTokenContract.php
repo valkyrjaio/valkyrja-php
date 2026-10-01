@@ -20,7 +20,7 @@ interface CancellationTokenContract
     /**
      * Determine whether cancellation has fired.
      *
-     * The token is mutable — an adapter fires it from the transport at any point — so a previous
+     * The token is mutable. An adapter fires it from the transport at any point, so a previous
      * answer says nothing about the next one.
      *
      * @phpstan-impure
