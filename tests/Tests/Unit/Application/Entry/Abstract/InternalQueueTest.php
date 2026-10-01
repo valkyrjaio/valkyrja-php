@@ -17,7 +17,6 @@ use Throwable;
 use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
-use Valkyrja\Queue\Client\Requeuer\Requeuer;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Tests\Fixtures\Application\Entry\ProcessStateInternalQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Handler\ProcessStateFixture;
@@ -74,7 +73,6 @@ final class InternalQueueTest extends TestCase
             data: $app->getContainer()->getSingleton(ContainerData::class),
             job: new JobFactory()->create(QueueRoutingProviderFixture::RECORD_PROCESS_STATE),
             client: new InMemoryClient(),
-            requeuer: new Requeuer(),
         );
 
         self::assertSame(ProcessStateInternalQueueFixture::getConfig()->dir, ProcessStateFixture::$basePath);

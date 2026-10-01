@@ -15,23 +15,21 @@ namespace Valkyrja\Tests\Functional\Queue;
 use Override;
 use Predis\Client;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Directory\Directory;
-use Valkyrja\Application\Entry\PullQueue;
 use Valkyrja\Queue\Client\Manager\RedisClient;
-use Valkyrja\Queue\Client\Puller\RedisPuller;
-use Valkyrja\Queue\Client\Requeuer\Requeuer;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Tests\Fixtures\Application\Data\RedisWorkerConfigFixture;
+use Valkyrja\Tests\Fixtures\Application\Entry\RedisQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
-use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Functional\Abstract\TestCase;
 
 use function class_exists;
 use function getenv;
+use function is_int;
 use function is_string;
+use function parse_url;
 use function usleep;
 
 final class RedisIntegrationTest extends TestCase
@@ -40,6 +38,11 @@ final class RedisIntegrationTest extends TestCase
     private const string QUEUE = 'valkyrja:tests:queue';
 
     private Client $redis;
+
+    /** @var non-empty-string */
+    private string $redisHost = '127.0.0.1';
+
+    private int $redisPort = 6379;
 
     #[Override]
     protected function setUp(): void
@@ -59,6 +62,12 @@ final class RedisIntegrationTest extends TestCase
         $this->redis = new Client($dsn);
         $this->redis->connect();
 
+        $parts            = (array) parse_url($dsn);
+        $this->redisHost  = is_string($parts['host'] ?? null) ? $parts['host'] : '127.0.0.1';
+        $this->redisPort  = is_int($parts['port'] ?? null) ? $parts['port'] : 6379;
+
+        RedisQueueFixture::inject($this->redis, self::QUEUE);
+
         $this->flush();
 
         ResultLogMiddlewareFixture::reset();
@@ -71,6 +80,8 @@ final class RedisIntegrationTest extends TestCase
             $this->flush();
             $this->redis->disconnect();
         }
+
+        RedisQueueFixture::reset();
 
         ResultLogMiddlewareFixture::reset();
 
@@ -92,7 +103,7 @@ final class RedisIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        $received = $this->puller()->receive();
+        $received = RedisQueueFixture::receive();
 
         self::assertNotNull($received);
         // The envelope is the cross-language contract, so every field must survive
@@ -104,7 +115,7 @@ final class RedisIntegrationTest extends TestCase
         $this->client()->push(new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK));
 
         self::assertSame(1, (int) $this->redis->llen(self::QUEUE));
-        self::assertNotNull($this->puller()->receive());
+        self::assertNotNull(RedisQueueFixture::receive());
     }
 
     public function testADelayedJobIsWithheldUntilItIsDue(): void
@@ -115,7 +126,7 @@ final class RedisIntegrationTest extends TestCase
         self::assertSame(0, (int) $this->redis->llen(self::QUEUE));
         self::assertSame(1, (int) $this->redis->zcard(self::QUEUE . RedisClient::DELAYED_SUFFIX));
 
-        self::assertNull($this->puller()->receive());
+        self::assertNull(RedisQueueFixture::receive());
     }
 
     public function testADueDelayedJobIsPromotedAndDelivered(): void
@@ -125,7 +136,7 @@ final class RedisIntegrationTest extends TestCase
 
         usleep(5_000);
 
-        $received = $this->puller()->receive();
+        $received = RedisQueueFixture::receive();
 
         self::assertNotNull($received);
         self::assertSame(QueueRoutingProviderFixture::ALWAYS_ACK, $received->getName());
@@ -136,20 +147,18 @@ final class RedisIntegrationTest extends TestCase
     {
         // The producer's delay is intent recorded at first publish; a retry is
         // timed by its own hold, so this must not wait a minute
-        new Requeuer()->settle(
+        $this->client()->requeue(
             new Job(
                 name: QueueRoutingProviderFixture::ALWAYS_ACK,
                 attempts: 2,
                 delayMs: 60_000,
                 retryDelayMs: 1,
             ),
-            JobResult::RETRY,
-            $this->client(),
         );
 
         usleep(5_000);
 
-        $received = $this->puller()->receive();
+        $received = RedisQueueFixture::receive();
 
         self::assertNotNull($received);
         self::assertSame(3, $received->getAttempts());
@@ -162,10 +171,8 @@ final class RedisIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
+        RedisQueueFixture::run(
             config: $this->config(),
-            puller: $this->puller(),
-            client: $client,
             maxJobs: 1,
         );
 
@@ -181,10 +188,8 @@ final class RedisIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
+        RedisQueueFixture::run(
             config: $this->config(),
-            puller: $this->puller(),
-            client: $client,
             maxJobs: 1,
         );
 
@@ -200,10 +205,8 @@ final class RedisIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
+        RedisQueueFixture::run(
             config: $this->config(),
-            puller: $this->puller(),
-            client: $client,
             maxJobs: 1,
         );
 
@@ -211,7 +214,10 @@ final class RedisIntegrationTest extends TestCase
 
         usleep(5_000);
 
-        $redelivered = $this->puller()->receive();
+        // The loop disconnected on its way out, so poll on a fresh connection
+        RedisQueueFixture::inject($this->redis, self::QUEUE);
+
+        $redelivered = RedisQueueFixture::receive();
 
         self::assertNotNull($redelivered);
         // Same job, next attempt — the id is what makes that checkable
@@ -224,17 +230,12 @@ final class RedisIntegrationTest extends TestCase
         return new RedisClient(redis: $this->redis, queue: self::QUEUE);
     }
 
-    private function puller(): RedisPuller
-    {
-        return new RedisPuller(redis: $this->redis, queue: self::QUEUE, timeout: 1);
-    }
-
     private function config(): QueueConfigContract
     {
-        return new QueueConfig(
-            dir: Directory::$basePath,
-            providers: [new QueueTestComponentProviderFixture()],
-            resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
+        return new RedisWorkerConfigFixture(
+            redisHost: $this->redisHost,
+            redisPort: $this->redisPort,
+            redisQueue: self::QUEUE,
         );
     }
 

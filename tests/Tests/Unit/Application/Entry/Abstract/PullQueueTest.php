@@ -10,10 +10,10 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Tests\Unit\Application\Entry;
+namespace Valkyrja\Tests\Unit\Application\Entry\Abstract;
 
 use Override;
-use Valkyrja\Application\Entry\PullQueue;
+use Valkyrja\Application\Entry\Abstract\PullQueue;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 

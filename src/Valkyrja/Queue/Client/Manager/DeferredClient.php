@@ -37,7 +37,7 @@ class DeferredClient extends InternalClient
             $this->buffer = [];
 
             foreach ($buffered as $job) {
-                $this->run($job, $this->requeuer);
+                $this->run($job);
             }
         }
     }

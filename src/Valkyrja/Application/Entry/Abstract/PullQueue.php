@@ -10,19 +10,16 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Application\Entry;
+namespace Valkyrja\Application\Entry\Abstract;
 
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Entry\Abstract\WorkerQueue;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
-use Valkyrja\Queue\Client\Puller\Contract\PullerContract;
-use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
-use Valkyrja\Queue\Client\Requeuer\Requeuer;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Support\Time\Microtime;
 
-class PullQueue extends WorkerQueue
+abstract class PullQueue extends WorkerQueue
 {
     /**
      * Consume jobs until the loop is stopped or its bounds are reached.
@@ -32,15 +29,12 @@ class PullQueue extends WorkerQueue
      */
     public static function run(
         QueueConfigContract $config,
-        PullerContract $puller,
-        ClientContract $client,
         int $maxJobs = 0,
         int $maxSeconds = 0,
-        RequeuerContract $requeuer = new Requeuer(),
     ): void {
         $app = static::bootstrap($config);
 
-        static::loop($app, $puller, $client, $maxJobs, $maxSeconds, $requeuer);
+        static::loop($app, $maxJobs, $maxSeconds);
     }
 
     /**
@@ -51,34 +45,33 @@ class PullQueue extends WorkerQueue
      */
     public static function loop(
         ApplicationContract $app,
-        PullerContract $puller,
-        ClientContract $client,
         int $maxJobs = 0,
         int $maxSeconds = 0,
-        RequeuerContract $requeuer = new Requeuer(),
     ): void {
-        $data     = $app->getContainer()->getSingleton(ContainerData::class);
-        $handled  = 0;
-        $deadline = $maxSeconds > 0
+        $container = $app->getContainer();
+        $data      = $container->getSingleton(ContainerData::class);
+        $client    = $container->getSingleton(ClientContract::class);
+        $handled   = 0;
+        $deadline  = $maxSeconds > 0
             ? Microtime::get() + (float) $maxSeconds
             : 0.0;
 
-        $puller->connect();
+        static::connect($app);
 
         try {
             while (! static::shouldStop($handled, $maxJobs, $deadline)) {
-                $job = $puller->receive();
+                $job = static::receive();
 
                 if ($job === null) {
                     continue;
                 }
 
-                static::handle($app, $data, $job, $client, $requeuer);
+                static::handle($app, $data, $job, $client);
 
                 $handled++;
             }
         } finally {
-            $puller->disconnect();
+            static::disconnect();
         }
     }
 
@@ -97,4 +90,19 @@ class PullQueue extends WorkerQueue
 
         return $deadline > 0.0 && Microtime::get() >= $deadline;
     }
+
+    /**
+     * Connect to the processor, reading what it needs from the application.
+     */
+    abstract public static function connect(ApplicationContract $app): void;
+
+    /**
+     * Wait for the next job, or return null when nothing arrived in time.
+     */
+    abstract public static function receive(): JobContract|null;
+
+    /**
+     * Disconnect from the processor.
+     */
+    abstract public static function disconnect(): void;
 }
