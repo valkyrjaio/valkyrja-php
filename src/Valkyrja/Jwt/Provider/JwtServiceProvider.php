@@ -20,10 +20,12 @@ use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
 use Valkyrja\Jwt\Data\Contract\JwtConfigContract;
 use Valkyrja\Jwt\Data\Contract\JwtEdDsaConfigContract;
+use Valkyrja\Jwt\Data\Contract\JwtFirebaseConfigContract;
 use Valkyrja\Jwt\Data\Contract\JwtHsConfigContract;
 use Valkyrja\Jwt\Data\Contract\JwtRsConfigContract;
 use Valkyrja\Jwt\Data\JwtConfig;
 use Valkyrja\Jwt\Data\JwtEdDsaConfig;
+use Valkyrja\Jwt\Data\JwtFirebaseConfig;
 use Valkyrja\Jwt\Data\JwtHsConfig;
 use Valkyrja\Jwt\Data\JwtRsConfig;
 use Valkyrja\Jwt\Enum\Algorithm;
@@ -110,6 +112,25 @@ class JwtServiceProvider implements ServiceProviderContract
     }
 
     /**
+     * Publish the firebase jwt config service.
+     */
+    public static function publishFirebaseConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof JwtFirebaseConfigContract) {
+            $container->setSingleton(JwtFirebaseConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(
+            JwtFirebaseConfigContract::class,
+            new JwtFirebaseConfig()
+        );
+    }
+
+    /**
      * Publish the jwt service.
      */
     public static function publishJwt(ContainerContract $container): void
@@ -139,8 +160,8 @@ class JwtServiceProvider implements ServiceProviderContract
     public static function publishFirebaseJwt(ContainerContract $container): void
     {
         $appConfig = $container->getSingleton(ConfigContract::class);
-        $config    = $container->getSingleton(JwtConfigContract::class);
-        $algorithm = $config->algorithm;
+        $config    = $container->getSingleton(JwtFirebaseConfigContract::class);
+        $algorithm = $config->firebaseAlgorithm;
 
         /** @var OpenSSLAsymmetricKey|OpenSSLCertificate|string $encodeKey */
         $encodeKey = match ($algorithm) {
@@ -186,13 +207,14 @@ class JwtServiceProvider implements ServiceProviderContract
     public function publishers(): array
     {
         return [
-            JwtConfigContract::class      => [self::class, 'publishConfig'],
-            JwtHsConfigContract::class    => [self::class, 'publishHsConfig'],
-            JwtRsConfigContract::class    => [self::class, 'publishRsConfig'],
-            JwtEdDsaConfigContract::class => [self::class, 'publishEdDsaConfig'],
-            JwtContract::class            => [self::class, 'publishJwt'],
-            FirebaseJwt::class            => [self::class, 'publishFirebaseJwt'],
-            NullJwt::class                => [self::class, 'publishNullJwt'],
+            JwtConfigContract::class         => [self::class, 'publishConfig'],
+            JwtHsConfigContract::class       => [self::class, 'publishHsConfig'],
+            JwtRsConfigContract::class       => [self::class, 'publishRsConfig'],
+            JwtEdDsaConfigContract::class    => [self::class, 'publishEdDsaConfig'],
+            JwtFirebaseConfigContract::class => [self::class, 'publishFirebaseConfig'],
+            JwtContract::class               => [self::class, 'publishJwt'],
+            FirebaseJwt::class               => [self::class, 'publishFirebaseJwt'],
+            NullJwt::class                   => [self::class, 'publishNullJwt'],
         ];
     }
 }

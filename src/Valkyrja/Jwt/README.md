@@ -45,7 +45,7 @@ Configure the default through `JwtConfigContract`.
 
 ## Configuration
 
-The component reads four config contracts. Your application config class
+The component reads five config contracts. Your application config class
 implements only the contracts for the algorithms that it signs with. Each
 algorithm contract prefixes its properties with the algorithm name, so one class
 can implement several of them at once.
@@ -55,10 +55,15 @@ application that signs with HMAC never constructs the RSA keys.
 
 ### `JwtConfigContract`
 
-| Property     | Default              | Description                                   |
-| :----------- | :------------------- | :-------------------------------------------- |
-| `defaultJwt` | `FirebaseJwt::class` | Implementation bound to `JwtContract`         |
-| `algorithm`  | `Algorithm::HS256`   | Algorithm to use for signing and verification |
+| Property     | Default              | Description                           |
+| :----------- | :------------------- | :------------------------------------ |
+| `defaultJwt` | `FirebaseJwt::class` | Implementation bound to `JwtContract` |
+
+### `JwtFirebaseConfigContract`
+
+| Property            | Default            | Description                                          |
+| :------------------ | :----------------- | :--------------------------------------------------- |
+| `firebaseAlgorithm` | `Algorithm::HS256` | Algorithm that `FirebaseJwt` signs and verifies with |
 
 ### `JwtHsConfigContract`
 
@@ -87,12 +92,13 @@ An algorithm outside these three families falls back to the application-level
 
 The JWT service provider registers the following singletons:
 
-| Contract / Class         | Description                                 |
-| :----------------------- | :------------------------------------------ |
-| `JwtConfigContract`      | Component config                            |
-| `JwtHsConfigContract`    | HMAC key config                             |
-| `JwtRsConfigContract`    | RSA key config                              |
-| `JwtEdDsaConfigContract` | EdDSA key config                            |
-| `JwtContract`            | Active JWT manager (default: `FirebaseJwt`) |
-| `FirebaseJwt`            | Firebase JWT implementation                 |
-| `NullJwt`                | No-op implementation                        |
+| Contract / Class            | Description                                 |
+| :-------------------------- | :------------------------------------------ |
+| `JwtConfigContract`         | Component config                            |
+| `JwtHsConfigContract`       | HMAC key config                             |
+| `JwtRsConfigContract`       | RSA key config                              |
+| `JwtEdDsaConfigContract`    | EdDSA key config                            |
+| `JwtFirebaseConfigContract` | Firebase adapter config                     |
+| `JwtContract`               | Active JWT manager (default: `FirebaseJwt`) |
+| `FirebaseJwt`               | Firebase JWT implementation                 |
+| `NullJwt`                   | No-op implementation                        |
