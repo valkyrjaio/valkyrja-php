@@ -33,9 +33,9 @@ final class RedisQueueFixture extends RedisQueue
     public static function inject(ClientInterface $redis, string $queue = 'queues:default', int $timeout = 1): void
     {
         self::$injected  = $redis;
-        static::$redis   = $redis;
-        static::$queue   = $queue;
-        static::$timeout = $timeout;
+        self::$redis     = $redis;
+        self::$queue     = $queue;
+        self::$timeout   = $timeout;
     }
 
     /**
@@ -44,9 +44,9 @@ final class RedisQueueFixture extends RedisQueue
     public static function reset(): void
     {
         self::$injected  = null;
-        static::$redis   = null;
-        static::$queue   = 'queues:default';
-        static::$timeout = 1;
+        self::$redis     = null;
+        self::$queue     = 'queues:default';
+        self::$timeout   = 1;
     }
 
     /**
