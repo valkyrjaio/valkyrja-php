@@ -16,8 +16,12 @@ use Monolog\Logger;
 use PHPUnit\Framework\MockObject\Exception;
 use Psr\Log\LoggerInterface;
 use Valkyrja\Application\Data\Contract\ConfigContract;
+use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Log\Data\Contract\LogConfigContract;
+use Valkyrja\Log\Data\Contract\LogPsrConfigContract;
 use Valkyrja\Log\Data\LogConfig;
+use Valkyrja\Log\Data\LogPsrConfig;
+use Valkyrja\Log\Enum\LogLevel;
 use Valkyrja\Log\Logger\Contract\LoggerContract;
 use Valkyrja\Log\Logger\NullLogger;
 use Valkyrja\Log\Logger\PsrLogger;
@@ -36,6 +40,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
     public function testExpectedPublishers(): void
     {
         self::assertArrayHasKey(LogConfigContract::class, new LogServiceProvider()->publishers());
+        self::assertArrayHasKey(LogPsrConfigContract::class, new LogServiceProvider()->publishers());
         self::assertArrayHasKey(LoggerContract::class, new LogServiceProvider()->publishers());
         self::assertArrayHasKey(PsrLogger::class, new LogServiceProvider()->publishers());
         self::assertArrayHasKey(NullLogger::class, new LogServiceProvider()->publishers());
@@ -61,6 +66,28 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         self::assertInstanceOf(LogConfigContract::class, $config = $this->container->getSingleton(LogConfigContract::class));
         self::assertSame(NullLogger::class, $config->defaultLogger);
+    }
+
+    public function testPublishPsrConfig(): void
+    {
+        $callback = new LogServiceProvider()->publishers()[LogPsrConfigContract::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(LogPsrConfig::class, $config = $this->container->getSingleton(LogPsrConfigContract::class));
+        self::assertNull($config->psrName);
+        self::assertNull($config->psrFilePath);
+        self::assertSame(LogLevel::DEBUG, $config->psrLevel);
+    }
+
+    public function testPublishPsrConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, $appConfig = new LogConfigFixture());
+
+        $callback = new LogServiceProvider()->publishers()[LogPsrConfigContract::class];
+        $callback($this->container);
+
+        self::assertSame($appConfig, $config = $this->container->getSingleton(LogPsrConfigContract::class));
+        self::assertSame('fixture-log', $config->psrName);
     }
 
     /**
@@ -119,10 +146,30 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
     public function testPublishMonolog(): void
     {
+        $this->container->setSingleton(LogPsrConfigContract::class, new LogPsrConfig());
+
         $callback = new LogServiceProvider()->publishers()[Logger::class];
         $callback($this->container);
 
-        self::assertInstanceOf(Logger::class, $this->container->getSingleton(Logger::class));
+        self::assertInstanceOf(Logger::class, $logger = $this->container->getSingleton(Logger::class));
+        // A null name and a null path mean the application name with the date, in the logs storage directory.
+        self::assertStringStartsWith('valkyrja-', $logger->getName());
+        self::assertStringContainsString(Directory::logsStoragePath(), $logger->getHandlers()[0]->getUrl() ?? '');
+    }
+
+    public function testPublishMonologWithConfiguredNameAndPath(): void
+    {
+        $this->container->setSingleton(
+            LogPsrConfigContract::class,
+            new LogPsrConfig(psrName: 'configured', psrFilePath: '/tmp', psrLevel: LogLevel::WARNING)
+        );
+
+        $callback = new LogServiceProvider()->publishers()[Logger::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(Logger::class, $logger = $this->container->getSingleton(Logger::class));
+        self::assertSame('configured', $logger->getName());
+        self::assertSame('/tmp/configured.log', $logger->getHandlers()[0]->getUrl());
     }
 
     public function testPublishNullLogger(): void

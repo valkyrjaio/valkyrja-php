@@ -62,13 +62,29 @@ singleton, which is pre-configured as a Monolog instance writing to
 
 ## Configuration
 
-The component reads `LogConfigContract`. Your application config class
-implements the contract. The service provider binds `LogConfig` when the
-application config does not implement it.
+The component reads two config contracts. Your application config class
+implements only the contracts for the adapters that it uses. Each adapter
+contract prefixes its properties with the adapter name, so one class can
+implement both at once.
+
+### `LogConfigContract`
 
 | Property        | Default            | Description                              |
 | :-------------- | :----------------- | :--------------------------------------- |
 | `defaultLogger` | `PsrLogger::class` | Implementation bound to `LoggerContract` |
+
+### `LogPsrConfigContract`
+
+| Property      | Default           | Description                                 |
+| :------------ | :---------------- | :------------------------------------------ |
+| `psrName`     | `null`            | Name of the log channel and of the log file |
+| `psrFilePath` | `null`            | Directory that holds the log file           |
+| `psrLevel`    | `LogLevel::DEBUG` | Lowest level that the logger writes         |
+
+A null `psrName` names the channel for the application and the current date,
+such as `valkyrja-2026-09-30`. A null `psrFilePath` writes to the framework logs
+storage directory. Both values are only known at run time, so the config holds
+neither as a default.
 
 ## Service Registration
 
@@ -77,6 +93,7 @@ The Log service provider registers the following singletons:
 | Contract / Class          | Description                                    |
 | :------------------------ | :--------------------------------------------- |
 | `LogConfigContract`       | Component config                               |
+| `LogPsrConfigContract`    | PSR adapter config                             |
 | `LoggerContract`          | Active logger (default: `PsrLogger`)           |
 | `PsrLogger`               | PSR-3 adapter wrapping Monolog                 |
 | `NullLogger`              | No-op implementation                           |
