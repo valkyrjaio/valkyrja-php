@@ -24,6 +24,7 @@ use Valkyrja\Grpc\Middleware\Contract\RouteMatchedMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\RouteNotMatchedMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\SendingResponseMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\ThrowableCaughtMiddlewareContract;
+use Valkyrja\Grpc\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddleware;
 
 class GrpcConfig implements GrpcConfigContract
 {
@@ -66,7 +67,9 @@ class GrpcConfig implements GrpcConfigContract
         public readonly array $routeMatchedMiddleware = [],
         public readonly array $routeNotMatchedMiddleware = [],
         public readonly array $routeDispatchedMiddleware = [],
-        public readonly array $throwableCaughtMiddleware = [],
+        public readonly array $throwableCaughtMiddleware = [
+            LogThrowableCaughtMiddleware::class,
+        ],
         public readonly array $sendingResponseMiddleware = [],
         public readonly array $responseSentMiddleware = [],
     ) {

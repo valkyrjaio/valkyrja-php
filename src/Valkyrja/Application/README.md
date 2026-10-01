@@ -402,7 +402,7 @@ and seven middleware lists:
 | `routeMatchedMiddleware`    | `[]`                                                 |
 | `routeNotMatchedMiddleware` | `[]`                                                 |
 | `routeDispatchedMiddleware` | `[]`                                                 |
-| `throwableCaughtMiddleware` | `[]`                                                 |
+| `throwableCaughtMiddleware` | `[LogThrowableCaughtMiddleware::class]`              |
 | `sendingResponseMiddleware` | `[]`                                                 |
 | `responseSentMiddleware`    | `[]`                                                 |
 
