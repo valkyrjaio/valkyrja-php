@@ -38,9 +38,9 @@ final class AmqpQueueFixture extends AmqpQueue
     public static function inject(AMQPChannel $channel, string $queue = 'queues.default', int $timeout = 0): void
     {
         self::$injected  = $channel;
-        static::$channel = $channel;
-        static::$queue   = $queue;
-        static::$timeout = $timeout;
+        self::$channel   = $channel;
+        self::$queue     = $queue;
+        self::$timeout   = $timeout;
         self::$waits     = 0;
     }
 
@@ -50,10 +50,10 @@ final class AmqpQueueFixture extends AmqpQueue
     public static function reset(): void
     {
         self::$injected  = null;
-        static::$channel = null;
-        static::$current = null;
-        static::$queue   = 'queues.default';
-        static::$timeout = 1;
+        self::$channel   = null;
+        self::$current   = null;
+        self::$queue     = 'queues.default';
+        self::$timeout   = 1;
         self::$waits     = 0;
     }
 
