@@ -38,7 +38,7 @@ final class DatabaseManagerFixture implements ManagerContract
     /** @var array<int, array<string, scalar|null>> The row each select returns, in order */
     public array $rows = [];
 
-    /** @var int[] The row count each write reports, in order */
+    /** @var int[] The row count each statement reports, in order, a select included */
     public array $rowCounts = [];
 
     /**
