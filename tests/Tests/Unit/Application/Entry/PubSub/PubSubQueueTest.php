@@ -68,6 +68,25 @@ final class PubSubQueueTest extends TestCase
         parent::tearDown();
     }
 
+    public function testTheSubscriptionNameDefaultsToTheTopic(): void
+    {
+        // A subscription usually carries the name of its topic
+        self::assertSame(
+            'jobs',
+            PubSubQueueFixture::readSubscriptionName(new QueuePubSubClientConfig(pubSubTopic: 'jobs'))
+        );
+    }
+
+    public function testAnApplicationCanNameTheSubscription(): void
+    {
+        PubSubQueueFixture::nameSubscription('jobs-worker');
+
+        self::assertSame(
+            'jobs-worker',
+            PubSubQueueFixture::readSubscriptionName(new QueuePubSubClientConfig(pubSubTopic: 'jobs'))
+        );
+    }
+
     public function testConnectOpensTheSubscriptionFromTheConfig(): void
     {
         $container = self::createStub(ContainerContract::class);
