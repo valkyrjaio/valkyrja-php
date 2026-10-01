@@ -72,7 +72,7 @@ abstract class Client implements ClientContract
         $this->retry(
             $job
                 ->withAttempts($job->getAttempts() + 1)
-                ->withModifiedAtMs(Microtime::now()),
+                ->withModifiedAtMs(Microtime::getMilliseconds()),
             $job->getRetryDelayForAttemptMs(),
         );
     }
@@ -119,7 +119,7 @@ abstract class Client implements ClientContract
      */
     protected function stamp(JobContract $job): JobContract
     {
-        $now = Microtime::now();
+        $now = Microtime::getMilliseconds();
 
         return $job
             ->withProducer($this->getProducer())
