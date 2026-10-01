@@ -10,28 +10,28 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Tests\Unit\Broadcast\Data;
+namespace Valkyrja\Tests\Unit\Session\Data;
 
-use Valkyrja\Broadcast\Data\BroadcastLogConfig;
-use Valkyrja\Broadcast\Data\Contract\BroadcastLogConfigContract;
 use Valkyrja\Log\Logger\Contract\LoggerContract;
 use Valkyrja\Log\Logger\PsrLogger;
+use Valkyrja\Session\Data\Contract\SessionLogConfigContract;
+use Valkyrja\Session\Data\SessionLogConfig;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-final class BroadcastLogConfigTest extends TestCase
+final class SessionLogConfigTest extends TestCase
 {
     public function testImplementsContract(): void
     {
-        self::assertInstanceOf(BroadcastLogConfigContract::class, new BroadcastLogConfig());
+        self::assertInstanceOf(SessionLogConfigContract::class, new SessionLogConfig());
     }
 
     public function testDefaults(): void
     {
-        self::assertSame(LoggerContract::class, new BroadcastLogConfig()->broadcastLogLogger);
+        self::assertSame(LoggerContract::class, new SessionLogConfig()->sessionLogLogger);
     }
 
     public function testCustomValuesAreStored(): void
     {
-        self::assertSame(PsrLogger::class, new BroadcastLogConfig(broadcastLogLogger: PsrLogger::class)->broadcastLogLogger);
+        self::assertSame(PsrLogger::class, new SessionLogConfig(sessionLogLogger: PsrLogger::class)->sessionLogLogger);
     }
 }

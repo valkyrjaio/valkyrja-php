@@ -21,11 +21,12 @@ use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
-use Valkyrja\Log\Logger\Contract\LoggerContract;
 use Valkyrja\Mail\Data\Contract\MailConfigContract;
+use Valkyrja\Mail\Data\Contract\MailLogConfigContract;
 use Valkyrja\Mail\Data\Contract\MailMailgunConfigContract;
 use Valkyrja\Mail\Data\Contract\MailPhpMailerConfigContract;
 use Valkyrja\Mail\Data\MailConfig;
+use Valkyrja\Mail\Data\MailLogConfig;
 use Valkyrja\Mail\Data\MailMailgunConfig;
 use Valkyrja\Mail\Data\MailPhpMailerConfig;
 use Valkyrja\Mail\Mailer\Contract\MailerContract;
@@ -90,6 +91,25 @@ class MailServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             MailPhpMailerConfigContract::class,
             new MailPhpMailerConfig()
+        );
+    }
+
+    /**
+     * Publish the log mailer config service.
+     */
+    public static function publishLogConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof MailLogConfigContract) {
+            $container->setSingleton(MailLogConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(
+            MailLogConfigContract::class,
+            new MailLogConfig()
         );
     }
 
@@ -210,10 +230,12 @@ class MailServiceProvider implements ServiceProviderContract
      */
     public static function publishLogMailer(ContainerContract $container): void
     {
+        $config = $container->getSingleton(MailLogConfigContract::class);
+
         $container->setSingleton(
             LogMailer::class,
             new LogMailer(
-                $container->getSingleton(LoggerContract::class),
+                $container->getSingleton($config->mailLogLogger),
             ),
         );
     }
@@ -239,6 +261,7 @@ class MailServiceProvider implements ServiceProviderContract
             MailConfigContract::class          => [self::class, 'publishConfig'],
             MailMailgunConfigContract::class   => [self::class, 'publishMailgunConfig'],
             MailPhpMailerConfigContract::class => [self::class, 'publishPhpMailerConfig'],
+            MailLogConfigContract::class       => [self::class, 'publishLogConfig'],
             MailerContract::class              => [self::class, 'publishMailer'],
             MailgunMailer::class               => [self::class, 'publishMailgunMailer'],
             Mailgun::class                     => [self::class, 'publishMailgun'],

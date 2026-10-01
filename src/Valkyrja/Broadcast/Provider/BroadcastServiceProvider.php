@@ -169,7 +169,7 @@ class BroadcastServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             LogBroadcaster::class,
             new LogBroadcaster(
-                $container->getSingleton($config->logLogger),
+                $container->getSingleton($config->broadcastLogLogger),
             )
         );
     }

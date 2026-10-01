@@ -31,7 +31,7 @@ final class BroadcastConfigFixture extends Config implements BroadcastConfigCont
      * @param non-empty-string                  $pusherSecret
      * @param non-empty-string                  $pusherId
      * @param non-empty-string                  $pusherCluster
-     * @param class-string<LoggerContract>      $logLogger
+     * @param class-string<LoggerContract>      $broadcastLogLogger
      */
     public function __construct(
         public string $defaultBroadcaster = NullBroadcaster::class,
@@ -40,7 +40,7 @@ final class BroadcastConfigFixture extends Config implements BroadcastConfigCont
         public string $pusherId = 'test-id',
         public string $pusherCluster = 'eu',
         public bool $pusherUseTls = false,
-        public string $logLogger = LoggerContract::class,
+        public string $broadcastLogLogger = LoggerContract::class,
     ) {
         parent::__construct();
     }

@@ -102,7 +102,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $callback($this->container);
 
         self::assertInstanceOf(BroadcastLogConfigContract::class, $config = $this->container->getSingleton(BroadcastLogConfigContract::class));
-        self::assertSame(LoggerContract::class, $config->logLogger);
+        self::assertSame(LoggerContract::class, $config->broadcastLogLogger);
     }
 
     public function testPublishLogConfigWithApplicationConfig(): void
@@ -113,7 +113,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $callback($this->container);
 
         self::assertInstanceOf(BroadcastLogConfigContract::class, $config = $this->container->getSingleton(BroadcastLogConfigContract::class));
-        self::assertSame(LoggerContract::class, $config->logLogger);
+        self::assertSame(LoggerContract::class, $config->broadcastLogLogger);
     }
 
     /**

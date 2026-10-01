@@ -23,13 +23,16 @@ use Valkyrja\Http\Message\Enum\SameSite;
 use Valkyrja\Http\Message\Request\Contract\ServerRequestContract;
 use Valkyrja\Jwt\Manager\Contract\JwtContract;
 use Valkyrja\Log\Logger\Contract\LoggerContract;
+use Valkyrja\Log\Logger\NullLogger;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
 use Valkyrja\Session\Data\Contract\SessionConfigContract;
 use Valkyrja\Session\Data\Contract\SessionJwtConfigContract;
+use Valkyrja\Session\Data\Contract\SessionLogConfigContract;
 use Valkyrja\Session\Data\Contract\SessionPhpConfigContract;
 use Valkyrja\Session\Data\Contract\SessionTokenConfigContract;
 use Valkyrja\Session\Data\SessionConfig;
 use Valkyrja\Session\Data\SessionJwtConfig;
+use Valkyrja\Session\Data\SessionLogConfig;
 use Valkyrja\Session\Data\SessionPhpConfig;
 use Valkyrja\Session\Data\SessionTokenConfig;
 use Valkyrja\Session\Manager\CacheSession;
@@ -79,6 +82,7 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(SessionPhpConfigContract::class, new SessionServiceProvider()->publishers());
         self::assertArrayHasKey(SessionJwtConfigContract::class, new SessionServiceProvider()->publishers());
         self::assertArrayHasKey(SessionTokenConfigContract::class, new SessionServiceProvider()->publishers());
+        self::assertArrayHasKey(SessionLogConfigContract::class, new SessionServiceProvider()->publishers());
         self::assertArrayHasKey(SessionContract::class, new SessionServiceProvider()->publishers());
         self::assertArrayHasKey(PhpSession::class, new SessionServiceProvider()->publishers());
         self::assertArrayHasKey(NullSession::class, new SessionServiceProvider()->publishers());
@@ -184,6 +188,28 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         self::assertInstanceOf(SessionTokenConfigContract::class, $config = $this->container->getSingleton(SessionTokenConfigContract::class));
         self::assertSame('test-token-option', $config->tokenOptionName);
+    }
+
+    public function testPublishLogConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new Config());
+
+        $callback = new SessionServiceProvider()->publishers()[SessionLogConfigContract::class];
+        $callback($this->container);
+
+        self::assertInstanceOf(SessionLogConfig::class, $config = $this->container->getSingleton(SessionLogConfigContract::class));
+        self::assertSame(LoggerContract::class, $config->sessionLogLogger);
+    }
+
+    public function testPublishLogConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, $appConfig = new SessionConfigFixture());
+
+        $callback = new SessionServiceProvider()->publishers()[SessionLogConfigContract::class];
+        $callback($this->container);
+
+        self::assertSame($appConfig, $config = $this->container->getSingleton(SessionLogConfigContract::class));
+        self::assertSame(NullLogger::class, $config->sessionLogLogger);
     }
 
     /**
@@ -372,11 +398,18 @@ final class ServiceProviderTest extends ServiceProviderTestCase
      */
     public function testPublishLogSession(): void
     {
-        $this->container->setSingleton(LoggerContract::class, self::createStub(LoggerContract::class));
+        // Only the configured logger is bound, so the log call proves the session took it.
+        $logger = $this->createMock(NullLogger::class);
+        $logger->expects($this->once())->method('info');
+
+        $this->container->setSingleton(SessionLogConfigContract::class, new SessionLogConfig(sessionLogLogger: NullLogger::class));
+        $this->container->setSingleton(NullLogger::class, $logger);
 
         $callback = new SessionServiceProvider()->publishers()[LogSession::class];
         $callback($this->container);
 
-        self::assertInstanceOf(LogSession::class, $this->container->getSingleton(LogSession::class));
+        self::assertInstanceOf(LogSession::class, $session = $this->container->getSingleton(LogSession::class));
+
+        $session->set('key', 'value');
     }
 }

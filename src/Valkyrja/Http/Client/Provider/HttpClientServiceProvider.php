@@ -18,13 +18,14 @@ use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
 use Valkyrja\Http\Client\Data\Contract\HttpClientConfigContract;
+use Valkyrja\Http\Client\Data\Contract\HttpClientLogConfigContract;
 use Valkyrja\Http\Client\Data\HttpClientConfig;
+use Valkyrja\Http\Client\Data\HttpClientLogConfig;
 use Valkyrja\Http\Client\Manager\Contract\ClientContract;
 use Valkyrja\Http\Client\Manager\GuzzleClient;
 use Valkyrja\Http\Client\Manager\LogClient;
 use Valkyrja\Http\Client\Manager\NullClient;
 use Valkyrja\Http\Message\Response\Factory\Contract\ResponseFactoryContract;
-use Valkyrja\Log\Logger\Contract\LoggerContract;
 
 class HttpClientServiceProvider implements ServiceProviderContract
 {
@@ -44,6 +45,25 @@ class HttpClientServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             HttpClientConfigContract::class,
             new HttpClientConfig()
+        );
+    }
+
+    /**
+     * Publish the log client config service.
+     */
+    public static function publishLogConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof HttpClientLogConfigContract) {
+            $container->setSingleton(HttpClientLogConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(
+            HttpClientLogConfigContract::class,
+            new HttpClientLogConfig()
         );
     }
 
@@ -79,10 +99,12 @@ class HttpClientServiceProvider implements ServiceProviderContract
      */
     public static function publishLogClient(ContainerContract $container): void
     {
+        $config = $container->getSingleton(HttpClientLogConfigContract::class);
+
         $container->setSingleton(
             LogClient::class,
             new LogClient(
-                logger: $container->getSingleton(LoggerContract::class),
+                logger: $container->getSingleton($config->httpClientLogLogger),
             )
         );
     }
@@ -116,12 +138,13 @@ class HttpClientServiceProvider implements ServiceProviderContract
     public function publishers(): array
     {
         return [
-            HttpClientConfigContract::class => [self::class, 'publishConfig'],
-            ClientContract::class           => [self::class, 'publishClient'],
-            GuzzleClient::class             => [self::class, 'publishGuzzleClient'],
-            Client::class                   => [self::class, 'publishGuzzle'],
-            LogClient::class                => [self::class, 'publishLogClient'],
-            NullClient::class               => [self::class, 'publishNullClient'],
+            HttpClientConfigContract::class    => [self::class, 'publishConfig'],
+            HttpClientLogConfigContract::class => [self::class, 'publishLogConfig'],
+            ClientContract::class              => [self::class, 'publishClient'],
+            GuzzleClient::class                => [self::class, 'publishGuzzleClient'],
+            Client::class                      => [self::class, 'publishGuzzle'],
+            LogClient::class                   => [self::class, 'publishLogClient'],
+            NullClient::class                  => [self::class, 'publishNullClient'],
         ];
     }
 }

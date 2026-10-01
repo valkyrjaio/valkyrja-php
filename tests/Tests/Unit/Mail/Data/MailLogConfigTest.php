@@ -10,28 +10,28 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Tests\Unit\Broadcast\Data;
+namespace Valkyrja\Tests\Unit\Mail\Data;
 
-use Valkyrja\Broadcast\Data\BroadcastLogConfig;
-use Valkyrja\Broadcast\Data\Contract\BroadcastLogConfigContract;
 use Valkyrja\Log\Logger\Contract\LoggerContract;
 use Valkyrja\Log\Logger\PsrLogger;
+use Valkyrja\Mail\Data\Contract\MailLogConfigContract;
+use Valkyrja\Mail\Data\MailLogConfig;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-final class BroadcastLogConfigTest extends TestCase
+final class MailLogConfigTest extends TestCase
 {
     public function testImplementsContract(): void
     {
-        self::assertInstanceOf(BroadcastLogConfigContract::class, new BroadcastLogConfig());
+        self::assertInstanceOf(MailLogConfigContract::class, new MailLogConfig());
     }
 
     public function testDefaults(): void
     {
-        self::assertSame(LoggerContract::class, new BroadcastLogConfig()->broadcastLogLogger);
+        self::assertSame(LoggerContract::class, new MailLogConfig()->mailLogLogger);
     }
 
     public function testCustomValuesAreStored(): void
     {
-        self::assertSame(PsrLogger::class, new BroadcastLogConfig(broadcastLogLogger: PsrLogger::class)->broadcastLogLogger);
+        self::assertSame(PsrLogger::class, new MailLogConfig(mailLogLogger: PsrLogger::class)->mailLogLogger);
     }
 }

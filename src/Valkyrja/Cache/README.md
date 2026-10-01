@@ -86,10 +86,14 @@ implement several of them at once.
 
 ### `CacheLogConfigContract`
 
-| Property    | Default                 | Description                  |
-| :---------- | :---------------------- | :--------------------------- |
-| `logLogger` | `LoggerContract::class` | Logger used by `LogCache`    |
-| `logPrefix` | `''`                    | Key prefix for the log cache |
+| Property         | Default                 | Description                  |
+| :--------------- | :---------------------- | :--------------------------- |
+| `cacheLogLogger` | `LoggerContract::class` | Logger used by `LogCache`    |
+| `cacheLogPrefix` | `''`                    | Key prefix for the log cache |
+
+The logger property name starts with the component name, because the log
+adapter of each component has a logger setting. One config class can then set a
+different logger for each component.
 
 ### `CacheNullConfigContract`
 

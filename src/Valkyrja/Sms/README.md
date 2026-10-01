@@ -58,10 +58,10 @@ Configure the default through `SmsConfigContract`.
 
 ## Configuration
 
-The component reads two config contracts. Your application config class
+The component reads three config contracts. Your application config class
 implements only the contracts for the adapters that it uses. Each contract
-prefixes its properties with the adapter name, so one class can implement both
-at once.
+prefixes its properties with the adapter name, so one class can implement
+several of them at once.
 
 ### `SmsConfigContract`
 
@@ -76,6 +76,16 @@ at once.
 | `vonageKey`    | `'vonage-key'`    | Vonage API key    |
 | `vonageSecret` | `'vonage-secret'` | Vonage API secret |
 
+### `SmsLogConfigContract`
+
+| Property       | Default                 | Description                   |
+| :------------- | :---------------------- | :---------------------------- |
+| `smsLogLogger` | `LoggerContract::class` | Logger used by `LogMessenger` |
+
+The property name starts with the component name, because the log adapter of
+each component has a logger setting. One config class can then set a different
+logger for each component.
+
 ## Service Registration
 
 The SMS service provider registers the following singletons:
@@ -84,6 +94,7 @@ The SMS service provider registers the following singletons:
 | :------------------------ | :-------------------------------------------- |
 | `SmsConfigContract`       | Component config                              |
 | `SmsVonageConfigContract` | Vonage adapter config                         |
+| `SmsLogConfigContract`    | Log adapter config                            |
 | `MessengerContract`       | Active messenger (default: `VonageMessenger`) |
 | `VonageMessenger`         | Vonage implementation                         |
 | `LogMessenger`            | Log implementation                            |

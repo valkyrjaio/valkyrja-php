@@ -10,18 +10,18 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Broadcast\Data;
+namespace Valkyrja\Session\Data;
 
-use Valkyrja\Broadcast\Data\Contract\BroadcastLogConfigContract;
 use Valkyrja\Log\Logger\Contract\LoggerContract;
+use Valkyrja\Session\Data\Contract\SessionLogConfigContract;
 
-class BroadcastLogConfig implements BroadcastLogConfigContract
+class SessionLogConfig implements SessionLogConfigContract
 {
     /**
-     * @param class-string<LoggerContract> $broadcastLogLogger The logger to write to
+     * @param class-string<LoggerContract> $sessionLogLogger The logger to write to
      */
     public function __construct(
-        public readonly string $broadcastLogLogger = LoggerContract::class,
+        public readonly string $sessionLogLogger = LoggerContract::class,
     ) {
     }
 }

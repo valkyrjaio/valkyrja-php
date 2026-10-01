@@ -165,8 +165,8 @@ class CacheServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             LogCache::class,
             new LogCache(
-                logger: $container->getSingleton($config->logLogger),
-                prefix: $config->logPrefix
+                logger: $container->getSingleton($config->cacheLogLogger),
+                prefix: $config->cacheLogPrefix
             )
         );
     }

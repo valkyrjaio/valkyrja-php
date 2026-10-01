@@ -16,10 +16,11 @@ use Override;
 use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
-use Valkyrja\Log\Logger\Contract\LoggerContract;
 use Valkyrja\Sms\Data\Contract\SmsConfigContract;
+use Valkyrja\Sms\Data\Contract\SmsLogConfigContract;
 use Valkyrja\Sms\Data\Contract\SmsVonageConfigContract;
 use Valkyrja\Sms\Data\SmsConfig;
+use Valkyrja\Sms\Data\SmsLogConfig;
 use Valkyrja\Sms\Data\SmsVonageConfig;
 use Valkyrja\Sms\Messenger\Contract\MessengerContract;
 use Valkyrja\Sms\Messenger\LogMessenger;
@@ -66,6 +67,25 @@ class SmsServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             SmsVonageConfigContract::class,
             new SmsVonageConfig()
+        );
+    }
+
+    /**
+     * Publish the log sms config service.
+     */
+    public static function publishLogConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof SmsLogConfigContract) {
+            $container->setSingleton(SmsLogConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(
+            SmsLogConfigContract::class,
+            new SmsLogConfig()
         );
     }
 
@@ -129,10 +149,12 @@ class SmsServiceProvider implements ServiceProviderContract
      */
     public static function publishLogSms(ContainerContract $container): void
     {
+        $config = $container->getSingleton(SmsLogConfigContract::class);
+
         $container->setSingleton(
             LogMessenger::class,
             new LogMessenger(
-                $container->getSingleton(LoggerContract::class),
+                $container->getSingleton($config->smsLogLogger),
             ),
         );
     }
@@ -157,6 +179,7 @@ class SmsServiceProvider implements ServiceProviderContract
         return [
             SmsConfigContract::class       => [self::class, 'publishConfig'],
             SmsVonageConfigContract::class => [self::class, 'publishVonageConfig'],
+            SmsLogConfigContract::class    => [self::class, 'publishLogConfig'],
             MessengerContract::class       => [self::class, 'publishSms'],
             VonageMessenger::class         => [self::class, 'publishVonageSms'],
             Client::class                  => [self::class, 'publishVonage'],

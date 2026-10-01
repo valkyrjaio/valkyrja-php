@@ -105,7 +105,7 @@ Configure the default through `MailConfigContract`.
 
 ## Configuration
 
-The component reads three config contracts. Your application config class
+The component reads four config contracts. Your application config class
 implements only the contracts for the adapters that it uses. Each adapter
 contract prefixes its properties with the adapter name, so one class can
 implement several of them at once.
@@ -133,6 +133,16 @@ implement several of them at once.
 | `phpMailerPassword`   | `'password'` | SMTP password        |
 | `phpMailerEncryption` | `'ssl'`      | Encryption type      |
 
+### `MailLogConfigContract`
+
+| Property        | Default                 | Description                |
+| :-------------- | :---------------------- | :------------------------- |
+| `mailLogLogger` | `LoggerContract::class` | Logger used by `LogMailer` |
+
+The property name starts with the component name, because the log adapter of
+each component has a logger setting. One config class can then set a different
+logger for each component.
+
 ## Service Registration
 
 The Mail service provider registers the following singletons:
@@ -142,6 +152,7 @@ The Mail service provider registers the following singletons:
 | `MailConfigContract`          | Component config                                |
 | `MailMailgunConfigContract`   | Mailgun adapter config                          |
 | `MailPhpMailerConfigContract` | PHPMailer adapter config                        |
+| `MailLogConfigContract`       | Log adapter config                              |
 | `MailerContract`              | Active mailer (default: `MailgunMailer`)        |
 | `MailgunMailer`               | Mailgun implementation                          |
 | `PhpMailer`                   | PHPMailer SMTP implementation                   |

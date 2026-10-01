@@ -18,12 +18,12 @@ use Valkyrja\Log\Logger\Contract\LoggerContract;
 class CacheLogConfig implements CacheLogConfigContract
 {
     /**
-     * @param class-string<LoggerContract> $logLogger The logger to write to
-     * @param string                       $logPrefix The prefix to prepend to every key
+     * @param class-string<LoggerContract> $cacheLogLogger The logger to write to
+     * @param string                       $cacheLogPrefix The prefix to prepend to every key
      */
     public function __construct(
-        public readonly string $logLogger = LoggerContract::class,
-        public readonly string $logPrefix = '',
+        public readonly string $cacheLogLogger = LoggerContract::class,
+        public readonly string $cacheLogPrefix = '',
     ) {
     }
 }
