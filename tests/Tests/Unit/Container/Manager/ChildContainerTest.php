@@ -738,6 +738,17 @@ final class ChildContainerTest extends TestCase
         $child->getAliased('parentAlias');
     }
 
+    public function testGetAliasedThrowsWhenTheSnapshotOmitsTheParentCallback(): void
+    {
+        $this->parent->register(new PublishingProviderFixture());
+        $this->parent->bindAlias('providedAlias', ProvidedFixture::class);
+        $child = new ChildContainer($this->parent, new ContainerData());
+        // The child takes the carve-out on the parent's state and cannot publish it
+        $this->expectException(ContainerInvalidReferenceException::class);
+
+        $child->getAliased('providedAlias');
+    }
+
     /**
      * Create a ChildContainer from the current parent state.
      * The ContainerData is built from the parent and passed explicitly.
