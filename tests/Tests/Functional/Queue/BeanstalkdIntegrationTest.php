@@ -18,21 +18,22 @@ use Pheanstalk\Pheanstalk;
 use Pheanstalk\Values\TubeName;
 use Pheanstalk\Values\TubeStats;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Directory\Directory;
-use Valkyrja\Application\Entry\PullQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Client\Manager\BeanstalkdClient;
-use Valkyrja\Queue\Client\Puller\BeanstalkdPuller;
 use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Tests\Fixtures\Application\Data\BeanstalkdWorkerConfigFixture;
+use Valkyrja\Tests\Fixtures\Application\Entry\BeanstalkdQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
-use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Functional\Abstract\TestCase;
 
 use function class_exists;
 use function getenv;
+use function is_int;
 use function is_string;
 use function parse_url;
 
@@ -42,6 +43,11 @@ final class BeanstalkdIntegrationTest extends TestCase
     private const string TUBE = 'valkyrja-tests';
 
     private Pheanstalk $pheanstalk;
+
+    /** @var non-empty-string */
+    private string $host = '127.0.0.1';
+
+    private int $port = 11300;
 
     #[Override]
     protected function setUp(): void
@@ -58,14 +64,16 @@ final class BeanstalkdIntegrationTest extends TestCase
             self::markTestSkipped('The pda/pheanstalk package is not installed.');
         }
 
-        $parts = parse_url($dsn);
+        $parts = (array) parse_url($dsn);
 
-        $this->pheanstalk = Pheanstalk::create(
-            $parts['host'] ?? '127.0.0.1',
-            $parts['port'] ?? 11300,
-        );
+        $this->host = is_string($parts['host'] ?? null) && $parts['host'] !== '' ? $parts['host'] : '127.0.0.1';
+        $this->port = is_int($parts['port'] ?? null) ? $parts['port'] : 11300;
+
+        $this->pheanstalk = Pheanstalk::create($this->host, $this->port);
 
         $this->drain();
+
+        BeanstalkdQueueFixture::inject($this->pheanstalk, self::TUBE, timeout: 0);
 
         ResultLogMiddlewareFixture::reset();
     }
@@ -76,6 +84,8 @@ final class BeanstalkdIntegrationTest extends TestCase
         if (isset($this->pheanstalk)) {
             $this->drain();
         }
+
+        BeanstalkdQueueFixture::reset();
 
         ResultLogMiddlewareFixture::reset();
 
@@ -95,16 +105,15 @@ final class BeanstalkdIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        $puller = $this->puller();
-        $puller->connect();
+        BeanstalkdQueueFixture::connect($this->application());
 
-        $received = $puller->receive();
+        $received = BeanstalkdQueueFixture::receive();
 
         self::assertNotNull($received);
         // The envelope is the cross-language contract, so every field must survive
         self::assertSame($client->getPushed()[0]->asArray(), $received->asArray());
 
-        $puller->settle($received, JobResult::ACK, $client);
+        BeanstalkdQueueFixture::settle($received, JobResult::ACK, $client);
     }
 
     public function testAnAcknowledgedJobIsGoneForGood(): void
@@ -114,12 +123,9 @@ final class BeanstalkdIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
+        BeanstalkdQueueFixture::run(
             config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
             maxJobs: 1,
-            requeuer: $puller,
         );
 
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
@@ -133,12 +139,9 @@ final class BeanstalkdIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
+        BeanstalkdQueueFixture::run(
             config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
             maxJobs: 1,
-            requeuer: $puller,
         );
 
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
@@ -154,12 +157,9 @@ final class BeanstalkdIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
+        BeanstalkdQueueFixture::run(
             config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
             maxJobs: 1,
-            requeuer: $puller,
         );
 
         self::assertSame([JobResult::FAIL], ResultLogMiddlewareFixture::getResults($job->getId()));
@@ -170,10 +170,33 @@ final class BeanstalkdIntegrationTest extends TestCase
 
     public function testAnEmptyTubeYieldsNothing(): void
     {
-        $puller = $this->puller();
-        $puller->connect();
+        BeanstalkdQueueFixture::connect($this->application());
 
-        self::assertNull($puller->receive());
+        self::assertNull(BeanstalkdQueueFixture::receive());
+    }
+
+    /**
+     * Poll on a re-established connection, because a finished worker disconnects.
+     */
+    private function poll(): JobContract|null
+    {
+        BeanstalkdQueueFixture::inject($this->pheanstalk, self::TUBE, timeout: 0);
+
+        return BeanstalkdQueueFixture::receive();
+    }
+
+    /**
+     * Build an application whose container carries the beanstalkd client config.
+     */
+    private function application(): ApplicationContract
+    {
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturn($this->config());
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        return $app;
     }
 
     private function client(): BeanstalkdClient
@@ -181,17 +204,12 @@ final class BeanstalkdIntegrationTest extends TestCase
         return new BeanstalkdClient(pheanstalk: $this->pheanstalk, tube: self::TUBE);
     }
 
-    private function puller(): BeanstalkdPuller
-    {
-        return new BeanstalkdPuller(pheanstalk: $this->pheanstalk, tube: self::TUBE, timeout: 0);
-    }
-
     private function config(): QueueConfigContract
     {
-        return new QueueConfig(
-            dir: Directory::$basePath,
-            providers: [new QueueTestComponentProviderFixture()],
-            resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
+        return new BeanstalkdWorkerConfigFixture(
+            beanstalkdHost: $this->host,
+            beanstalkdPort: $this->port,
+            beanstalkdTube: self::TUBE,
         );
     }
 

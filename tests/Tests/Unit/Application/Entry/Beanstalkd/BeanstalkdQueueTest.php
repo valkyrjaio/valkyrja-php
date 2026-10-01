@@ -10,21 +10,25 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Tests\Unit\Queue\Client\Puller;
+namespace Valkyrja\Tests\Unit\Application\Entry\Beanstalkd;
 
 use Override;
 use Pheanstalk\Values\Job as BeanstalkdJob;
 use Pheanstalk\Values\JobId;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Valkyrja\Application\Entry\Beanstalkd\BeanstalkdQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Queue\Client\Data\QueueBeanstalkdClientConfig;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
-use Valkyrja\Queue\Client\Puller\BeanstalkdPuller;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Tests\Fixtures\Application\Entry\BeanstalkdQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\BeanstalkdFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-final class BeanstalkdPullerTest extends TestCase
+final class BeanstalkdQueueTest extends TestCase
 {
     /** @var non-empty-string */
     protected const string NAME = 'SendWelcomeEmail';
@@ -53,11 +57,21 @@ final class BeanstalkdPullerTest extends TestCase
         parent::setUp();
 
         $this->pheanstalk = new BeanstalkdFixture();
+
+        BeanstalkdQueueFixture::inject($this->pheanstalk, self::TUBE, timeout: 3);
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        BeanstalkdQueueFixture::reset();
+
+        parent::tearDown();
     }
 
     public function testConnectWatchesTheConfiguredTube(): void
     {
-        $this->puller()->connect();
+        BeanstalkdQueueFixture::connect($this->application());
 
         self::assertSame([[self::TUBE]], $this->pheanstalk->getCalls('watch'));
     }
@@ -66,14 +80,15 @@ final class BeanstalkdPullerTest extends TestCase
     {
         // A fresh connection watches `default` already, so without the ignore a
         // reserve could take a job that another producer put on `default`
-        $this->puller()->connect();
+        BeanstalkdQueueFixture::connect($this->application());
 
-        self::assertSame([[BeanstalkdPuller::DEFAULT_TUBE]], $this->pheanstalk->getCalls('ignore'));
+        self::assertSame([[BeanstalkdQueue::DEFAULT_TUBE]], $this->pheanstalk->getCalls('ignore'));
     }
 
     public function testConnectKeepsTheDefaultTubeWhenItIsTheConfiguredOne(): void
     {
-        new BeanstalkdPuller($this->pheanstalk, BeanstalkdPuller::DEFAULT_TUBE, timeout: 3)->connect();
+        BeanstalkdQueueFixture::inject($this->pheanstalk, BeanstalkdQueue::DEFAULT_TUBE, timeout: 3);
+        BeanstalkdQueueFixture::connect($this->application(BeanstalkdQueue::DEFAULT_TUBE));
 
         // Ignoring the only watched tube would leave the connection watching none
         self::assertSame([], $this->pheanstalk->getCalls('ignore'));
@@ -81,12 +96,12 @@ final class BeanstalkdPullerTest extends TestCase
 
     public function testAnEmptyTubeYieldsNothing(): void
     {
-        self::assertNull($this->puller()->receive());
+        self::assertNull(BeanstalkdQueueFixture::receive());
     }
 
     public function testReserveBlocksForTheConfiguredTimeout(): void
     {
-        $this->puller()->receive();
+        BeanstalkdQueueFixture::receive();
 
         self::assertSame([[3]], $this->pheanstalk->getCalls('reserveWithTimeout'));
     }
@@ -95,7 +110,7 @@ final class BeanstalkdPullerTest extends TestCase
     {
         $this->seed(new JobFactory()->create(self::NAME, ['user_id' => 42]));
 
-        $job = $this->puller()->receive();
+        $job = BeanstalkdQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(self::NAME, $job->getName());
@@ -104,9 +119,9 @@ final class BeanstalkdPullerTest extends TestCase
 
     public function testAnAcknowledgedJobIsDeleted(): void
     {
-        $puller = $this->reserved();
+        $this->reserved();
 
-        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        BeanstalkdQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertSame([[(string) self::JOB_ID]], $this->pheanstalk->getCalls('delete'));
         self::assertSame([], $this->pheanstalk->getCalls('release'));
@@ -115,9 +130,9 @@ final class BeanstalkdPullerTest extends TestCase
 
     public function testARetryReleasesTheJobBackOntoTheTube(): void
     {
-        $puller = $this->reserved();
+        $this->reserved();
 
-        $puller->settle(new JobFactory()->create(self::NAME), JobResult::RETRY, new InMemoryClient());
+        BeanstalkdQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::RETRY, new InMemoryClient());
 
         $calls = $this->pheanstalk->getCalls('release');
 
@@ -130,9 +145,9 @@ final class BeanstalkdPullerTest extends TestCase
     public function testADeadLetteredJobIsBuriedRatherThanDeleted(JobResult $result): void
     {
         // A buried job stays for inspection and can be kicked back on
-        $puller = $this->reserved();
+        $this->reserved();
 
-        $puller->settle(new JobFactory()->create(self::NAME), $result, new InMemoryClient());
+        BeanstalkdQueueFixture::settle(new JobFactory()->create(self::NAME), $result, new InMemoryClient());
 
         self::assertSame([[(string) self::JOB_ID, 1024]], $this->pheanstalk->getCalls('bury'));
         self::assertSame([], $this->pheanstalk->getCalls('delete'));
@@ -140,7 +155,7 @@ final class BeanstalkdPullerTest extends TestCase
 
     public function testSettlingWithNothingReservedDoesNothing(): void
     {
-        $this->puller()->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        BeanstalkdQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertSame([], $this->pheanstalk->getCalls('delete'));
         self::assertSame([], $this->pheanstalk->getCalls('release'));
@@ -149,21 +164,21 @@ final class BeanstalkdPullerTest extends TestCase
 
     public function testAJobIsSettledOnlyOnce(): void
     {
-        $puller = $this->reserved();
+        $this->reserved();
 
-        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
-        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        BeanstalkdQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        BeanstalkdQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertCount(1, $this->pheanstalk->getCalls('delete'));
     }
 
     public function testDisconnectReleasesAReservedJob(): void
     {
-        $puller = $this->reserved();
+        $this->reserved();
 
         // A worker shutting down mid-job must not make the tube wait out the
         // whole time-to-release before another worker can take it
-        $puller->disconnect();
+        BeanstalkdQueueFixture::disconnect();
 
         self::assertCount(1, $this->pheanstalk->getCalls('release'));
         self::assertTrue($this->pheanstalk->disconnected);
@@ -171,7 +186,7 @@ final class BeanstalkdPullerTest extends TestCase
 
     public function testDisconnectWithNothingReservedReleasesNothing(): void
     {
-        $this->puller()->disconnect();
+        BeanstalkdQueueFixture::disconnect();
 
         self::assertSame([], $this->pheanstalk->getCalls('release'));
         self::assertTrue($this->pheanstalk->disconnected);
@@ -182,18 +197,26 @@ final class BeanstalkdPullerTest extends TestCase
         $this->pheanstalk->next = new BeanstalkdJob(new JobId(self::JOB_ID), new JobFactory()->toJson($job));
     }
 
-    protected function reserved(): BeanstalkdPuller
+    protected function reserved(): void
     {
         $this->seed(new JobFactory()->create(self::NAME));
 
-        $puller = $this->puller();
-        $puller->receive();
-
-        return $puller;
+        BeanstalkdQueueFixture::receive();
     }
 
-    protected function puller(): BeanstalkdPuller
+    /**
+     * Build an application whose container carries the beanstalkd client config.
+     *
+     * @param non-empty-string $tube The tube the worker consumes from
+     */
+    protected function application(string $tube = self::TUBE): ApplicationContract
     {
-        return new BeanstalkdPuller($this->pheanstalk, self::TUBE, timeout: 3);
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturn(new QueueBeanstalkdClientConfig(beanstalkdTube: $tube));
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        return $app;
     }
 }
