@@ -76,8 +76,10 @@ class NativeChildContainer extends Container
     #[Override]
     public function isSingletonBinding(string $id): bool
     {
+        // The container that declares a binding governs its lifetime, so a marker in the
+        // parent does not make a singleton of a service the child itself bound.
         return isset($this->singletons[$id])
-            || isset($this->parent->singletons[$id]);
+            || (! isset($this->services[$id]) && isset($this->parent->singletons[$id]));
     }
 
     /**
