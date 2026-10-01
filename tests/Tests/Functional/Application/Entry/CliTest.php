@@ -24,7 +24,6 @@ use Valkyrja\Cli\Interaction\Output\Output;
 use Valkyrja\Cli\Routing\Attribute\Route;
 use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Cli\Routing\Collection\Contract\RouteCollectionContract;
-use Valkyrja\Cli\Routing\Data\Contract\CliRoutingConfigContract;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Server\Support\Exiter;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
@@ -83,9 +82,7 @@ final class CliTest extends TestCase
 
         $dir = Directory::$basePath;
 
-        $config = new class(dir: $dir) extends CliConfig implements CliRoutingConfigContract {
-            public string $dataClassName = 'CliTestCliRoutingData';
-
+        $config = new class(dir: $dir) extends CliConfig {
             public function __construct(
                 string $dir,
             ) {
@@ -119,9 +116,7 @@ final class CliTest extends TestCase
         self::assertFalse(CliRoutingDataProviderFixture::$published);
         CliRoutingDataProviderFixture::$published = false;
 
-        $config = new class(dir: $dir) extends CliConfig implements CliRoutingConfigContract {
-            public string $dataClassName = 'CliTestCliRoutingData';
-
+        $config = new class(dir: $dir) extends CliConfig {
             public function __construct(
                 string $dir,
             ) {
@@ -159,9 +154,7 @@ final class CliTest extends TestCase
         self::assertTrue(CliRoutingDataProviderFixture::$published);
         CliRoutingDataProviderFixture::$published = false;
 
-        $config = new class(dir: $dir) extends CliConfig implements CliRoutingConfigContract {
-            public string $dataClassName = 'CliTestCliRoutingData';
-
+        $config = new class(dir: $dir) extends CliConfig {
             public function __construct(
                 string $dir,
             ) {
