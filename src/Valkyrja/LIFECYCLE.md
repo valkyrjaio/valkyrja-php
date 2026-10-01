@@ -318,8 +318,8 @@ The two differ on the factory receiver: a factory bound on the parent receives
 the child under `NativeChildContainer`, and the parent under `ChildContainer`. A
 parent-declared alias is the exception, because both hand that call to the
 parent. The one case they do not is a target the parent would resolve for the
-first time: a singleton the parent never built, which the child resolves when it
-holds the binding too, or a publisher the parent has not run.
+first time, when the child holds that registration too: a singleton the parent
+never built, or a publisher it has not run.
 
 ## Focus on Configuration
 

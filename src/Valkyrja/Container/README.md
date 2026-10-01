@@ -115,7 +115,7 @@ $logger = $container->getSingleton(LoggerContract::class); // The first call bui
 $same   = $container->getSingleton(LoggerContract::class); // Later calls return the cached instance.
 ```
 
-Warning: the container keeps the first instance its map holds for an id. A
+Warning: a build keeps the first instance the map holds for an id. A
 factory that registers the id it is building, the way one breaks a chain that
 returns to it, decides what every reader gets. The object that factory returns
 is discarded then.
@@ -743,10 +743,10 @@ OpenSwoole, RoadRunner) use to keep request-scoped state out of the parent.
 ### The Parent/Child Invariant
 
 The parent container bootstraps once when the worker process starts. The parent
-is then **frozen**: no request registers anything in it. It still publishes a
-deferred id, and caches a singleton, when it answers a lookup a child handed to
-it, and a publisher it runs registers whatever that publisher binds. That is a
-shared service resolving once. Each incoming request
+is then **frozen**: a request writes nothing into it directly. A lookup it
+answers for a child is the one path that still changes it. On that path it
+publishes a deferred id, caches a singleton, and registers whatever a publisher
+it runs binds. That is a shared service resolving once. Each incoming request
 receives a fresh child container built from one snapshot of the parent, so the
 child holds the parent's singleton markers and publish callbacks and answers
 almost everything itself.
@@ -1011,7 +1011,7 @@ no check sees ends in one of four ways:
 - It resolves through the first hop the parent would answer.
 - It ends with a missing reference, when no hop answers. `NativeChildContainer`
   reports that for a parent which is itself a child.
-- It does not end, when a factory the parent runs asks for its own id again.
+- It does not end, when a factory asks again for the id that reached it.
 - It does not end, when an alias the child declares closes through a factory the
   child runs. That path carries no resolution-time check.
 
