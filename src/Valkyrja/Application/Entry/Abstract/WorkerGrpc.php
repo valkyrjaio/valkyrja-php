@@ -22,6 +22,7 @@ use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Message\Response\ServiceResponse;
+use Valkyrja\Grpc\Message\Status\Status;
 use Valkyrja\Grpc\Message\Stream\Contract\OutboundStreamContract;
 use Valkyrja\Grpc\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
@@ -71,14 +72,17 @@ abstract class WorkerGrpc extends App
 
         $handler = $childContainer->getSingleton(ServiceHandlerContract::class);
 
-        $response = $handler->handle($call);
-        $response = $handler->sending($call, $response);
+        // The pipeline and the wire write sit under one guard, because each of the three can
+        // throw and the call is half-open until ResponseSent runs. The seed response is what
+        // terminate() reports when the throw came before the handler produced one.
+        $response = ServiceResponse::of(Status::internal());
 
         try {
+            $response = $handler->handle($call);
+            $response = $handler->sending($call, $response);
+
             $writer($response);
         } finally {
-            // ResponseSent middleware must run even when the wire write blows up, so per-call
-            // resources are released and observers still see the call complete.
             $handler->terminate($call, $response);
         }
     }
@@ -122,13 +126,15 @@ abstract class WorkerGrpc extends App
             }
         );
 
-        $terminal = $handler->handle($call);
-
-        // Open the stream once even if the handler emitted nothing, so SendingResponse always fires
-        // before the close and the open/close pairing stays symmetric.
-        static::openStream($handler, $call, $outbound, $opened);
+        $terminal = ServiceResponse::of(Status::internal());
 
         try {
+            $terminal = $handler->handle($call);
+
+            // Open the stream once even if the handler emitted nothing, so SendingResponse always
+            // fires before the close and the open/close pairing stays symmetric.
+            static::openStream($handler, $call, $outbound, $opened);
+
             $outbound->close($terminal);
         } finally {
             $handler->terminate($call, $terminal);

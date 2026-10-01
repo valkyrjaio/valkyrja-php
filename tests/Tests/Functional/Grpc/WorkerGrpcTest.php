@@ -23,12 +23,15 @@ use Valkyrja\Application\Provider\GrpcApplicationComponentProvider;
 use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
 use Valkyrja\Grpc\Message\Call\ServiceCall;
+use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Message\Enum\StatusCode;
 use Valkyrja\Grpc\Message\Metadata\Contract\MetadataContract;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
+use Valkyrja\Grpc\Throwable\Exception\CancelledException;
 use Valkyrja\Tests\Abstract\TestCase;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\ResponseSentMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\GrpcComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Server\OutboundStreamFixture;
 
@@ -48,7 +51,15 @@ final class WorkerGrpcTest extends TestCase
 
     protected function setUp(): void
     {
+        ResponseSentMiddlewareFixture::resetCounter();
+
         $this->app = WorkerGrpc::bootstrap($this->config());
+
+        // An application binds the middleware it schedules, so the test binds this one too.
+        $this->app->getContainer()->bindSingleton(
+            ResponseSentMiddlewareFixture::class,
+            static fn (): ResponseSentMiddlewareFixture => new ResponseSentMiddlewareFixture()
+        );
 
         $this->data = $this->app->getContainer()->getData();
     }
@@ -118,6 +129,57 @@ final class WorkerGrpcTest extends TestCase
         }
 
         self::assertTrue($written);
+    }
+
+    public function testTerminateStillRunsWhenThePipelineThrows(): void
+    {
+        $written = false;
+
+        // Debug mode is on, so the handler rethrows rather than mapping the throwable to a status.
+        try {
+            WorkerGrpc::dispatch(
+                $this->app,
+                $this->data,
+                ServiceCall::unary('/pkg.Cancelling/Cancel', 'ping'),
+                static function () use (&$written): void {
+                    $written = true;
+                }
+            );
+
+            self::fail('Expected the handler throwable to propagate');
+        } catch (CancelledException $exception) {
+            self::assertSame(CancellationReason::CLIENT_CANCELLED, $exception->getReason());
+        }
+
+        // The wire write is skipped, and ResponseSent still runs, so the call is not left open.
+        self::assertFalse($written);
+        self::assertSame(1, ResponseSentMiddlewareFixture::getAndResetCounter());
+    }
+
+    public function testDispatchStreamingTerminatesWhenThePipelineThrows(): void
+    {
+        $outbound = new OutboundStreamFixture();
+
+        try {
+            WorkerGrpc::dispatchStreaming(
+                $this->app,
+                $this->data,
+                static fn (callable $sink): ServiceCallContract => new ServiceCall(
+                    method: '/pkg.Cancelling/Cancel',
+                    messages: ['one'],
+                    sink: $sink,
+                ),
+                $outbound
+            );
+
+            self::fail('Expected the handler throwable to propagate');
+        } catch (CancelledException) {
+            // The guard must not swallow it.
+        }
+
+        // Neither the headers nor the close reached the wire, and ResponseSent still ran.
+        self::assertSame([], $outbound->events);
+        self::assertSame(1, ResponseSentMiddlewareFixture::getAndResetCounter());
     }
 
     public function testAnUnknownMethodIsUnimplemented(): void
@@ -236,6 +298,7 @@ final class WorkerGrpcTest extends TestCase
                 new GrpcApplicationComponentProvider(),
                 new GrpcComponentProviderFixture(),
             ],
+            responseSentMiddleware: [ResponseSentMiddlewareFixture::class],
         );
     }
 }
