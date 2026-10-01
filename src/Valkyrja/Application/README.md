@@ -491,6 +491,7 @@ The full `ApplicationContract` surface:
 | `getEventProviders()`        | `ListenerProviderContract[]`  | Every component's listener providers, merged           |
 | `getCliProviders()`          | `CliRouteProviderContract[]`  | Every component's CLI route providers, merged          |
 | `getHttpProviders()`         | `HttpRouteProviderContract[]` | Every component's HTTP route providers, merged         |
+| `getGrpcProviders()`         | `GrpcRouteProviderContract[]` | Every component's gRPC route providers, merged         |
 | `getDebugMode()`             | `bool`                        | `config->debugMode`                                    |
 | `getEnvironment()`           | `string`                      | `config->environment`                                  |
 | `getVersion()`               | `string`                      | `config->version`                                      |
