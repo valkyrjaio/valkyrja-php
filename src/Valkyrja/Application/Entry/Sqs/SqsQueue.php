@@ -145,6 +145,8 @@ class SqsQueue extends PullQueue
 
     /**
      * Build the client the loop polls.
+     *
+     * @codeCoverageIgnore A real SQS endpoint is unavailable in a test.
      */
     protected static function getSqs(QueueSqsClientConfigContract $config): SqsClient
     {
