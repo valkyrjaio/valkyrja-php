@@ -18,17 +18,15 @@ use Google\Cloud\PubSub\Subscription;
 use Google\Cloud\PubSub\Topic;
 use Override;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Directory\Directory;
-use Valkyrja\Application\Entry\PullQueue;
+use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Manager\PubSubClient;
-use Valkyrja\Queue\Client\Puller\PubSubPuller;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Tests\Fixtures\Application\Data\PubSubWorkerConfigFixture;
+use Valkyrja\Tests\Fixtures\Application\Entry\PubSubQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
-use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Functional\Abstract\TestCase;
 
@@ -80,11 +78,15 @@ final class PubSubIntegrationTest extends TestCase
         $this->subscription = $this->topic->subscribe($name . '-sub');
 
         ResultLogMiddlewareFixture::reset();
+
+        PubSubQueueFixture::inject($this->subscription, timeoutMs: 1000);
     }
 
     #[Override]
     protected function tearDown(): void
     {
+        PubSubQueueFixture::reset();
+
         if (isset($this->subscription)) {
             $this->subscription->delete();
             $this->topic->delete();
@@ -108,14 +110,13 @@ final class PubSubIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        $puller   = $this->puller();
-        $received = $puller->receive();
+        $received = PubSubQueueFixture::receive();
 
         self::assertNotNull($received);
         // The envelope is the cross-language contract, so every field must survive
         self::assertSame($client->getPushed()[0]->asArray(), $received->asArray());
 
-        $puller->settle($received, JobResult::ACK, $client);
+        PubSubQueueFixture::settle($received, JobResult::ACK, $client);
     }
 
     public function testAnAcknowledgedJobIsGoneForGood(): void
@@ -125,16 +126,10 @@ final class PubSubIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
-            config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
-            maxJobs: 1,
-            requeuer: $puller,
-        );
+        $this->work($client);
 
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
-        self::assertNull($this->puller()->receive());
+        self::assertNull($this->poll());
     }
 
     public function testANackedJobIsRedeliveredBySubscription(): void
@@ -144,13 +139,7 @@ final class PubSubIntegrationTest extends TestCase
         $client = $this->client();
         $client->push($job);
 
-        PullQueue::run(
-            config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
-            maxJobs: 1,
-            requeuer: $puller,
-        );
+        $this->work($client);
 
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
         // A processor-owned retry is not a re-publish, so the client is untouched
@@ -160,21 +149,18 @@ final class PubSubIntegrationTest extends TestCase
 
     public function testAnEmptySubscriptionYieldsNothing(): void
     {
-        self::assertNull($this->puller()->receive());
+        self::assertNull($this->poll());
     }
 
     public function testDisconnectHandsAnInFlightDeliveryBack(): void
     {
         $this->client()->push(new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK));
 
-        $puller = $this->puller();
-        $puller->connect();
-
-        self::assertNotNull($puller->receive());
+        self::assertNotNull(PubSubQueueFixture::receive());
 
         // A worker shutting down mid-job must not make the subscription wait
         // out the whole acknowledgement deadline
-        $puller->disconnect();
+        PubSubQueueFixture::disconnect();
 
         self::assertNotNull($this->redelivered());
     }
@@ -187,10 +173,10 @@ final class PubSubIntegrationTest extends TestCase
      */
     private function redelivered(): JobContract|null
     {
-        $puller = $this->puller();
+        PubSubQueueFixture::inject($this->subscription, timeoutMs: 1000);
 
         for ($attempt = 0; $attempt < 30; $attempt++) {
-            $job = $puller->receive();
+            $job = PubSubQueueFixture::receive();
 
             if ($job !== null) {
                 return $job;
@@ -200,22 +186,35 @@ final class PubSubIntegrationTest extends TestCase
         return null;
     }
 
+    /**
+     * Run one job through a worker whose client publishes to the test topic.
+     */
+    private function work(PubSubClient $client): void
+    {
+        $app = PubSubQueueFixture::bootstrap($this->config());
+
+        $app->getContainer()->setSingleton(ClientContract::class, $client);
+
+        PubSubQueueFixture::loop($app, maxJobs: 1);
+    }
+
+    /**
+     * Pull on a re-established subscription, because a finished worker disconnects.
+     */
+    private function poll(): JobContract|null
+    {
+        PubSubQueueFixture::inject($this->subscription, timeoutMs: 1000);
+
+        return PubSubQueueFixture::receive();
+    }
+
     private function client(): PubSubClient
     {
         return new PubSubClient(topic: $this->topic);
     }
 
-    private function puller(): PubSubPuller
-    {
-        return new PubSubPuller(subscription: $this->subscription, timeoutMs: 1000);
-    }
-
     private function config(): QueueConfigContract
     {
-        return new QueueConfig(
-            dir: Directory::$basePath,
-            providers: [new QueueTestComponentProviderFixture()],
-            resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
-        );
+        return new PubSubWorkerConfigFixture();
     }
 }

@@ -10,7 +10,7 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Tests\Unit\Queue\Client\Puller;
+namespace Valkyrja\Tests\Unit\Application\Entry\PubSub;
 
 use Google\ApiCore\ApiException;
 use Google\Cloud\PubSub\Message;
@@ -19,15 +19,16 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Psr7\Request;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Valkyrja\Application\Entry\PubSub\PubSubQueue;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
-use Valkyrja\Queue\Client\Puller\PubSubPuller;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Tests\Fixtures\Application\Entry\PubSubQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\PubSubSubscriptionFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-final class PubSubPullerTest extends TestCase
+final class PubSubQueueTest extends TestCase
 {
     /** @var non-empty-string */
     protected const string NAME = 'SendWelcomeEmail';
@@ -52,16 +53,26 @@ final class PubSubPullerTest extends TestCase
         parent::setUp();
 
         $this->subscription = new PubSubSubscriptionFixture();
+
+        PubSubQueueFixture::inject($this->subscription, timeoutMs: 250);
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        PubSubQueueFixture::reset();
+
+        parent::tearDown();
     }
 
     public function testAnEmptySubscriptionYieldsNothing(): void
     {
-        self::assertNull($this->puller()->receive());
+        self::assertNull(PubSubQueueFixture::receive());
     }
 
     public function testAPullAsksForOneDeliveryWithinItsDeadline(): void
     {
-        $this->puller()->receive();
+        PubSubQueueFixture::receive();
 
         self::assertSame(
             [['maxMessages' => 1, 'timeoutMillis' => 250]],
@@ -76,10 +87,10 @@ final class PubSubPullerTest extends TestCase
             'timed out',
             new Request('POST', '/'),
             null,
-            ['errno' => PubSubPuller::CURL_OPERATION_TIMED_OUT]
+            ['errno' => PubSubQueue::CURL_OPERATION_TIMED_OUT]
         );
 
-        self::assertNull($this->puller()->receive());
+        self::assertNull(PubSubQueueFixture::receive());
     }
 
     public function testAConnectionFailureTravelsOn(): void
@@ -96,7 +107,7 @@ final class PubSubPullerTest extends TestCase
 
         $this->expectException(ConnectException::class);
 
-        $this->puller()->receive();
+        PubSubQueueFixture::receive();
     }
 
     public function testATransportFailureWithNoErrorNumberTravelsOn(): void
@@ -105,7 +116,7 @@ final class PubSubPullerTest extends TestCase
 
         $this->expectException(ConnectException::class);
 
-        $this->puller()->receive();
+        PubSubQueueFixture::receive();
     }
 
     public function testAnApiDeadlineReadsAsNothingArrived(): void
@@ -116,7 +127,7 @@ final class PubSubPullerTest extends TestCase
             'DEADLINE_EXCEEDED'
         );
 
-        self::assertNull($this->puller()->receive());
+        self::assertNull(PubSubQueueFixture::receive());
     }
 
     public function testAnyOtherApiFailureTravelsOn(): void
@@ -130,14 +141,14 @@ final class PubSubPullerTest extends TestCase
 
         $this->expectException(ApiException::class);
 
-        $this->puller()->receive();
+        PubSubQueueFixture::receive();
     }
 
     public function testAReceivedDeliveryIsReadBackAsAJob(): void
     {
         $this->seed(new JobFactory()->create(self::NAME, ['user_id' => 42]));
 
-        $job = $this->puller()->receive();
+        $job = PubSubQueueFixture::receive();
 
         self::assertNotNull($job);
         self::assertSame(self::NAME, $job->getName());
@@ -147,9 +158,9 @@ final class PubSubPullerTest extends TestCase
     #[DataProvider('terminalProvider')]
     public function testATerminalOutcomeAcknowledgesTheDelivery(JobResult $result): void
     {
-        $puller = $this->received();
+        $this->received();
 
-        $puller->settle(new JobFactory()->create(self::NAME), $result, new InMemoryClient());
+        PubSubQueueFixture::settle(new JobFactory()->create(self::NAME), $result, new InMemoryClient());
 
         self::assertCount(1, $this->subscription->acknowledged);
         self::assertSame([], $this->subscription->deadlines);
@@ -157,9 +168,9 @@ final class PubSubPullerTest extends TestCase
 
     public function testARetryShortensTheDeadlineSoTheDeliveryComesBack(): void
     {
-        $puller = $this->received();
+        $this->received();
 
-        $puller->settle(new JobFactory()->create(self::NAME), JobResult::RETRY, new InMemoryClient());
+        PubSubQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::RETRY, new InMemoryClient());
 
         self::assertCount(1, $this->subscription->deadlines);
         // Zero is Pub/Sub's nack: available again, and the attempt count goes up
@@ -169,7 +180,7 @@ final class PubSubPullerTest extends TestCase
 
     public function testSettlingWithNothingInFlightDoesNothing(): void
     {
-        $this->puller()->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        PubSubQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertSame([], $this->subscription->acknowledged);
         self::assertSame([], $this->subscription->deadlines);
@@ -177,21 +188,21 @@ final class PubSubPullerTest extends TestCase
 
     public function testADeliveryIsSettledOnlyOnce(): void
     {
-        $puller = $this->received();
+        $this->received();
 
-        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
-        $puller->settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        PubSubQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        PubSubQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
 
         self::assertCount(1, $this->subscription->acknowledged);
     }
 
     public function testDisconnectHandsAnInFlightDeliveryBack(): void
     {
-        $puller = $this->received();
+        $this->received();
 
         // A worker shutting down mid-job must not make the subscription wait
         // out the whole acknowledgement deadline
-        $puller->disconnect();
+        PubSubQueueFixture::disconnect();
 
         self::assertCount(1, $this->subscription->deadlines);
         self::assertSame(0, $this->subscription->deadlines[0][1]);
@@ -199,9 +210,7 @@ final class PubSubPullerTest extends TestCase
 
     public function testDisconnectWithNothingInFlightHandsBackNothing(): void
     {
-        $puller = $this->puller();
-        $puller->connect();
-        $puller->disconnect();
+        PubSubQueueFixture::disconnect();
 
         self::assertSame([], $this->subscription->deadlines);
     }
@@ -216,18 +225,10 @@ final class PubSubPullerTest extends TestCase
         ];
     }
 
-    protected function received(): PubSubPuller
+    protected function received(): void
     {
         $this->seed(new JobFactory()->create(self::NAME));
 
-        $puller = $this->puller();
-        $puller->receive();
-
-        return $puller;
-    }
-
-    protected function puller(): PubSubPuller
-    {
-        return new PubSubPuller($this->subscription, timeoutMs: 250);
+        PubSubQueueFixture::receive();
     }
 }
