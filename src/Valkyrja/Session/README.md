@@ -99,19 +99,19 @@ Every session manager reads these settings.
 | `sessionId`      | `null`              | The session id                            |
 | `sessionName`    | `null`              | The session name                          |
 
-### `SessionCookieConfigContract`
+### `SessionPhpConfigContract`
 
 `PhpSession` reads these settings and gives them to
 `session_set_cookie_params()`.
 
-| Property         | Default          | Description                              |
-| :--------------- | :--------------- | :--------------------------------------- |
-| `cookiePath`     | `'/'`            | Cookie path                              |
-| `cookieDomain`   | `null`           | Cookie domain                            |
-| `cookieLifetime` | `0`              | Cookie lifetime in seconds (0 = session) |
-| `cookieSecure`   | `false`          | HTTPS only                               |
-| `cookieHttpOnly` | `false`          | HTTP only (not accessible to JS)         |
-| `cookieSameSite` | `SameSite::NONE` | SameSite cookie policy                   |
+| Property            | Default          | Description                              |
+| :------------------ | :--------------- | :--------------------------------------- |
+| `phpCookiePath`     | `'/'`            | Cookie path                              |
+| `phpCookieDomain`   | `null`           | Cookie domain                            |
+| `phpCookieLifetime` | `0`              | Cookie lifetime in seconds (0 = session) |
+| `phpCookieSecure`   | `false`          | HTTPS only                               |
+| `phpCookieHttpOnly` | `false`          | HTTP only (not accessible to JS)         |
+| `phpCookieSameSite` | `SameSite::NONE` | SameSite cookie policy                   |
 
 ### `SessionJwtConfigContract`
 

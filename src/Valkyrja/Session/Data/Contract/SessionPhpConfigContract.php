@@ -14,31 +14,31 @@ namespace Valkyrja\Session\Data\Contract;
 
 use Valkyrja\Http\Message\Enum\SameSite;
 
-interface SessionCookieConfigContract
+interface SessionPhpConfigContract
 {
     /** @var non-empty-string */
-    public string $cookiePath {
+    public string $phpCookiePath {
         get;
     }
 
     /** @var non-empty-string|null */
-    public string|null $cookieDomain {
+    public string|null $phpCookieDomain {
         get;
     }
 
-    public int $cookieLifetime {
+    public int $phpCookieLifetime {
         get;
     }
 
-    public bool $cookieSecure {
+    public bool $phpCookieSecure {
         get;
     }
 
-    public bool $cookieHttpOnly {
+    public bool $phpCookieHttpOnly {
         get;
     }
 
-    public SameSite $cookieSameSite {
+    public SameSite $phpCookieSameSite {
         get;
     }
 }

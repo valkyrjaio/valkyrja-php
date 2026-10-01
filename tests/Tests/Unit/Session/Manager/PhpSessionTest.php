@@ -16,7 +16,7 @@ use Override;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Valkyrja\Http\Message\Enum\SameSite;
-use Valkyrja\Session\Data\SessionCookieConfig;
+use Valkyrja\Session\Data\SessionPhpConfig;
 use Valkyrja\Session\Manager\Abstract\Session;
 use Valkyrja\Session\Manager\Contract\SessionContract;
 use Valkyrja\Session\Manager\PhpSession;
@@ -40,17 +40,17 @@ use const PHP_SESSION_ACTIVE;
 #[PreserveGlobalState(false)]
 final class PhpSessionTest extends TestCase
 {
-    protected SessionCookieConfig $cookieConfig;
+    protected SessionPhpConfig $cookieConfig;
 
     protected function setUp(): void
     {
-        $this->cookieConfig = new SessionCookieConfig(
-            cookiePath: '/',
-            cookieDomain: null,
-            cookieLifetime: 0,
-            cookieSecure: false,
-            cookieHttpOnly: false,
-            cookieSameSite: SameSite::NONE,
+        $this->cookieConfig = new SessionPhpConfig(
+            phpCookiePath: '/',
+            phpCookieDomain: null,
+            phpCookieLifetime: 0,
+            phpCookieSecure: false,
+            phpCookieHttpOnly: false,
+            phpCookieSameSite: SameSite::NONE,
         );
     }
 
@@ -89,13 +89,13 @@ final class PhpSessionTest extends TestCase
 
     public function testStartWithNonNullDomain(): void
     {
-        $cookieConfig = new SessionCookieConfig(
-            cookiePath: '/',
-            cookieDomain: 'example.com',
-            cookieLifetime: 0,
-            cookieSecure: false,
-            cookieHttpOnly: false,
-            cookieSameSite: SameSite::NONE,
+        $cookieConfig = new SessionPhpConfig(
+            phpCookiePath: '/',
+            phpCookieDomain: 'example.com',
+            phpCookieLifetime: 0,
+            phpCookieSecure: false,
+            phpCookieHttpOnly: false,
+            phpCookieSameSite: SameSite::NONE,
         );
 
         $session = new PhpSession($cookieConfig);
