@@ -61,9 +61,9 @@ class Route implements RouteContract
         protected array $sendingResponseMiddleware = [],
         protected array $responseSentMiddleware = [],
     ) {
-        $this->handler    = $handler;
-        $this->service    = self::serviceOf($method);
-        $this->methodName = self::methodNameOf($method);
+        $this->handler = $handler;
+
+        [$this->service, $this->methodName] = self::partsOf($method);
     }
 
     /**
@@ -81,8 +81,8 @@ class Route implements RouteContract
     protected static function partsOf(string $method): array
     {
         // A control character is excluded from both segments, because the method goes on the wire
-        // as the HTTP/2 `:path`. `[^/]` alone matches a newline, which `$` and `\z` both allow
-        // through at the end of the subject.
+        // as the HTTP/2 `:path`. Anchoring alone does not reject one: `[^/]` matches a newline, so
+        // the segment swallows it rather than leaving it past the anchor.
         if (preg_match('#\A/([^/[:cntrl:]]++)/([^/[:cntrl:]]++)\z#', $method, $matches) !== 1) {
             throw new GrpcRoutingInvalidMethodException("Invalid gRPC method `$method`; expected `/package.Service/Method`");
         }
@@ -91,34 +91,6 @@ class Route implements RouteContract
         $parts = [$matches[1], $matches[2]];
 
         return $parts;
-    }
-
-    /**
-     * Extract the `package.Service` portion of a `/package.Service/Method` method.
-     *
-     * @param string $method The fully-qualified method
-     *
-     * @throws GrpcRoutingInvalidMethodException
-     *
-     * @return non-empty-string
-     */
-    protected static function serviceOf(string $method): string
-    {
-        return self::partsOf($method)[0];
-    }
-
-    /**
-     * Extract the `Method` portion of a `/package.Service/Method` method.
-     *
-     * @param string $method The fully-qualified method
-     *
-     * @throws GrpcRoutingInvalidMethodException
-     *
-     * @return non-empty-string
-     */
-    protected static function methodNameOf(string $method): string
-    {
-        return self::partsOf($method)[1];
     }
 
     /**
