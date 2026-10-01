@@ -913,10 +913,12 @@ so a publisher that binds a `bind()` factory caches nothing. A deferred target
 is the one case both give the child, because the publish callback runs in the
 container that publishes it.
 
-The two answer `isDeferred()` about **themselves** differently, because they
-hold different state. `ChildContainer` copies the callbacks, so it answers for
-its own map. `NativeChildContainer` copies nothing, so it answers for the child
-and the parent.
+The two answer `isDeferred()` and `isSingletonBinding()` about **themselves**
+differently, because they hold different state. `ChildContainer` copies the
+callbacks and the markers, so it answers for its own maps.
+`NativeChildContainer` copies nothing, so it answers for the child and the
+parent. A child that holds
+neither leaves the lookup to the parent, and the parent caches what it builds.
 
 ### Using a Child Container
 
