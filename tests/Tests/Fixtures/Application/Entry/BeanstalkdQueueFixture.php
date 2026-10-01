@@ -36,9 +36,9 @@ final class BeanstalkdQueueFixture extends BeanstalkdQueue
         int $timeout = 0,
     ): void {
         self::$injected     = $pheanstalk;
-        static::$pheanstalk = $pheanstalk;
-        static::$tube       = $tube;
-        static::$timeout    = $timeout;
+        self::$pheanstalk   = $pheanstalk;
+        self::$tube         = $tube;
+        self::$timeout      = $timeout;
     }
 
     /**
@@ -47,10 +47,10 @@ final class BeanstalkdQueueFixture extends BeanstalkdQueue
     public static function reset(): void
     {
         self::$injected     = null;
-        static::$pheanstalk = null;
-        static::$current    = null;
-        static::$tube       = 'default';
-        static::$timeout    = 1;
+        self::$pheanstalk   = null;
+        self::$current      = null;
+        self::$tube         = 'default';
+        self::$timeout      = 1;
     }
 
     /**
