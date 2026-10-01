@@ -533,18 +533,6 @@ final class ChildContainerTest extends TestCase
         self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
     }
 
-    public function testIsSingletonBindingReadsTheChildThenTheParent(): void
-    {
-        $child = $this->createChild();
-        $child->bindSingleton(ServiceFixture::class, [ServiceFixture::class, 'make']);
-        // A snapshot copies the parent's bindings, so only a later one reaches the fallback
-        $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
-
-        self::assertTrue($child->isSingletonBinding(ServiceFixture::class));
-        self::assertTrue($child->isSingletonBinding(SingletonFixture::class));
-        self::assertFalse($child->isSingletonBinding('unknown'));
-    }
-
     public function testGetAliasedStopsAtADeferredHopInTheChain(): void
     {
         // The parent publishes before it reads any map, so it stops at the deferred hop
@@ -669,19 +657,6 @@ final class ChildContainerTest extends TestCase
         $child->getAliased('parentAlias');
     }
 
-    public function testGetSingletonBuildsWhatIsSingletonBindingReports(): void
-    {
-        $child = $this->createChild();
-        // The snapshot copies the parent's bindings, so a marker it missed is the only way
-        // to reach the parent read. A worker takes no binding after the snapshot.
-        $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
-
-        $instance = $child->getSingleton(SingletonFixture::class);
-
-        self::assertSame($instance, $child->getSingleton(SingletonFixture::class));
-        self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
-    }
-
     public function testSetFromDataAcceptsDataWithNoAliasWhenAChainAlreadyReturns(): void
     {
         $child = $this->createChild();
@@ -726,18 +701,6 @@ final class ChildContainerTest extends TestCase
         $child->setFromData(new ContainerData(aliases: ['fourth' => 'first']));
 
         self::assertSame('first', $child->getAliasedId('fourth'));
-    }
-
-    public function testADeclaredServiceKeepsItsLifetimeAgainstAParentMarker(): void
-    {
-        $child = $this->createChild();
-        $child->bind('late', [ServiceFixture::class, 'make']);
-        // The parent declares the same id a singleton, after the child bound its own
-        $this->parent->bindSingleton('late', [SingletonFixture::class, 'make']);
-
-        // The child declared a service, so the child's binding governs the lifetime
-        self::assertFalse($child->isSingletonBinding('late'));
-        self::assertNotSame($child->get('late'), $child->get('late'));
     }
 
     /**

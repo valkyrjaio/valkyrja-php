@@ -653,17 +653,6 @@ final class NativeChildContainerTest extends TestCase
         $this->child->get('first');
     }
 
-    public function testADeclaredServiceKeepsItsLifetimeAgainstAParentMarker(): void
-    {
-        $this->child->bind('late', [ServiceFixture::class, 'make']);
-        // The parent declares the same id a singleton, after the child bound its own
-        $this->parent->bindSingleton('late', [SingletonFixture::class, 'make']);
-
-        // The child declared a service, so the child's binding governs the lifetime
-        self::assertFalse($this->child->isSingletonBinding('late'));
-        self::assertNotSame($this->child->get('late'), $this->child->get('late'));
-    }
-
     public function testGetAliasedReportsAMissingReferenceForACycleANestedParentHolds(): void
     {
         // This class reads the parent's own map, so a grandparent's aliases stay invisible

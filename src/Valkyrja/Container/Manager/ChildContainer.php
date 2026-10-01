@@ -80,20 +80,6 @@ class ChildContainer extends Container
      * @param class-string $id The service id
      */
     #[Override]
-    public function isSingletonBinding(string $id): bool
-    {
-        // The container that declares a binding governs its lifetime, so a marker in the
-        // parent does not make a singleton of a service the child itself bound.
-        return parent::isSingletonBinding($id)
-            || (! parent::isService($id) && $this->parent->isSingletonBinding($id));
-    }
-
-    /**
-     * @inheritDoc
-     *
-     * @param class-string $id The service id
-     */
-    #[Override]
     public function isSingletonInstance(string $id): bool
     {
         return parent::isSingletonInstance($id)
