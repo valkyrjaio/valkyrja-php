@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Application\Entry\Abstract;
 
 use Closure;
+use Throwable;
 use Valkyrja\Application\Data\Contract\GrpcConfigContract;
 use Valkyrja\Application\Kernel\ChildApplication;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
@@ -126,7 +127,8 @@ abstract class WorkerGrpc extends App
             }
         );
 
-        $terminal = ServiceResponse::of(Status::internal());
+        $terminal       = ServiceResponse::of(Status::internal());
+        $closeAttempted = false;
 
         try {
             $terminal = $handler->handle($call);
@@ -135,8 +137,21 @@ abstract class WorkerGrpc extends App
             // fires before the close and the open/close pairing stays symmetric.
             static::openStream($handler, $call, $outbound, $opened);
 
+            $closeAttempted = true;
+
             $outbound->close($terminal);
         } finally {
+            // An open stream owes the client a trailing status. A throw after the handler emitted
+            // would otherwise leave the headers and the messages on the wire with no status.
+            if ($opened && ! $closeAttempted) {
+                try {
+                    $outbound->close($terminal);
+                } catch (Throwable) {
+                    // The transport is already failing, and the first throwable is the one to
+                    // report, so this close stays silent.
+                }
+            }
+
             $handler->terminate($call, $terminal);
         }
     }

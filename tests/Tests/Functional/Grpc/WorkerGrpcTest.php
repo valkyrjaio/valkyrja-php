@@ -182,6 +182,34 @@ final class WorkerGrpcTest extends TestCase
         self::assertSame(1, ResponseSentMiddlewareFixture::getAndResetCounter());
     }
 
+    public function testDispatchStreamingClosesAnOpenedStreamWhenThePipelineThrows(): void
+    {
+        $outbound = new OutboundStreamFixture();
+
+        try {
+            WorkerGrpc::dispatchStreaming(
+                $this->app,
+                $this->data,
+                static fn (callable $sink): ServiceCallContract => new ServiceCall(
+                    method: '/pkg.Cancelling/EmitThenFail',
+                    messages: ['one'],
+                    sink: $sink,
+                ),
+                $outbound
+            );
+
+            self::fail('Expected the handler throwable to propagate');
+        } catch (CancelledException) {
+            // The guard must not swallow it.
+        }
+
+        // The client already holds headers and a message, so it must also get a trailing status.
+        self::assertSame(['headers', 'message', 'close'], $outbound->events);
+        self::assertNotNull($outbound->terminal);
+        self::assertSame(StatusCode::INTERNAL, $outbound->terminal->getStatus()->getCode());
+        self::assertSame(1, ResponseSentMiddlewareFixture::getAndResetCounter());
+    }
+
     public function testAnUnknownMethodIsUnimplemented(): void
     {
         $written = null;
