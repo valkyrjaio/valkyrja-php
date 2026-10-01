@@ -276,6 +276,31 @@ final class JobTest extends TestCase
         new Job(name: self::NAME)->withName('');
     }
 
+    public function testConstructorRejectsEmptyId(): void
+    {
+        $this->expectException(QueueMessageInvalidEnvelopeException::class);
+
+        // An empty id collapses every job onto the same dedup key
+        /* @phpstan-ignore-next-line */
+        new Job(name: self::NAME, id: '');
+    }
+
+    public function testConstructorRejectsANegativeEnqueuedAt(): void
+    {
+        $this->expectException(QueueMessageInvalidEnvelopeException::class);
+
+        /* @phpstan-ignore-next-line */
+        new Job(name: self::NAME, enqueuedAtMs: -5);
+    }
+
+    public function testConstructorRejectsANegativeModifiedAt(): void
+    {
+        $this->expectException(QueueMessageInvalidEnvelopeException::class);
+
+        /* @phpstan-ignore-next-line */
+        new Job(name: self::NAME, modifiedAtMs: -5);
+    }
+
     public function testWithIdRejectsEmptyId(): void
     {
         $this->expectException(QueueMessageInvalidEnvelopeException::class);
