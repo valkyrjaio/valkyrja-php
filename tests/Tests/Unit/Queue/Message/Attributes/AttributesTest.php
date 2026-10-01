@@ -15,6 +15,7 @@ namespace Valkyrja\Tests\Unit\Queue\Message\Attributes;
 use stdClass;
 use Valkyrja\Queue\Message\Attributes\Attributes;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidAttributeNameException;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidAttributeValueException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class AttributesTest extends TestCase
@@ -162,16 +163,31 @@ final class AttributesTest extends TestCase
         self::assertSame(['7' => ['value']], $attributes->asArray());
     }
 
+    public function testGetOnlyMatchesAnAllDigitName(): void
+    {
+        $attributes = Attributes::fromArray([7 => ['value'], 'tenant' => ['acme']]);
+
+        // PHP hands an all-digit key back as an int, so the filter sees an int
+        self::assertSame(['7' => ['value']], $attributes->getOnly('7'));
+    }
+
+    public function testGetAllExceptMatchesAnAllDigitName(): void
+    {
+        $attributes = Attributes::fromArray([7 => ['value'], 'tenant' => ['acme']]);
+
+        self::assertSame(['tenant' => ['acme']], $attributes->getAllExcept('7'));
+    }
+
     public function testFromArrayRejectsNonScalarValue(): void
     {
-        $this->expectException(QueueMessageInvalidAttributeNameException::class);
+        $this->expectException(QueueMessageInvalidAttributeValueException::class);
 
         Attributes::fromArray(['tenant' => [new stdClass()]]);
     }
 
     public function testFromArrayRejectsNonScalarBareValue(): void
     {
-        $this->expectException(QueueMessageInvalidAttributeNameException::class);
+        $this->expectException(QueueMessageInvalidAttributeValueException::class);
 
         Attributes::fromArray(['tenant' => new stdClass()]);
     }
