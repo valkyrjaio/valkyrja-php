@@ -648,7 +648,33 @@ final class NativeChildContainerTest extends TestCase
         $this->parent->bindAlias('first', 'second');
 
         $this->expectException(ContainerCyclicAliasException::class);
+        $this->expectExceptionMessage('Alias `first` cannot point at `second`');
 
         $this->child->get('first');
+    }
+
+    public function testADeclaredServiceKeepsItsLifetimeAgainstAParentMarker(): void
+    {
+        $this->child->bind('late', [ServiceFixture::class, 'make']);
+        // The parent declares the same id a singleton, after the child bound its own
+        $this->parent->bindSingleton('late', [SingletonFixture::class, 'make']);
+
+        // The child declared a service, so the child's binding governs the lifetime
+        self::assertFalse($this->child->isSingletonBinding('late'));
+        self::assertNotSame($this->child->get('late'), $this->child->get('late'));
+    }
+
+    public function testGetAliasedReportsAMissingReferenceForACycleANestedParentHolds(): void
+    {
+        // This class reads the parent's own map, so a grandparent's aliases stay invisible
+        $grandparent = new Container();
+        $middle      = new NativeChildContainer($grandparent);
+        $middle->bindAlias('second', 'first');
+        $grandparent->bindAlias('first', 'second');
+        $child = new NativeChildContainer($middle);
+
+        $this->expectException(ContainerInvalidReferenceException::class);
+
+        $child->get('first');
     }
 }

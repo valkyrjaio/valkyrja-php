@@ -148,7 +148,7 @@ alias, and when the two are the same id, because such a chain has no end:
 ```php
 $container->bindAlias(NotifierContract::class, SlackNotifier::class);
 
-// Throws: SlackNotifier already resolves to NotifierContract.
+// Throws: SlackNotifier already reaches NotifierContract.
 $container->bindAlias(SlackNotifier::class, NotifierContract::class);
 ```
 
@@ -970,8 +970,10 @@ The first two run at registration. Nothing is installed before a walk ends, so a
 caller that catches the exception keeps the container it had. A container that
 writes an alias after a child reads through it is outside registration. The
 third check reports such a chain when resolving it returns to a target the child
-is already resolving. Otherwise the lookup ends with a missing reference. It
-extends the SPL `InvalidArgumentException`.
+is already resolving. Otherwise the lookup ends with a missing reference, which
+is what `NativeChildContainer` reports for a parent that is itself a child,
+because it reads the parent's own map alone. It extends the SPL
+`InvalidArgumentException`.
 
 All three implement `Valkyrja\Container\Throwable\Contract\ContainerThrowable`,
 so one catch covers everything the container throws:

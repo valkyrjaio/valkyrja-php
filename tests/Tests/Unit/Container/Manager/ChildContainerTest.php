@@ -710,6 +710,7 @@ final class ChildContainerTest extends TestCase
         $child = new ChildContainer($middle, new ContainerData());
 
         $this->expectException(ContainerCyclicAliasException::class);
+        $this->expectExceptionMessage('Alias `first` cannot point at `second`');
 
         $child->get('first');
     }
@@ -725,6 +726,18 @@ final class ChildContainerTest extends TestCase
         $child->setFromData(new ContainerData(aliases: ['fourth' => 'first']));
 
         self::assertSame('first', $child->getAliasedId('fourth'));
+    }
+
+    public function testADeclaredServiceKeepsItsLifetimeAgainstAParentMarker(): void
+    {
+        $child = $this->createChild();
+        $child->bind('late', [ServiceFixture::class, 'make']);
+        // The parent declares the same id a singleton, after the child bound its own
+        $this->parent->bindSingleton('late', [SingletonFixture::class, 'make']);
+
+        // The child declared a service, so the child's binding governs the lifetime
+        self::assertFalse($child->isSingletonBinding('late'));
+        self::assertNotSame($child->get('late'), $child->get('late'));
     }
 
     /**
