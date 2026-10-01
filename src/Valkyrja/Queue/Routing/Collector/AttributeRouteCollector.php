@@ -28,6 +28,7 @@ use Valkyrja\Queue\Routing\Collector\Contract\RouteCollectorContract;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 use Valkyrja\Queue\Routing\Data\Route;
 use Valkyrja\Reflection\Reflector\Contract\ReflectorContract;
+use Valkyrja\Reflection\Reflector\Reflector;
 
 use function array_column;
 use function is_a;
@@ -36,7 +37,7 @@ class AttributeRouteCollector implements RouteCollectorContract
 {
     public function __construct(
         protected CollectorContract $attributes,
-        protected ReflectorContract $reflection,
+        protected ReflectorContract $reflection = new Reflector(),
     ) {
     }
 
