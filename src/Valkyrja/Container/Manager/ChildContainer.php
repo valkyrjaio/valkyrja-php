@@ -213,9 +213,10 @@ class ChildContainer extends Container
             return false;
         }
 
-        // The child reads its own marker here, because the child is the container that
-        // caches what it builds. A marker it does not hold leaves the lookup to the parent.
-        return $this->isSingletonBinding($id);
+        // Both containers answer here. The parent's marker is what makes this a target the
+        // parent would build for the first time, and the child's is what lets the child
+        // cache what it builds instead.
+        return $this->parent->isSingletonBinding($id) && $this->isSingletonBinding($id);
     }
 
     /**

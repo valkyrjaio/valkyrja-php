@@ -666,4 +666,15 @@ final class NativeChildContainerTest extends TestCase
 
         $child->get('first');
     }
+
+    public function testGetAliasedKeepsAParentBindingWhenTheChildShadowsItWithASingleton(): void
+    {
+        $this->parent->bind(ServiceFixture::class, [ServiceFixture::class, 'make']);
+        $this->parent->bindAlias('fromParent', ServiceFixture::class);
+        $this->child->bindSingleton(ServiceFixture::class, [SingletonFixture::class, 'make']);
+
+        // The parent would build its own binding, so the alias stays with the parent
+        self::assertInstanceOf(ServiceFixture::class, $this->child->getAliased('fromParent'));
+        self::assertInstanceOf(SingletonFixture::class, $this->child->get(ServiceFixture::class));
+    }
 }
