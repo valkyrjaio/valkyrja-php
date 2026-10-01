@@ -96,7 +96,7 @@ class Container implements ContainerContract
         // Nothing is installed before the walks end, so a caught throw leaves all four.
         $this->validateAliasMapIsNotCyclic(
             $data->aliases,
-            fn (string $id): string|null => $aliases[$id] ?? $this->getAliasedId($id),
+            fn (string $id): string|null => $this->getAliasedId($id),
         );
 
         $this->aliases          = $aliases;
