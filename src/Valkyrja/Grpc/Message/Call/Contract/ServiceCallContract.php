@@ -103,6 +103,11 @@ interface ServiceCallContract
 
     /**
      * Create a new call with the resolved route set.
+     *
+     * The route reaches a stage twice: as this accessor, and as the parameter the pipeline
+     * threads. RouteMatched middleware may return a replacement route, so the router calls this
+     * method again with whatever that stage returned. A framework that set the route only at
+     * map-lookup time would answer every later stage with the route the middleware discarded.
      */
     public function withRoute(RouteContract $route): static;
 
