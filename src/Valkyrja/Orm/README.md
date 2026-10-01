@@ -1080,6 +1080,12 @@ class AppComponentProvider implements ComponentProviderContract
     {
         return [];
     }
+
+    #[Override]
+    public function getGrpcProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }
 ```
 

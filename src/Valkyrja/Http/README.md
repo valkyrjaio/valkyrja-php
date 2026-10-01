@@ -155,6 +155,12 @@ class AppComponentProvider implements ComponentProviderContract
     {
         return [new UserRouteProvider()];
     }
+
+    #[Override]
+    public function getGrpcProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }
 ```
 
