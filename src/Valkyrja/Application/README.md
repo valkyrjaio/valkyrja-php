@@ -246,7 +246,20 @@ extends `Valkyrja\Application\Entry\Abstract\WorkerQueue`, which boots the
 application once and then gives each job a fresh child container. The class is
 abstract, because connecting, receiving, and settling are specific to one
 processor. An entry such as `Valkyrja\Application\Entry\Redis\RedisQueue`
-implements those four methods and inherits the loop.
+implements `connect`, `receive`, `disconnect`, and `settle`, and inherits the
+loop.
+
+```php
+// app/bin/queue
+require __DIR__ . '/../vendor/autoload.php';
+
+use Valkyrja\Application\Data\QueueConfig;
+use Valkyrja\Application\Entry\Redis\RedisQueue;
+
+RedisQueue::run(new QueueConfig(
+    dir: __DIR__ . '/..',
+));
+```
 
 `PushQueue` answers a broker that delivers a job over HTTP. It maps the inbound
 request onto a job, runs it, and returns the outcome as the response status.
@@ -255,16 +268,6 @@ request onto a job, runs it, and returns the outcome as the response status.
 The class is abstract. An application extends it and returns its queue config
 from `getConfig()`, so the job runs in a separate queue application, the same
 way that a job from a broker runs.
-
-```php
-// app/bin/queue
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Entry\Redis\RedisQueue;
-
-RedisQueue::run(new QueueConfig(
-    dir: __DIR__ . '/..',
-));
-```
 
 ## Configuration
 
