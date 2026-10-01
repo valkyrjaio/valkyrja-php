@@ -114,6 +114,21 @@ final class QueueEntryTest extends TestCase
         self::assertSame(2, $client->getPushed()[0]->getAttempts());
     }
 
+    public function testThePullLoopDoesNotAccumulateTheClientRecord(): void
+    {
+        $first  = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5);
+        $second = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5);
+
+        ScriptedQueueFixture::script([$first, $second]);
+
+        $client = $this->loop(maxJobs: 2);
+
+        // Two redeliveries, one record: a worker runs for days, so the record
+        // ends with each job rather than growing for the life of the process
+        self::assertCount(1, $client->getPushed());
+        self::assertSame($second->getId(), $client->getPushed()[0]->getId());
+    }
+
     public function testThePullLoopArmsATimeBoundWhenOneIsGiven(): void
     {
         $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
