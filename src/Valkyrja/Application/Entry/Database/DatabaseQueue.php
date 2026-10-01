@@ -144,6 +144,8 @@ class DatabaseQueue extends PullQueue
 
     /**
      * Get the manager the loop reads the table with.
+     *
+     * @codeCoverageIgnore The container of a booted worker is unavailable in a unit test.
      */
     protected static function getManager(ContainerContract $container): ManagerContract
     {
