@@ -146,6 +146,8 @@ class BeanstalkdQueue extends PullQueue
 
     /**
      * Open the connection the loop reserves from.
+     *
+     * @codeCoverageIgnore A real beanstalkd server is unavailable in a test.
      */
     protected static function getPheanstalk(QueueBeanstalkdClientConfigContract $config): PheanstalkSubscriberInterface
     {
