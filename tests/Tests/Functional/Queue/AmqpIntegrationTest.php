@@ -16,21 +16,21 @@ use Override;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Directory\Directory;
-use Valkyrja\Application\Entry\PullQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Client\Manager\AmqpClient;
-use Valkyrja\Queue\Client\Puller\AmqpPuller;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Tests\Fixtures\Application\Data\AmqpWorkerConfigFixture;
+use Valkyrja\Tests\Fixtures\Application\Entry\AmqpQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
-use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Functional\Abstract\TestCase;
 
 use function class_exists;
 use function getenv;
+use function is_int;
 use function is_string;
 use function parse_url;
 
@@ -42,6 +42,19 @@ final class AmqpIntegrationTest extends TestCase
     private AMQPStreamConnection $connection;
 
     private AMQPChannel $channel;
+
+    /** @var non-empty-string */
+    private string $amqpHost = '127.0.0.1';
+
+    private int $amqpPort = 5672;
+
+    /** @var non-empty-string */
+    private string $amqpUser = 'guest';
+
+    private string $amqpPassword = 'guest';
+
+    /** @var non-empty-string */
+    private string $amqpVhost = '/';
 
     #[Override]
     protected function setUp(): void
@@ -60,16 +73,25 @@ final class AmqpIntegrationTest extends TestCase
 
         $parts = parse_url($dsn);
 
+        $this->amqpHost     = is_string($parts['host'] ?? null) && $parts['host'] !== '' ? $parts['host'] : '127.0.0.1';
+        $this->amqpPort     = is_int($parts['port'] ?? null) ? $parts['port'] : 5672;
+        $this->amqpUser     = is_string($parts['user'] ?? null) && $parts['user'] !== '' ? $parts['user'] : 'guest';
+        $this->amqpPassword = is_string($parts['pass'] ?? null) ? $parts['pass'] : 'guest';
+
         $this->connection = new AMQPStreamConnection(
-            $parts['host'] ?? '127.0.0.1',
-            $parts['port'] ?? 5672,
-            $parts['user'] ?? 'guest',
-            $parts['pass'] ?? 'guest',
+            $this->amqpHost,
+            $this->amqpPort,
+            $this->amqpUser,
+            $this->amqpPassword,
         );
 
         $this->channel = $this->connection->channel();
 
         $this->purge();
+
+        AmqpQueueFixture::inject($this->channel, self::QUEUE, timeout: 0);
+        // A worker declares the queue and limits its prefetch as it connects
+        AmqpQueueFixture::connect($this->application());
 
         ResultLogMiddlewareFixture::reset();
     }
@@ -85,6 +107,8 @@ final class AmqpIntegrationTest extends TestCase
         if (isset($this->connection) && $this->connection->isConnected()) {
             $this->connection->close();
         }
+
+        AmqpQueueFixture::reset();
 
         ResultLogMiddlewareFixture::reset();
 
@@ -105,16 +129,17 @@ final class AmqpIntegrationTest extends TestCase
         $client->declareQueue();
         $client->push($job);
 
-        $puller = $this->puller();
-        $puller->connect();
+        // Re-declaring is a synchronous round-trip, so the publish has landed
+        // by the time the first get asks for it
+        AmqpQueueFixture::connect($this->application());
 
-        $received = $puller->receive();
+        $received = AmqpQueueFixture::receive();
 
         self::assertNotNull($received);
         // The envelope is the cross-language contract, so every field must survive
         self::assertSame($client->getPushed()[0]->asArray(), $received->asArray());
 
-        $puller->settle($received, JobResult::ACK, $client);
+        AmqpQueueFixture::settle($received, JobResult::ACK, $client);
     }
 
     public function testAnAcknowledgedJobIsGoneForGood(): void
@@ -166,10 +191,7 @@ final class AmqpIntegrationTest extends TestCase
 
     public function testAnEmptyQueueYieldsNothing(): void
     {
-        $puller = $this->puller();
-        $puller->connect();
-
-        self::assertNull($puller->receive());
+        self::assertNull(AmqpQueueFixture::receive());
     }
 
     public function testDisconnectHandsAnInFlightDeliveryBack(): void
@@ -178,14 +200,13 @@ final class AmqpIntegrationTest extends TestCase
         $client->declareQueue();
         $client->push(new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK));
 
-        $puller = $this->puller();
-        $puller->connect();
+        AmqpQueueFixture::connect($this->application());
 
-        self::assertNotNull($puller->receive());
+        self::assertNotNull(AmqpQueueFixture::receive());
 
         // A worker shutting down mid-job must not make the broker wait out its
         // own timeout before another worker can take it
-        $puller->disconnect();
+        AmqpQueueFixture::disconnect();
 
         $this->channel = $this->connection->channel();
 
@@ -193,16 +214,13 @@ final class AmqpIntegrationTest extends TestCase
     }
 
     /**
-     * Run one job through the worker, with the puller settling its own outcome.
+     * Run one job through the worker, with the entry settling its own outcome.
      */
     private function consumeOne(AmqpClient $client): void
     {
-        PullQueue::run(
+        AmqpQueueFixture::run(
             config: $this->config(),
-            puller: $puller = $this->puller(),
-            client: $client,
             maxJobs: 1,
-            requeuer: $puller,
         );
     }
 
@@ -211,17 +229,29 @@ final class AmqpIntegrationTest extends TestCase
         return new AmqpClient(connection: $this->connection, queue: self::QUEUE);
     }
 
-    private function puller(): AmqpPuller
+    /**
+     * Build an application whose container carries the AMQP client config.
+     */
+    private function application(): ApplicationContract
     {
-        return new AmqpPuller(channel: $this->channel, queue: self::QUEUE, timeout: 0);
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturn($this->config());
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        return $app;
     }
 
     private function config(): QueueConfigContract
     {
-        return new QueueConfig(
-            dir: Directory::$basePath,
-            providers: [new QueueTestComponentProviderFixture()],
-            resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
+        return new AmqpWorkerConfigFixture(
+            amqpHost: $this->amqpHost,
+            amqpPort: $this->amqpPort,
+            amqpUser: $this->amqpUser,
+            amqpPassword: $this->amqpPassword,
+            amqpVhost: $this->amqpVhost,
+            amqpQueue: self::QUEUE,
         );
     }
 
