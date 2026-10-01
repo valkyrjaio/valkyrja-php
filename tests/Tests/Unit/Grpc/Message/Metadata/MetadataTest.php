@@ -164,6 +164,16 @@ final class MetadataTest extends TestCase
         new Metadata()->with('trace', "x\n");
     }
 
+    public function testReindexesAValueArrayThatIsNotAList(): void
+    {
+        $metadata = new Metadata(['trace' => [1 => 'a', 4 => 'b']]);
+
+        // `get()` reads offset 0, so a present key must not answer null.
+        self::assertTrue($metadata->has('trace'));
+        self::assertSame('a', $metadata->get('trace'));
+        self::assertSame(['a', 'b'], $metadata->getAll('trace'));
+    }
+
     public function testAcceptsANumericKey(): void
     {
         $metadata = new Metadata(['123' => ['x']]);

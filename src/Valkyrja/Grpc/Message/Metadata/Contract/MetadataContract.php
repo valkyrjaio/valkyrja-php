@@ -17,7 +17,7 @@ use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidKeyException;
 use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidValueException;
 
 /**
- * @extends IteratorAggregate<array-key, string[]>
+ * @extends IteratorAggregate<array-key, list<string>>
  */
 interface MetadataContract extends IteratorAggregate
 {
@@ -33,7 +33,7 @@ interface MetadataContract extends IteratorAggregate
      *
      * @param string $key The key (case-insensitive)
      *
-     * @return string[]
+     * @return list<string>
      */
     public function getAll(string $key): array;
 
@@ -86,7 +86,7 @@ interface MetadataContract extends IteratorAggregate
      * A key is `array-key` rather than `string`, because PHP stores a numeric-string array key as
      * an int. Every other port keys this map by string.
      *
-     * @return array<array-key, string[]>
+     * @return array<array-key, list<string>>
      */
     public function toArray(): array;
 }

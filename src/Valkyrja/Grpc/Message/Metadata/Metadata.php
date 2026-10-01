@@ -19,6 +19,7 @@ use Valkyrja\Grpc\Message\Metadata\Contract\MetadataContract;
 use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidKeyException;
 use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidValueException;
 
+use function array_values;
 use function preg_match;
 use function str_ends_with;
 use function strtolower;
@@ -47,7 +48,7 @@ class Metadata implements MetadataContract
      */
     protected const string VALID_ASCII_VALUE_REGEX = '/^[\x20-\x7e]*$/D';
 
-    /** @var array<array-key, string[]> */
+    /** @var array<array-key, list<string>> */
     protected array $values = [];
 
     /**
@@ -67,7 +68,9 @@ class Metadata implements MetadataContract
                 self::validateValue($normalizedKey, $value);
             }
 
-            $normalized[$normalizedKey] = $keyValues;
+            // A caller's value array can carry any keys, and `get()` reads offset 0, so the
+            // list is re-indexed rather than trusted.
+            $normalized[$normalizedKey] = array_values($keyValues);
         }
 
         $this->values = $normalized;
@@ -213,7 +216,7 @@ class Metadata implements MetadataContract
     /**
      * @inheritDoc
      *
-     * @return Traversable<array-key, string[]>
+     * @return Traversable<array-key, list<string>>
      */
     #[Override]
     public function getIterator(): Traversable
