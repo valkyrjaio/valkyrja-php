@@ -876,7 +876,7 @@ an alias. When the parent holds a resolved instance and the child holds none, a
 direct child lookup reuses the parent's instance.
 
 The parent answers the target as it would for any caller, with one exception.
-The child resolves a target the parent would build for the first time, when the
+The child resolves a target the parent would answer for the first time, when the
 child holds that registration too. Letting the parent do it would leave the
 request with one copy for the alias and another for the id. Three cases:
 
