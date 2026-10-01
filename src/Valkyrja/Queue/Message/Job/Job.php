@@ -79,7 +79,21 @@ class Job implements JobContract
         $this->validateAttempts($attempts, $maxAttempts);
         $this->validateDelays($delayMs, $retryDelayMs);
 
-        $enqueuedAt = $enqueuedAtMs ?? Microtime::now();
+        // The setters reject an empty id and a negative timestamp, so the
+        // constructor rejects them too: either one reaches the wire otherwise
+        if ($id !== null) {
+            $this->validateId($id);
+        }
+
+        if ($enqueuedAtMs !== null) {
+            $this->validateTimestamp($enqueuedAtMs);
+        }
+
+        if ($modifiedAtMs !== null) {
+            $this->validateTimestamp($modifiedAtMs);
+        }
+
+        $enqueuedAt = $enqueuedAtMs ?? Microtime::getMilliseconds();
 
         /** @var non-empty-string $identifier */
         $identifier = $id ?? VlidV1Factory::generate();
