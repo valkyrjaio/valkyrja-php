@@ -10,34 +10,19 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Tests\Unit\Queue\Client\Requeuer;
+namespace Valkyrja\Tests\Unit\Queue\Client\Manager\Abstract;
 
 use Override;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
-use Valkyrja\Queue\Client\Requeuer\Requeuer;
-use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Fixtures\Queue\Client\RecordingClientFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
-final class RequeuerTest extends TestCase
+final class ClientTest extends TestCase
 {
     /** @var non-empty-string */
     protected const string NAME = 'SendWelcomeEmail';
-
-    /**
-     * @return array<string, array{JobResult}>
-     */
-    public static function terminalProvider(): array
-    {
-        return [
-            'ack'         => [JobResult::ACK],
-            'fail'        => [JobResult::FAIL],
-            'dead letter' => [JobResult::DEAD_LETTER],
-        ];
-    }
 
     #[Override]
     protected function setUp(): void
@@ -55,22 +40,12 @@ final class RequeuerTest extends TestCase
         parent::tearDown();
     }
 
-    #[DataProvider('terminalProvider')]
-    public function testATerminalOutcomeHandsNothingBack(JobResult $result): void
-    {
-        $client = new InMemoryClient();
-
-        new Requeuer()->settle(new Job(name: self::NAME), $result, $client);
-
-        self::assertSame([], $client->getPushed());
-    }
-
-    public function testARetryHandsBackAnIncrementedJob(): void
+    public function testRequeueHandsBackAnIncrementedJob(): void
     {
         $client = new InMemoryClient();
         $job    = new Job(name: self::NAME, id: 'stable-id', attempts: 2, enqueuedAtMs: 5, modifiedAtMs: 5);
 
-        new Requeuer()->settle($job, JobResult::RETRY, $client);
+        $client->requeue($job);
 
         $requeued = $client->getPushed()[0];
 
@@ -87,10 +62,8 @@ final class RequeuerTest extends TestCase
 
         // Dispatched at attempt 1: the hold is one delay, even though the copy
         // handed back carries attempt 2. Reading the copy would give 2000.
-        new Requeuer()->settle(
-            new Job(name: self::NAME, attempts: 1, retryDelayMs: 1000, retryDelayMultiplyByAttempt: true),
-            JobResult::RETRY,
-            $client
+        $client->requeue(
+            new Job(name: self::NAME, attempts: 1, retryDelayMs: 1000, retryDelayMultiplyByAttempt: true)
         );
 
         self::assertSame([1000], $client->delays);
@@ -103,7 +76,7 @@ final class RequeuerTest extends TestCase
         $job    = new Job(name: self::NAME, retryDelayMs: 1000, retryDelayMultiplyByAttempt: true);
 
         foreach ([1, 2, 3] as $attempts) {
-            new Requeuer()->settle($job->withAttempts($attempts), JobResult::RETRY, $client);
+            $client->requeue($job->withAttempts($attempts));
         }
 
         self::assertSame([1000, 2000, 3000], $client->delays);
@@ -115,32 +88,28 @@ final class RequeuerTest extends TestCase
         $job    = new Job(name: self::NAME, retryDelayMs: 1000);
 
         foreach ([1, 2, 3] as $attempts) {
-            new Requeuer()->settle($job->withAttempts($attempts), JobResult::RETRY, $client);
+            $client->requeue($job->withAttempts($attempts));
         }
 
         // No ramp and no jitter — the same hold every time
         self::assertSame([1000, 1000, 1000], $client->delays);
     }
 
-    public function testTheProducersDelayIsNeverReAppliedOnARetry(): void
+    public function testTheProducersDelayIsNeverReAppliedOnARequeue(): void
     {
         $client = new RecordingClientFixture();
 
-        new Requeuer()->settle(
-            new Job(name: self::NAME, attempts: 1, delayMs: 60_000, retryDelayMs: 250),
-            JobResult::RETRY,
-            $client
-        );
+        $client->requeue(new Job(name: self::NAME, attempts: 1, delayMs: 60_000, retryDelayMs: 250));
 
         // delay_ms is producer intent applied at first publish only
         self::assertSame([250], $client->delays);
     }
 
-    public function testARetryLeavesTheOriginalJobUntouched(): void
+    public function testARequeueLeavesTheOriginalJobUntouched(): void
     {
         $job = new Job(name: self::NAME, attempts: 2);
 
-        new Requeuer()->settle($job, JobResult::RETRY, new InMemoryClient());
+        new InMemoryClient()->requeue($job);
 
         self::assertSame(2, $job->getAttempts());
     }
@@ -151,7 +120,7 @@ final class RequeuerTest extends TestCase
 
         $client = new InMemoryClient();
 
-        new Requeuer()->settle(new Job(name: self::NAME), JobResult::RETRY, $client);
+        $client->requeue(new Job(name: self::NAME));
 
         self::assertSame(0, $client->getPushed()[0]->getModifiedAtMs());
     }

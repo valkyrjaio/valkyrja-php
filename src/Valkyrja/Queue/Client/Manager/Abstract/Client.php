@@ -64,6 +64,23 @@ abstract class Client implements ClientContract
      * @inheritDoc
      */
     #[Override]
+    public function requeue(JobContract $job): void
+    {
+        // The hold is read from the dispatched job, before the increment: the
+        // ramp is keyed to the attempt that just failed, so taking it from the
+        // incremented copy would make every hold one step too long
+        $this->retry(
+            $job
+                ->withAttempts($job->getAttempts() + 1)
+                ->withModifiedAtMs(Microtime::now()),
+            $job->getRetryDelayForAttemptMs(),
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
     public function getPushed(): array
     {
         return $this->pushed;

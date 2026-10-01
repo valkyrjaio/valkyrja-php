@@ -30,8 +30,6 @@ use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Client\Manager\RedisClient;
 use Valkyrja\Queue\Client\Manager\SyncClient;
 use Valkyrja\Queue\Client\Provider\QueueClientServiceProvider;
-use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
-use Valkyrja\Queue\Client\Requeuer\Requeuer;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientConfigNotFoundException;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
@@ -73,7 +71,6 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(DeferredClient::class, $publishers);
         self::assertArrayHasKey(InMemoryClient::class, $publishers);
         self::assertArrayHasKey(RedisClient::class, $publishers);
-        self::assertArrayHasKey(RequeuerContract::class, $publishers);
     }
 
     public function testPublishConfig(): void
@@ -196,7 +193,6 @@ final class ServiceProviderTest extends ServiceProviderTestCase
     {
         $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
         $this->container->setSingleton(QueueSyncClientConfigContract::class, new QueueClientConfigFixture());
-        $this->container->setSingleton(RequeuerContract::class, new Requeuer());
 
         $this->publish(SyncClient::class);
 
@@ -211,7 +207,6 @@ final class ServiceProviderTest extends ServiceProviderTestCase
     {
         $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
         $this->container->setSingleton(QueueDeferredClientConfigContract::class, new QueueClientConfigFixture());
-        $this->container->setSingleton(RequeuerContract::class, new Requeuer());
 
         $this->publish(DeferredClient::class);
 
@@ -242,13 +237,6 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $this->publish(RedisClient::class);
 
         self::assertInstanceOf(RedisClient::class, $this->container->getSingleton(RedisClient::class));
-    }
-
-    public function testPublishRequeuer(): void
-    {
-        $this->publish(RequeuerContract::class);
-
-        self::assertInstanceOf(Requeuer::class, $this->container->getSingleton(RequeuerContract::class));
     }
 
     /**

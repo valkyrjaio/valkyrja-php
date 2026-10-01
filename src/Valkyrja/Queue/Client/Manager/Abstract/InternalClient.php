@@ -16,8 +16,7 @@ use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Application\Entry\Abstract\InternalQueue;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Data\ContainerData;
-use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
-use Valkyrja\Queue\Client\Requeuer\Requeuer;
+use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 
 abstract class InternalClient extends Client
@@ -35,7 +34,6 @@ abstract class InternalClient extends Client
         protected string $entry,
         string $applicationName = 'valkyrja',
         string $version = ApplicationInfo::VERSION,
-        protected RequeuerContract $requeuer = new Requeuer(),
     ) {
         parent::__construct(
             applicationName: $applicationName,
@@ -44,12 +42,25 @@ abstract class InternalClient extends Client
     }
 
     /**
+     * Settle an outcome for a job this client ran in process.
+     *
+     * The in-process processor has nothing to signal, so a retry is simply
+     * published again and the attempt ceiling is what ends the chain.
+     */
+    public function settle(JobContract $job, JobResult $result): void
+    {
+        if ($result === JobResult::RETRY) {
+            $this->requeue($job);
+        }
+    }
+
+    /**
      * Run a job through the queue application of the entry.
      *
      * The queue application boots on the first job and serves every later one,
      * the same way a worker serves each job that a broker delivers.
      */
-    protected function run(JobContract $job, RequeuerContract $requeuer): void
+    protected function run(JobContract $job): void
     {
         $entry       = $this->entry;
         $application = $this->application ??= $entry::bootstrap($entry::getConfig());
@@ -60,7 +71,6 @@ abstract class InternalClient extends Client
             data: $data,
             job: $job,
             client: $this,
-            requeuer: $requeuer,
         );
     }
 }

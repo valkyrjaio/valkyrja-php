@@ -14,21 +14,18 @@ namespace Valkyrja\Tests\Functional\Queue;
 
 use Override;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Data\QueueConfig;
-use Valkyrja\Application\Directory\Directory;
-use Valkyrja\Application\Entry\PullQueue;
 use Valkyrja\Application\Entry\Queue;
 use Valkyrja\Http\Message\Enum\StatusCode;
 use Valkyrja\Http\Message\Request\ServerRequest;
 use Valkyrja\Http\Message\Stream\Stream;
-use Valkyrja\Queue\Client\Manager\InMemoryClient;
+use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
-use Valkyrja\Tests\Fixtures\Queue\Client\PullerFixture;
+use Valkyrja\Tests\Fixtures\Application\Data\QueueWorkerConfigFixture;
+use Valkyrja\Tests\Fixtures\Application\Entry\ScriptedQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Entry\PushQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
-use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Functional\Abstract\TestCase;
 
@@ -43,6 +40,7 @@ final class QueueEntryTest extends TestCase
 
         ResultLogMiddlewareFixture::reset();
         PushQueueFixture::reset();
+        ScriptedQueueFixture::reset();
     }
 
     #[Override]
@@ -50,6 +48,7 @@ final class QueueEntryTest extends TestCase
     {
         ResultLogMiddlewareFixture::reset();
         PushQueueFixture::reset();
+        ScriptedQueueFixture::reset();
 
         parent::tearDown();
     }
@@ -59,9 +58,9 @@ final class QueueEntryTest extends TestCase
         $first  = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
         $second = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
 
-        $puller = new PullerFixture([$first, $second]);
+        ScriptedQueueFixture::script([$first, $second]);
 
-        $this->loop($puller, maxJobs: 2);
+        $this->loop(maxJobs: 2);
 
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($first->getId()));
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($second->getId()));
@@ -69,47 +68,45 @@ final class QueueEntryTest extends TestCase
 
     public function testThePullEntryBootstrapsOnceThenLoops(): void
     {
-        $job    = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
-        $puller = new PullerFixture([$job]);
+        $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
 
-        PullQueue::run(
-            config: $this->config(),
-            puller: $puller,
-            client: new InMemoryClient(),
-            maxJobs: 1,
-        );
+        ScriptedQueueFixture::script([$job]);
+
+        ScriptedQueueFixture::run(config: $this->config(), maxJobs: 1);
 
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
-        self::assertFalse($puller->connected);
+        self::assertFalse(ScriptedQueueFixture::$connected);
     }
 
     public function testThePullLoopConnectsAndAlwaysDisconnects(): void
     {
-        $puller = new PullerFixture([new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK)]);
+        ScriptedQueueFixture::script([new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK)]);
 
-        $this->loop($puller, maxJobs: 1);
+        $this->loop(maxJobs: 1);
 
-        self::assertFalse($puller->connected);
+        self::assertFalse(ScriptedQueueFixture::$connected);
     }
 
     public function testThePullLoopKeepsPollingThroughATimeout(): void
     {
         // A null delivery is a poll that timed out; the loop must come back
-        $job    = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
-        $puller = new PullerFixture([null, null, $job]);
+        $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
 
-        $this->loop($puller, maxJobs: 1);
+        ScriptedQueueFixture::script([null, null, $job]);
 
-        self::assertSame(3, $puller->receiveCount);
+        $this->loop(maxJobs: 1);
+
+        self::assertSame(3, ScriptedQueueFixture::$receiveCount);
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
     }
 
     public function testThePullLoopRequeuesARetryThroughTheClient(): void
     {
-        $job    = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5);
-        $client = new InMemoryClient();
+        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5);
 
-        $this->loop(new PullerFixture([$job]), maxJobs: 1, client: $client);
+        ScriptedQueueFixture::script([$job]);
+
+        $client = $this->loop(maxJobs: 1);
 
         // Handled once; the retry went back to the processor rather than looping here
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
@@ -119,12 +116,13 @@ final class QueueEntryTest extends TestCase
 
     public function testThePullLoopArmsATimeBoundWhenOneIsGiven(): void
     {
-        $job    = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
-        $puller = new PullerFixture([$job]);
+        $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
+
+        ScriptedQueueFixture::script([$job]);
 
         // A generous deadline is armed but not reached, so the job bound is
         // what ends the loop; the bound arithmetic itself is unit-tested
-        $this->loop($puller, maxJobs: 1, maxSeconds: 60);
+        $this->loop(maxJobs: 1, maxSeconds: 60);
 
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
     }
@@ -152,35 +150,7 @@ final class QueueEntryTest extends TestCase
             request: $this->request($job),
         );
 
-        self::assertNotNull(PushQueueFixture::$sent);
-        self::assertSame(StatusCode::SERVICE_UNAVAILABLE, PushQueueFixture::$sent->getStatusCode());
-    }
-
-    public function testThePushEntrySettlesThroughAClientWhenOneIsSupplied(): void
-    {
-        $job    = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5);
-        $client = new InMemoryClient();
-
-        PushQueueFixture::run(
-            config: $this->config(),
-            request: $this->request($job),
-            client: $client,
-        );
-
-        self::assertCount(1, $client->getPushed());
-        self::assertSame(2, $client->getPushed()[0]->getAttempts());
-    }
-
-    public function testThePushEntryLeavesRedeliveryToTheProcessorWithoutAClient(): void
-    {
-        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5);
-
-        PushQueueFixture::run(
-            config: $this->config(),
-            request: $this->request($job),
-        );
-
-        // The status is the retry signal, so nothing is re-queued here
+        // The status is the whole signal: a push settles nothing out of band
         self::assertNotNull(PushQueueFixture::$sent);
         self::assertSame(StatusCode::SERVICE_UNAVAILABLE, PushQueueFixture::$sent->getStatusCode());
     }
@@ -189,38 +159,40 @@ final class QueueEntryTest extends TestCase
     {
         $job = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
 
-        Queue::run(config: $this->config(), job: $job, client: new InMemoryClient());
+        Queue::run(config: $this->config(), job: $job);
 
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
     }
 
-    public function testTheSingleShotEntrySettlesARetryThroughTheClient(): void
+    public function testTheSingleShotEntryLeavesSettlementToAProcessorEntry(): void
     {
-        $client = new InMemoryClient();
-        $job    = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 3);
+        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 3);
 
-        Queue::run(config: $this->config(), job: $job, client: $client);
+        Queue::run(config: $this->config(), job: $job);
 
-        // The entry runs one job, so the incremented job waits in the client
+        // The job ran and reported a retry, but the agnostic entry has no
+        // processor to hand it back to, so nothing is re-queued
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
-        self::assertSame(2, $client->getBuffered()[0]->getAttempts());
     }
 
-    protected function loop(
-        PullerFixture $puller,
-        int $maxJobs = 0,
-        int $maxSeconds = 0,
-        InMemoryClient|null $client = null,
-    ): void {
-        $app = PullQueue::bootstrap($this->config());
+    /**
+     * Drive the scripted loop, returning the client the worker resolved.
+     *
+     * @param int<0, max> $maxJobs    The job bound
+     * @param int<0, max> $maxSeconds The time bound
+     */
+    protected function loop(int $maxJobs = 0, int $maxSeconds = 0): ClientContract
+    {
+        $app    = ScriptedQueueFixture::bootstrap($this->config());
+        $client = $app->getContainer()->getSingleton(ClientContract::class);
 
-        PullQueue::loop(
+        ScriptedQueueFixture::loop(
             app: $app,
-            puller: $puller,
-            client: $client ?? new InMemoryClient(),
             maxJobs: $maxJobs,
             maxSeconds: $maxSeconds,
         );
+
+        return $client;
     }
 
     protected function request(Job $job): ServerRequest
@@ -234,10 +206,6 @@ final class QueueEntryTest extends TestCase
 
     protected function config(): QueueConfigContract
     {
-        return new QueueConfig(
-            dir: Directory::$basePath,
-            providers: [new QueueTestComponentProviderFixture()],
-            resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
-        );
+        return new QueueWorkerConfigFixture();
     }
 }

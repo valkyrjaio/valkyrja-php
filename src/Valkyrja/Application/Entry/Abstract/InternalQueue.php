@@ -19,8 +19,9 @@ use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Queue\Client\Manager\Abstract\InternalClient;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
-use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
+use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 
 use function date_default_timezone_get;
@@ -55,7 +56,6 @@ abstract class InternalQueue extends WorkerQueue
         ContainerData $data,
         JobContract $job,
         ClientContract $client,
-        RequeuerContract $requeuer,
     ): void {
         $basePath = Directory::$basePath;
         $timezone = date_default_timezone_get();
@@ -64,7 +64,7 @@ abstract class InternalQueue extends WorkerQueue
         static::setProcessState($config->dir, $config->timezone);
 
         try {
-            parent::handle($app, $data, $job, $client, $requeuer);
+            parent::handle($app, $data, $job, $client);
         } finally {
             static::setProcessState($basePath, $timezone);
         }
@@ -86,6 +86,18 @@ abstract class InternalQueue extends WorkerQueue
     public static function bootstrapThrowableHandler(ApplicationContract $app, ContainerContract $container): void
     {
         // The host application owns the exception handler of the process
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public static function settle(JobContract $job, JobResult $result, ClientContract $client): void
+    {
+        // The in-process client is the processor here, so it owns settlement
+        if ($client instanceof InternalClient) {
+            $client->settle($job, $result);
+        }
     }
 
     /**

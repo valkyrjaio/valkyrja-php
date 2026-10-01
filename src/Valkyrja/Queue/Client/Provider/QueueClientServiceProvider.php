@@ -28,8 +28,6 @@ use Valkyrja\Queue\Client\Manager\DeferredClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Client\Manager\RedisClient;
 use Valkyrja\Queue\Client\Manager\SyncClient;
-use Valkyrja\Queue\Client\Requeuer\Contract\RequeuerContract;
-use Valkyrja\Queue\Client\Requeuer\Requeuer;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientConfigNotFoundException;
 
 use function sprintf;
@@ -135,7 +133,6 @@ class QueueClientServiceProvider implements ServiceProviderContract
             new SyncClient(
                 entry: $config->syncEntry,
                 applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
-                requeuer: $container->getSingleton(RequeuerContract::class),
             )
         );
     }
@@ -152,7 +149,6 @@ class QueueClientServiceProvider implements ServiceProviderContract
             new DeferredClient(
                 entry: $config->deferredEntry,
                 applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
-                requeuer: $container->getSingleton(RequeuerContract::class),
             )
         );
     }
@@ -193,17 +189,6 @@ class QueueClientServiceProvider implements ServiceProviderContract
     }
 
     /**
-     * Publish the re-queuer service.
-     */
-    public static function publishRequeuer(ContainerContract $container): void
-    {
-        $container->setSingleton(
-            RequeuerContract::class,
-            new Requeuer()
-        );
-    }
-
-    /**
      * Get the exception for an application config that does not implement a contract.
      *
      * @param class-string $contract The contract the application config must implement
@@ -231,7 +216,6 @@ class QueueClientServiceProvider implements ServiceProviderContract
             DeferredClient::class                    => [self::class, 'publishDeferredClient'],
             InMemoryClient::class                    => [self::class, 'publishInMemoryClient'],
             RedisClient::class                       => [self::class, 'publishRedisClient'],
-            RequeuerContract::class                  => [self::class, 'publishRequeuer'],
         ];
     }
 }
