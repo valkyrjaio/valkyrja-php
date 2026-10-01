@@ -128,16 +128,16 @@ gives one request the deferred jobs of the request before it.
 
 ## Entry Points
 
-| Entry           | Runs                                                  |
-| --------------- | ----------------------------------------------------- |
-| `Queue`         | one job, then exits                                   |
-| `PullQueue`     | the poll loop that a processor entry extends          |
-| `RedisQueue`    | a worker that takes jobs from a redis list            |
-| `AmqpQueue`     | a worker that consumes an AMQP queue                  |
-| `SqsQueue`      | a worker that long-polls an SQS queue                 |
-| `BeanstalkdQueue` | a worker that reserves jobs from a tube             |
-| `PushQueue`     | one job that a broker delivers over HTTP              |
-| `InternalQueue` | each job that `SyncClient` or `DeferredClient` pushes |
+| Entry             | Runs                                                  |
+| ----------------- | ----------------------------------------------------- |
+| `Queue`           | one job, then exits                                   |
+| `PullQueue`       | the poll loop that a processor entry extends          |
+| `RedisQueue`      | a worker that takes jobs from a redis list            |
+| `AmqpQueue`       | a worker that consumes an AMQP queue                  |
+| `SqsQueue`        | a worker that long-polls an SQS queue                 |
+| `BeanstalkdQueue` | a worker that reserves jobs from a tube               |
+| `PushQueue`       | one job that a broker delivers over HTTP              |
+| `InternalQueue`   | each job that `SyncClient` or `DeferredClient` pushes |
 
 `PullQueue` is abstract, because polling and settling are specific to one
 processor. An entry such as `RedisQueue` implements `connect`, `receive`,
