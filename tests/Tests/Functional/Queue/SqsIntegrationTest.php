@@ -15,8 +15,6 @@ namespace Valkyrja\Tests\Functional\Queue;
 use AsyncAws\Sqs\SqsClient as Sqs;
 use Override;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
-use Valkyrja\Application\Kernel\Contract\ApplicationContract;
-use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Client\Manager\SqsClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
@@ -177,20 +175,6 @@ final class SqsIntegrationTest extends TestCase
     private function client(): SqsClient
     {
         return new SqsClient(sqs: $this->sqs, queueUrl: $this->queueUrl);
-    }
-
-    /**
-     * Build an application whose container carries the SQS client config.
-     */
-    private function application(): ApplicationContract
-    {
-        $container = self::createStub(ContainerContract::class);
-        $container->method('getSingleton')->willReturn($this->config());
-
-        $app = self::createStub(ApplicationContract::class);
-        $app->method('getContainer')->willReturn($container);
-
-        return $app;
     }
 
     private function config(): QueueConfigContract
