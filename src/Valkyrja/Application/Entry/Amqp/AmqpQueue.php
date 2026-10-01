@@ -206,6 +206,8 @@ class AmqpQueue extends PullQueue
 
     /**
      * Open the channel the loop consumes from.
+     *
+     * @codeCoverageIgnore A real AMQP broker is unavailable in a test.
      */
     protected static function getChannel(QueueAmqpClientConfigContract $config): AMQPChannel
     {
