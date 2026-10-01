@@ -97,12 +97,59 @@ final class SqsQueueTest extends TestCase
         self::assertSame(['user_id' => 42], $job->getPayload()->getAll());
     }
 
-    public function testADeliveryWithNoBodyIsSkipped(): void
+    public function testADeliveryWithNoBodyIsRetired(): void
     {
         // SQS types the body as optional, so a body-less delivery is reachable
         $this->sqs->next = [new Message(['MessageId' => 'id-1', 'ReceiptHandle' => self::HANDLE])];
 
         self::assertNull(SqsQueueFixture::receive());
+
+        // Leaving it in flight would poison every later poll
+        $calls = $this->sqs->getCalls('deleteMessage');
+
+        self::assertCount(1, $calls);
+        self::assertSame(self::HANDLE, $calls[0]['ReceiptHandle']);
+    }
+
+    public function testReceiveAsksForTheReceiveCount(): void
+    {
+        SqsQueueFixture::receive();
+
+        $input = $this->sqs->getCalls('receiveMessage')[0];
+
+        // SQS reports the count only when it is asked for
+        self::assertSame(['ApproximateReceiveCount'], $input['MessageSystemAttributeNames']);
+    }
+
+    public function testTheReceiveCountBecomesTheAttemptCount(): void
+    {
+        $this->seed(new JobFactory()->create(self::NAME), ['ApproximateReceiveCount' => '4']);
+
+        $job = SqsQueueFixture::receive();
+
+        self::assertNotNull($job);
+        // SQS owns the count on a processor-owned path, so max_attempts reads it
+        self::assertSame(4, $job->getAttempts());
+    }
+
+    public function testAnAbsentReceiveCountLeavesTheEnvelopeAlone(): void
+    {
+        $this->seed(new Job(name: self::NAME, attempts: 2));
+
+        $job = SqsQueueFixture::receive();
+
+        self::assertNotNull($job);
+        self::assertSame(2, $job->getAttempts());
+    }
+
+    public function testANonNumericReceiveCountLeavesTheEnvelopeAlone(): void
+    {
+        $this->seed(new Job(name: self::NAME, attempts: 3), ['ApproximateReceiveCount' => 'not-a-count']);
+
+        $job = SqsQueueFixture::receive();
+
+        self::assertNotNull($job);
+        self::assertSame(3, $job->getAttempts());
     }
 
     public function testADeliveryWithNoReceiptHandleIsSkipped(): void
@@ -207,13 +254,17 @@ final class SqsQueueTest extends TestCase
         self::assertSame([], $this->sqs->getCalls('changeMessageVisibility'));
     }
 
-    protected function seed(Job $job): void
+    /**
+     * @param array<string, string> $attributes The system attributes SQS reports
+     */
+    protected function seed(Job $job, array $attributes = []): void
     {
         $this->sqs->next = [
             new Message([
                 'MessageId'     => 'id-1',
                 'ReceiptHandle' => self::HANDLE,
                 'Body'          => new JobFactory()->toJson($job),
+                'Attributes'    => $attributes,
             ]),
         ];
     }
