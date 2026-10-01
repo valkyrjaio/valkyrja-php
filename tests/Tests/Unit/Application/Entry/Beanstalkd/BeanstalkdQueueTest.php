@@ -24,6 +24,7 @@ use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Tests\Fixtures\Application\Entry\BeanstalkdQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\BeanstalkdFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -92,6 +93,15 @@ final class BeanstalkdQueueTest extends TestCase
 
         // Ignoring the only watched tube would leave the connection watching none
         self::assertSame([], $this->pheanstalk->getCalls('ignore'));
+    }
+
+    public function testReservingWithoutAConnectionFails(): void
+    {
+        BeanstalkdQueueFixture::reset();
+
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        BeanstalkdQueueFixture::receive();
     }
 
     public function testAnEmptyTubeYieldsNothing(): void
