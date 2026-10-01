@@ -66,6 +66,12 @@ abstract class PullQueue extends WorkerQueue
                     continue;
                 }
 
+                // One job is the unit of work of a worker, so the record of
+                // pushed jobs ends with each job rather than with the process.
+                // Clearing before the job rather than after leaves the record of
+                // the last one readable once the loop exits.
+                $client->clearPushed();
+
                 static::handle($app, $data, $job, $client);
 
                 $handled++;

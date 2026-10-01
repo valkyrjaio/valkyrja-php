@@ -87,6 +87,15 @@ abstract class Client implements ClientContract
     }
 
     /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function clearPushed(): void
+    {
+        $this->pushed = [];
+    }
+
+    /**
      * Hand an already incremented job back to the processor for redelivery.
      *
      * For a framework-owned processor this is essentially a publish of the
