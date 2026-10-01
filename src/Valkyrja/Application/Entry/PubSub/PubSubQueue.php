@@ -133,6 +133,8 @@ class PubSubQueue extends PullQueue
 
     /**
      * Open the subscription the loop pulls from.
+     *
+     * @codeCoverageIgnore A real Pub/Sub subscription is unavailable in a test.
      */
     protected static function getSubscription(QueuePubSubClientConfigContract $config): Subscription
     {
