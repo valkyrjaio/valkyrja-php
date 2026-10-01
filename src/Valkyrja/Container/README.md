@@ -922,8 +922,8 @@ The two answer `isDeferred()` and `isSingletonBinding()` about **themselves**
 differently, because they hold different state. `ChildContainer` copies the
 callbacks and the markers, so it answers for its own maps.
 `NativeChildContainer` copies nothing, so it answers for the child and the
-parent. A child that holds
-neither leaves the lookup to the parent, and the parent caches what it builds.
+parent. Those reads decide the carve-out above, so the two classes take it on
+different state for one id.
 
 ### Using a Child Container
 
