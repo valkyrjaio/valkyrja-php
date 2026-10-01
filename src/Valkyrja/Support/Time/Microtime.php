@@ -52,7 +52,7 @@ class Microtime
      *
      * @return int<0, max>
      */
-    public static function now(): int
+    public static function getMilliseconds(): int
     {
         $now = (int) (static::get() * 1000.0);
 
