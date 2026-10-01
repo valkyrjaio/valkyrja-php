@@ -356,7 +356,14 @@ class Container implements ContainerContract
 
         $singleton = $this->getServiceWithoutChecks($id);
 
-        return is_object($singleton) ? $this->instances[$id] = $singleton : null;
+        if (! is_object($singleton)) {
+            return null;
+        }
+
+        // A factory can register this id itself while it runs, so the map decides which
+        // instance every reader gets. The build stays outside the map, because a factory
+        // resolves its own dependencies through it.
+        return $this->instances[$id] ??= $singleton;
     }
 
     /**

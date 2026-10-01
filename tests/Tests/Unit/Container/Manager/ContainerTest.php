@@ -16,6 +16,7 @@ use Throwable;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Container\Manager\Container;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Throwable\Exception\Abstract\ContainerInvalidArgumentException;
 use Valkyrja\Container\Throwable\Exception\ContainerCyclicAliasException;
 use Valkyrja\Container\Throwable\Exception\ContainerInvalidReferenceException;
@@ -139,6 +140,23 @@ final class ContainerTest extends TestCase
 
         // setFromData() is an entry point for aliases, so it validates them too
         $container->setFromData(new ContainerData(aliases: ['first' => 'second', 'second' => 'first']));
+    }
+
+    public function testGetSingletonKeepsTheInstanceAFactoryRegisteredForItsOwnId(): void
+    {
+        $container = $this->container;
+        $published = new SingletonFixture();
+        $container->bindSingleton(
+            'lateRegistrar',
+            static function (ContainerContract $c) use ($published): SingletonFixture {
+                $c->setSingleton('lateRegistrar', $published);
+
+                return new SingletonFixture();
+            },
+        );
+
+        // The factory put one in the map, so that is the one every reader gets
+        self::assertSame($published, $container->getSingleton('lateRegistrar'));
     }
 
     public function testSetFromDataWalksAChainOnPastAnAliasTheContainerAlreadyHeld(): void
