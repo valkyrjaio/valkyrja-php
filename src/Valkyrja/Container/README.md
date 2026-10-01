@@ -118,9 +118,13 @@ $same   = $container->getSingleton(LoggerContract::class); // Later calls return
 Warning: the container keeps the first instance its map holds for an id. A
 factory that registers the id it is building, the way one breaks a chain that
 returns to it, decides what every reader gets. The object that factory returns
-is discarded then. The registration lands in the container the factory receives,
-which under `ChildContainer` is the parent
-([Where a Factory Runs](#where-a-factory-runs)).
+is discarded then.
+
+Warning: that rule holds inside one container. A `ChildContainer` hands a
+parent-owned factory to the parent, so the registration lands in the parent and
+the child caches the object the factory returned
+([Where a Factory Runs](#where-a-factory-runs)). The two containers then hold
+different objects for that id.
 
 ### bindAlias()
 
@@ -739,9 +743,10 @@ OpenSwoole, RoadRunner) use to keep request-scoped state out of the parent.
 ### The Parent/Child Invariant
 
 The parent container bootstraps once when the worker process starts. The parent
-is then **frozen**: its registrations do not change again. It still publishes a
+is then **frozen**: no request registers anything in it. It still publishes a
 deferred id, and caches a singleton, when it answers a lookup a child handed to
-it. That is a shared service resolving once. Each incoming request
+it, and a publisher it runs registers whatever that publisher binds. That is a
+shared service resolving once. Each incoming request
 receives a fresh child container built from one snapshot of the parent, so the
 child holds the parent's singleton markers and publish callbacks and answers
 almost everything itself.
@@ -989,22 +994,26 @@ to it, so the chain has no end. Four checks reject one:
 - `bindAlias()` checks the pair it is asked to store.
 - The constructor and `setFromData()` check the aliases they receive, and the
   chain those aliases reach.
-- A child walking the parent's aliases checks the hops of one walk.
+- `ChildContainer` walking the parent's aliases checks the hops of one walk.
+  `NativeChildContainer` reads the parent's own map, which the first two checks
+  keep acyclic, so it carries no such check.
 - A child resolving a parent-declared alias checks the target it returns to. The
   chain returns through an alias the child declares, or through a factory the
   child runs. A factory that registered that id while it ran has broken the
   chain, so the lookup answers with what the factory registered.
 
-The first two run at registration. A container installs no map before its walk
-ends, so a caller that catches the exception keeps the container it had. A
-container that writes an alias after a child reads through it is outside
-registration. The last two checks cover the shapes a child then walks into. A
-chain that neither one sees ends in one of three ways. It resolves through the
-first hop the parent would answer. It ends with a missing reference, when no hop
-answers. It does not end, when a factory the parent runs asks for its own id
-again. It extends the SPL `InvalidArgumentException`.
-`NativeChildContainer` reports that missing reference for a parent which is
-itself a child, because it reads the parent's own map alone.
+The exception extends the SPL `InvalidArgumentException`. The first two checks
+run at registration, and a container installs no map before its walk ends, so a
+caller that catches the exception keeps the container it had. A container that
+writes an alias after a child reads through it is outside registration. A chain
+no check sees ends in one of four ways:
+
+- It resolves through the first hop the parent would answer.
+- It ends with a missing reference, when no hop answers. `NativeChildContainer`
+  reports that for a parent which is itself a child.
+- It does not end, when a factory the parent runs asks for its own id again.
+- It does not end, when an alias the child declares closes through a factory the
+  child runs. That path carries no resolution-time check.
 
 All three implement `Valkyrja\Container\Throwable\Contract\ContainerThrowable`,
 so one catch covers everything the container throws:
