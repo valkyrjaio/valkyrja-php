@@ -751,14 +751,13 @@ child holds the parent's singleton markers and publish callbacks and answers
 almost everything itself.
 
 The child checks its own maps first, so it publishes a deferred id and caches
-an unbuilt singleton itself. The container that the singleton's factory
-receives depends on the implementation
-([Where a Factory Runs](#where-a-factory-runs)). An id the child cannot answer
-at all goes to the parent, and the parent answers it as it would for any caller.
-What the child never does
-is rebuild something the parent already holds, and what it never leaks is its
-own state: a registration made during a request stays in the child, and the
-child is discarded when the request ends.
+an unbuilt singleton itself. The container that the singleton's factory receives
+depends on the implementation ([Where a Factory Runs](#where-a-factory-runs)).
+An id the child cannot answer at all goes to the parent, and the parent answers
+it as it would for any caller. What the child never does is rebuild something
+the parent already holds, and what it never leaks is its own state: a
+registration made during a request stays in the child, and the child is
+discarded when the request ends.
 
 Deferred services stay available in a child. The child receives the parent's
 publish callbacks through `ContainerData`, so the first lookup of an
