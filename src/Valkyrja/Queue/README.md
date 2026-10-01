@@ -80,8 +80,10 @@ caller blocks until the job finishes, so the caller is still there to be told.
 Every other client throws only on an enqueue error. This is the one deliberate
 difference between the clients.
 
-`DeferredClient` buffers the job and drains it after the response. It is not
-durable, and it needs a host runtime that can keep working after the response.
+`DeferredClient` buffers the job, and the application drains the buffer itself
+from the terminate stage of its host. Nothing in the framework calls `drain()`,
+so a buffer that nobody drains never runs. It is not durable, and it needs a
+host runtime that can keep working after the response.
 
 Warning: a client scopes `getPushed` to one request, one command, or one job. A
 client that keeps a process-global record leaks in a long-running server, and it
@@ -104,8 +106,8 @@ because the default envelope needs no processor-specific mapping.
 
 `Queue` is single-shot, so a host that pushes repeatedly pays a full boot per
 push. It settles nothing, because the signal that settles an outcome belongs to
-a processor. `WorkerQueue` boots the application once and then gives each job a fresh
-child container, which is the shape a real broker worker loops over.
+a processor. `WorkerQueue` boots the application once and then gives each job a
+fresh child container, which is the shape a real broker worker loops over.
 
 Every job runs through an entry point, never through `JobHandler` directly. The
 entry gives the job an isolated container, so an in-process development run
@@ -158,8 +160,8 @@ config implements the contract of each client that the application uses.
 
 `SyncClient` and `DeferredClient` have no default, because the entry names the
 queue config of the application. The service provider throws
-`QueueClientConfigNotFoundException` when it builds one of the two clients for an
-application config that does not implement its contract.
+`QueueClientConfigNotFoundException` when it builds one of the two clients for
+an application config that does not implement its contract.
 
 #### `QueueClientConfigContract`
 
@@ -187,18 +189,31 @@ application config that does not implement its contract.
 | `redisPort`  | `6379`             | Redis port                        |
 | `redisQueue` | `'queues:default'` | The list key jobs are pushed onto |
 
+A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
+defaults its providers to the HTTP component provider alone, which does not
+publish the client services, so an application that only implements the two
+contracts cannot resolve `ClientContract`.
+
 ```php
 use App\Queue\InternalApp;
 use Valkyrja\Application\Data\HttpConfig;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
 use Valkyrja\Queue\Client\Manager\SyncClient;
+use Valkyrja\Queue\Client\Provider\QueueClientComponentProvider;
 
 final class AppHttpConfig extends HttpConfig implements QueueClientConfigContract, QueueSyncClientConfigContract
 {
     public string $defaultQueueClient = SyncClient::class;
 
     public string $syncEntry = InternalApp::class;
+
+    public function __construct()
+    {
+        parent::__construct(
+            providers: [new QueueClientComponentProvider()],
+        );
+    }
 }
 ```
 
