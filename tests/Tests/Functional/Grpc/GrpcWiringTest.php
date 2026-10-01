@@ -23,6 +23,8 @@ use Valkyrja\Grpc\Message\Call\ServiceCall;
 use Valkyrja\Grpc\Message\Cancellation\CancellationToken;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Message\Enum\StatusCode;
+use Valkyrja\Grpc\Middleware\Contract\ResponseSentMiddlewareContract;
+use Valkyrja\Grpc\Middleware\Contract\SendingResponseMiddlewareContract;
 use Valkyrja\Grpc\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
 use Valkyrja\Tests\Abstract\TestCase;
@@ -133,8 +135,17 @@ final class GrpcWiringTest extends TestCase
     {
         AllMiddlewareFixture::resetCounter();
 
-        $app       = $this->bootstrap();
+        // A cancelled call never matches a route, so per-route middleware is never registered.
+        // Only middleware the config schedules globally can show that the two always-run stages
+        // still fire.
+        $app = Grpc::bootstrap($this->config(
+            sendingResponseMiddleware: [AllMiddlewareFixture::class],
+            responseSentMiddleware: [AllMiddlewareFixture::class],
+        ));
+
         $container = $app->getContainer();
+
+        $container->bindSingleton(AllMiddlewareFixture::class, static fn (): AllMiddlewareFixture => new AllMiddlewareFixture());
 
         $handler = $container->getSingleton(ServiceHandlerContract::class);
 
@@ -152,9 +163,9 @@ final class GrpcWiringTest extends TestCase
         $handler->terminate($call, $response);
 
         self::assertSame(StatusCode::CANCELLED, $response->getStatus()->getCode());
-        // Request-processing stages are skipped; the always-run SendingResponse and ResponseSent
-        // stages still fire, but only after the route's middleware was registered onto them.
-        self::assertSame(0, AllMiddlewareFixture::getAndResetCounter());
+        // Every request-processing stage is skipped, and SendingResponse and ResponseSent each
+        // still run exactly once.
+        self::assertSame(2, AllMiddlewareFixture::getAndResetCounter());
     }
 
     public function testAConsumerThatStopsReadingStopsTheStreamingHandler(): void
@@ -197,8 +208,15 @@ final class GrpcWiringTest extends TestCase
         self::assertSame(['hello'], iterator_to_array($response->getMessages(), false));
     }
 
-    private function config(bool $debugMode = true): GrpcConfigContract
-    {
+    /**
+     * @param class-string<SendingResponseMiddlewareContract>[] $sendingResponseMiddleware
+     * @param class-string<ResponseSentMiddlewareContract>[]    $responseSentMiddleware
+     */
+    private function config(
+        bool $debugMode = true,
+        array $sendingResponseMiddleware = [],
+        array $responseSentMiddleware = []
+    ): GrpcConfigContract {
         return new GrpcConfig(
             dir: Directory::$basePath,
             debugMode: $debugMode,
@@ -206,6 +224,8 @@ final class GrpcWiringTest extends TestCase
                 new GrpcApplicationComponentProvider(),
                 new GrpcComponentProviderFixture(),
             ],
+            sendingResponseMiddleware: $sendingResponseMiddleware,
+            responseSentMiddleware: $responseSentMiddleware,
         );
     }
 
