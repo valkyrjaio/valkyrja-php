@@ -389,7 +389,7 @@ final class JobTest extends TestCase
         new Job(name: self::NAME)->withModifiedAtMs(-1);
     }
 
-    public function testNowFloorsAtZero(): void
+    public function testATimestampFromABackwardClockFloorsAtZero(): void
     {
         Microtime::freeze(-1.0);
 
