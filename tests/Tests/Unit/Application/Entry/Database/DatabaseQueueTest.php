@@ -230,6 +230,24 @@ final class DatabaseQueueTest extends TestCase
         self::assertSame(0, DatabaseQueueFixture::$waits);
     }
 
+    public function testAnEmptyTableYieldsForTheConfiguredInterval(): void
+    {
+        // A polling consumer must yield, or the entry's loop bounds and
+        // graceful shutdown would never get a chance to run
+        DatabaseQueueFixture::inject($this->manager, pollInterval: 1);
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertSame(1, DatabaseQueueFixture::$waits);
+    }
+
+    public function testAZeroIntervalDoesNotYield(): void
+    {
+        DatabaseQueueFixture::inject($this->manager, pollInterval: 0);
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertSame(0, DatabaseQueueFixture::$waits);
+    }
+
     #[DataProvider('terminalProvider')]
     public function testATerminalOutcomeTakesTheRowOffTheTable(JobResult $result): void
     {
