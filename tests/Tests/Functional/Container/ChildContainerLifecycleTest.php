@@ -46,6 +46,10 @@ final class ChildContainerLifecycleTest extends TestCase
 
         for ($request = 0; $request < 3; $request++) {
             $child = new ChildContainer($parent, $data);
+
+            // A fresh child carries nothing the last request registered
+            self::assertFalse($child->isSingletonInstance('request'));
+
             $child->setSingleton('request', $scoped[$request] = new SingletonFixture());
 
             // The parent built this one before the loop, so every request shares it
@@ -77,7 +81,6 @@ final class ChildContainerLifecycleTest extends TestCase
         self::assertNotSame($unbuilt[1], $unbuilt[2]);
         self::assertNotSame($provided[0], $provided[1]);
         self::assertNotSame($provided[1], $provided[2]);
-        self::assertNotSame($scoped[0], $scoped[1]);
 
         // The parent still holds the registrations it booted with
         $current = $parent->getData();
