@@ -25,7 +25,7 @@ final class CyclicAliasExceptionTest extends TestCase
         $exception = new ContainerCyclicAliasException($alias, $id);
 
         self::assertSame(
-            "Alias `$alias` cannot reach `$id`, because `$id` already reaches `$alias`.",
+            "Alias `$alias` cannot reach `$id`, because the chain from `$id` returns to `$alias`.",
             $exception->getMessage()
         );
     }
