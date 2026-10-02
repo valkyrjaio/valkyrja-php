@@ -97,6 +97,7 @@ overflow, and a retry answers with a nack that does requeue. A `max_attempts` of
 | `AmqpClient`       | AMQP       | processor  |
 | `SqsClient`        | SQS        | processor  |
 | `BeanstalkdClient` | beanstalkd | processor  |
+| `DatabaseClient`   | a database | framework  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -127,6 +128,33 @@ Warning: a client scopes `getPushed` to one request, one command, or one job. A
 client that keeps a process-global record leaks in a long-running server, and it
 gives one request the deferred jobs of the request before it.
 
+## The Database Table
+
+`DatabaseClient` and `DatabaseQueue` read and write one table. The application
+owns the table, so the application creates it:
+
+```sql
+CREATE TABLE queue_jobs (
+    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    queue           VARCHAR(255)    NOT NULL,
+    envelope        LONGTEXT        NOT NULL,
+    priority        INT             NOT NULL DEFAULT 0,
+    available_at_ms BIGINT          NOT NULL,
+    reserved_at_ms  BIGINT          NULL,
+    INDEX queue_jobs_claim (queue, available_at_ms, priority)
+);
+```
+
+The index narrows on `queue` by equality and then on `available_at_ms` by range.
+It cannot serve the `ORDER BY priority DESC, id ASC` that the claim select ends
+with, because a b-tree stops narrowing at the first column carrying a range, so
+the database sorts the eligible rows on every poll. Tune the index for the
+queue's own shape when the eligible set grows large enough to matter.
+
+`DatabaseQueue` claims a row by stamping `reserved_at_ms`, which is what stops
+two workers taking the same job. A reservation older than the timeout counts as
+free, so a row that a crashed worker abandoned returns to the queue.
+
 ## Entry Points
 
 | Entry             | Runs                                                  |
@@ -137,6 +165,7 @@ gives one request the deferred jobs of the request before it.
 | `AmqpQueue`       | a worker that consumes an AMQP queue                  |
 | `SqsQueue`        | a worker that long-polls an SQS queue                 |
 | `BeanstalkdQueue` | a worker that reserves jobs from a tube               |
+| `DatabaseQueue`   | a worker that claims rows from a table                |
 | `PushQueue`       | one job that a broker delivers over HTTP              |
 | `InternalQueue`   | each job that `SyncClient` or `DeferredClient` pushes |
 
@@ -268,6 +297,13 @@ itself.
 | `beanstalkdPort`          | `11300`       | The port to connect to                                         |
 | `beanstalkdTube`          | `'default'`   | The tube that jobs are put on                                  |
 | `beanstalkdTimeToRelease` | `60`          | The seconds a worker holds a job before beanstalkd releases it |
+
+#### `QueueDatabaseClientConfigContract`
+
+| Property        | Default        | Description                           |
+| :-------------- | :------------- | :------------------------------------ |
+| `databaseQueue` | `'default'`    | The queue that jobs are written under |
+| `databaseTable` | `'queue_jobs'` | The table that jobs are written to    |
 
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
