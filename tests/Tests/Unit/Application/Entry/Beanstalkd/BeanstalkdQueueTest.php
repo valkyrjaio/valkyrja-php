@@ -20,6 +20,7 @@ use Valkyrja\Application\Entry\Beanstalkd\BeanstalkdQueue;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Client\Data\QueueBeanstalkdClientConfig;
+use Valkyrja\Queue\Client\Manager\BeanstalkdClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -149,6 +150,38 @@ final class BeanstalkdQueueTest extends TestCase
         self::assertCount(1, $calls);
         self::assertSame((string) self::JOB_ID, $calls[0][0]);
         self::assertSame([], $this->pheanstalk->getCalls('delete'));
+    }
+
+    public function testAReleaseCarriesThePriorityAndTheHold(): void
+    {
+        $this->reserved();
+
+        // A release assigns both rather than keeping the job's own, and a
+        // sub-second hold rounds up rather than down to no hold at all
+        BeanstalkdQueueFixture::settle(
+            new Job(name: self::NAME, priority: 24, retryDelayMs: 1500),
+            JobResult::RETRY,
+            new InMemoryClient()
+        );
+
+        $calls = $this->pheanstalk->getCalls('release');
+
+        self::assertCount(1, $calls);
+        self::assertSame(BeanstalkdClient::LOWEST_PRIORITY - 24, $calls[0][1]);
+        self::assertSame(2, $calls[0][2]);
+    }
+
+    public function testAReleaseWithNoHoldIsImmediate(): void
+    {
+        $this->reserved();
+
+        BeanstalkdQueueFixture::settle(
+            new Job(name: self::NAME, retryDelayMs: 0),
+            JobResult::RETRY,
+            new InMemoryClient()
+        );
+
+        self::assertSame(0, $this->pheanstalk->getCalls('release')[0][2]);
     }
 
     #[DataProvider('deadLetteredProvider')]
