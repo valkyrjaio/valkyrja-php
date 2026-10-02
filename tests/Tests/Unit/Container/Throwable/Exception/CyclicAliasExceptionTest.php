@@ -29,4 +29,13 @@ final class CyclicAliasExceptionTest extends TestCase
             $exception->getMessage()
         );
     }
+
+    public function testMessageForAnAliasOfItself(): void
+    {
+        $alias = self::class;
+
+        $exception = new ContainerCyclicAliasException($alias, $alias);
+
+        self::assertSame("Alias `$alias` cannot point at itself.", $exception->getMessage());
+    }
 }

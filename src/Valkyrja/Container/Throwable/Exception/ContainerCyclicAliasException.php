@@ -19,7 +19,7 @@ class ContainerCyclicAliasException extends ContainerInvalidArgumentException
 {
     /**
      * @param class-string $alias The id the chain leaves from
-     * @param class-string $id    The id it points at, which reaches the first again
+     * @param class-string $id    The id it points at, from which the chain returns
      */
     public function __construct(
         string $alias,
@@ -27,7 +27,9 @@ class ContainerCyclicAliasException extends ContainerInvalidArgumentException
         int $code = 0,
         Throwable|null $previous = null
     ) {
-        $message = "Alias `$alias` cannot reach `$id`, because the chain from `$id` returns to `$alias`.";
+        $message = $alias === $id
+            ? "Alias `$alias` cannot point at itself."
+            : "Alias `$alias` cannot reach `$id`, because the chain from `$id` returns to `$alias`.";
 
         parent::__construct($message, $code, $previous);
     }
