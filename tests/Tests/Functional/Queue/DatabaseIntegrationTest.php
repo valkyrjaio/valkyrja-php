@@ -269,7 +269,7 @@ final class DatabaseIntegrationTest extends TestCase
             . 'priority INT NOT NULL DEFAULT 0,'
             . 'available_at_ms BIGINT NOT NULL,'
             . 'reserved_at_ms BIGINT NULL,'
-            . 'INDEX queue_jobs_claim (queue, reserved_at_ms, available_at_ms, priority)'
+            . 'INDEX queue_jobs_claim (queue, available_at_ms, priority)'
             . ')'
         );
     }
