@@ -217,6 +217,18 @@ final class DatabaseQueueTest extends TestCase
         self::assertNull(DatabaseQueueFixture::receive());
     }
 
+    public function testALostRaceAsksAgainWithoutPausing(): void
+    {
+        // A lost race is the one empty result that proves work exists, so
+        // pausing would cut throughput exactly when the backlog is deepest
+        $this->seed(new JobFactory()->create(self::NAME));
+        $this->manager->rowCounts = [1, 0];
+
+        DatabaseQueueFixture::receive();
+
+        self::assertSame(0, DatabaseQueueFixture::$waits);
+    }
+
     #[DataProvider('terminalProvider')]
     public function testATerminalOutcomeTakesTheRowOffTheTable(JobResult $result): void
     {
