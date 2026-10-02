@@ -547,7 +547,8 @@ matching contract:
 | `getQueueProviders()`     | `Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract` | Queue routes          |
 
 **Service providers** map service ids to resolution logic in the container.
-**Route providers** (CLI and HTTP) register commands and routes. **Listener
+**Route providers** (CLI, HTTP, and queue) register commands, routes, and job
+names. **Listener
 providers** register event listeners. Each component's own README documents
 its provider contract. The application collects each kind lazily, on the first
 call to the matching `get*Providers()` method, and caches the result. Nothing
