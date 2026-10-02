@@ -214,6 +214,42 @@ final class PubSubQueueTest extends TestCase
         self::assertSame([], $this->subscription->acknowledged);
     }
 
+    public function testAnUnreadableEnvelopeIsAcknowledgedRatherThanRedelivered(): void
+    {
+        // Nothing settles a body the factory cannot read, so the subscription
+        // would hand the same message back on every deadline
+        $this->subscription->next = [
+            new Message(['data' => '{not json', 'messageId' => 'message-id-1'], ['ackId' => 'ack-id-1']),
+        ];
+
+        self::assertNull(PubSubQueueFixture::receive());
+        self::assertCount(1, $this->subscription->acknowledged);
+    }
+
+    public function testAnEnvelopeThatCarriesNoObjectIsAcknowledged(): void
+    {
+        $this->subscription->next = [
+            new Message(['data' => '5', 'messageId' => 'message-id-1'], ['ackId' => 'ack-id-1']),
+        ];
+
+        self::assertNull(PubSubQueueFixture::receive());
+        self::assertCount(1, $this->subscription->acknowledged);
+    }
+
+    public function testAnUnreadableEnvelopeLeavesNothingInFlight(): void
+    {
+        $this->subscription->next = [
+            new Message(['data' => '{not json', 'messageId' => 'message-id-1'], ['ackId' => 'ack-id-1']),
+        ];
+
+        PubSubQueueFixture::receive();
+        PubSubQueueFixture::disconnect();
+
+        // The acknowledgement already retired it, so a release would answer a
+        // delivery that is already gone
+        self::assertSame([], $this->subscription->deadlines);
+    }
+
     public function testSettlingWithNothingInFlightDoesNothing(): void
     {
         PubSubQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
