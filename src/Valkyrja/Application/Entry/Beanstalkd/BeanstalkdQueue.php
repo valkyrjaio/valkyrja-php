@@ -30,9 +30,7 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
-use function ceil;
 use function max;
-use function min;
 
 class BeanstalkdQueue extends PullQueue
 {
@@ -151,7 +149,7 @@ class BeanstalkdQueue extends PullQueue
             // Bury: beanstalkd keeps the job but stops delivering it, which is
             // the closest native equivalent of a dead-letter queue. A buried
             // job stays for inspection and can be kicked back onto the tube.
-            $pheanstalk->bury($reserved);
+            $pheanstalk->bury($reserved, static::getPriority($job));
 
             return;
         }
@@ -196,33 +194,21 @@ class BeanstalkdQueue extends PullQueue
     /**
      * Invert the job's priority into beanstalkd's scale.
      *
-     * beanstalkd treats 0 as the most urgent, so a higher envelope priority
-     * becomes a lower beanstalkd one.
-     *
      * @return int<0, max>
      */
     protected static function getPriority(JobContract $job): int
     {
-        $priority = max(0, min($job->getPriority(), BeanstalkdClient::LOWEST_PRIORITY));
-
-        return BeanstalkdClient::LOWEST_PRIORITY - $priority;
+        return BeanstalkdClient::getPriority($job);
     }
 
     /**
      * Read the hold of the next attempt, in whole seconds.
      *
-     * beanstalkd takes a delay in seconds, and the envelope holds milliseconds,
-     * so a sub-second hold rounds up rather than down to no hold at all.
-     *
      * @return int<0, max>
      */
     protected static function getDelaySeconds(JobContract $job): int
     {
-        $milliseconds = $job->getRetryDelayForAttemptMs();
-
-        return $milliseconds === 0
-            ? 0
-            : max(1, (int) ceil($milliseconds / 1000));
+        return BeanstalkdClient::getDelaySeconds($job->getRetryDelayForAttemptMs());
     }
 
     /**
@@ -256,7 +242,12 @@ class BeanstalkdQueue extends PullQueue
         if ($reserved instanceof Job) {
             static::$current = null;
 
-            static::getConnection()->release($reserved);
+            $pheanstalk = static::getConnection();
+
+            // A release assigns a priority rather than keeping the job's own, so
+            // the default would demote every mid-job shutdown to the least
+            // urgent. The server already holds the right one.
+            $pheanstalk->release($reserved, $pheanstalk->statsJob($reserved)->priority, 0);
         }
     }
 }
