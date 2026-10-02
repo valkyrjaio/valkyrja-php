@@ -202,16 +202,57 @@ final class PubSubQueueTest extends TestCase
         self::assertSame([], $this->subscription->deadlines);
     }
 
-    public function testARetryShortensTheDeadlineSoTheDeliveryComesBack(): void
+    public function testARetryHoldsTheDeliveryForItsRamp(): void
     {
         $this->received();
 
+        // The default ramp, so the delivery waits rather than coming straight
+        // back and burning the next attempt at once
         PubSubQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::RETRY, new InMemoryClient());
 
         self::assertCount(1, $this->subscription->deadlines);
-        // Zero is Pub/Sub's nack: available again, and the attempt count goes up
-        self::assertSame(0, $this->subscription->deadlines[0][1]);
+        self::assertSame(1, $this->subscription->deadlines[0][1]);
         self::assertSame([], $this->subscription->acknowledged);
+    }
+
+    public function testARetryWithNoRampComesBackAtOnce(): void
+    {
+        $this->received();
+
+        // Zero is Pub/Sub's nack: available again, and the attempt count goes up
+        PubSubQueueFixture::settle(
+            new Job(name: self::NAME, retryDelayMs: 0),
+            JobResult::RETRY,
+            new InMemoryClient()
+        );
+
+        self::assertSame(0, $this->subscription->deadlines[0][1]);
+    }
+
+    public function testASubSecondRampHoldsForOneSecond(): void
+    {
+        $this->received();
+
+        PubSubQueueFixture::settle(
+            new Job(name: self::NAME, retryDelayMs: 500),
+            JobResult::RETRY,
+            new InMemoryClient()
+        );
+
+        self::assertSame(1, $this->subscription->deadlines[0][1]);
+    }
+
+    public function testARampLongerThanPubSubAllowsIsClamped(): void
+    {
+        $this->received();
+
+        PubSubQueueFixture::settle(
+            new Job(name: self::NAME, retryDelayMs: 9_000_000),
+            JobResult::RETRY,
+            new InMemoryClient()
+        );
+
+        self::assertSame(PubSubQueue::MAX_ACK_DEADLINE, $this->subscription->deadlines[0][1]);
     }
 
     public function testTheDeliveryAttemptBecomesTheJobAttempts(): void
