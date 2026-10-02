@@ -227,6 +227,22 @@ final class BeanstalkdQueueTest extends TestCase
         self::assertTrue($this->pheanstalk->disconnected);
     }
 
+    public function testDisconnectKeepsTheServerPriorityOnTheReleasedJob(): void
+    {
+        // A release assigns a priority rather than keeping the job's own, so the
+        // default would demote every mid-job shutdown to the least urgent
+        $this->pheanstalk->priority = 7;
+
+        $this->reserved();
+
+        BeanstalkdQueueFixture::disconnect();
+
+        $calls = $this->pheanstalk->getCalls('release');
+
+        self::assertSame(7, $calls[0][1]);
+        self::assertSame(0, $calls[0][2]);
+    }
+
     public function testAnUnreadableEnvelopeIsBuriedRatherThanReserved(): void
     {
         // Nothing settles a body the factory cannot read, so the reserve would
@@ -254,6 +270,50 @@ final class BeanstalkdQueueTest extends TestCase
 
         // The bury already answered it, so a release would answer it twice
         self::assertSame([], $this->pheanstalk->getCalls('release'));
+    }
+
+    public function testTheReserveCountBecomesTheJobAttempts(): void
+    {
+        // A processor-owned adapter never rewrites the envelope, so the server's
+        // reserve count is the only thing that advances the attempt
+        $this->pheanstalk->reserves = 3;
+
+        $this->seed(new JobFactory()->create(self::NAME));
+
+        $job = BeanstalkdQueueFixture::receive();
+
+        self::assertNotNull($job);
+        self::assertSame(3, $job->getAttempts());
+    }
+
+    public function testAZeroReserveCountStillCountsAsOneAttempt(): void
+    {
+        $this->pheanstalk->reserves = 0;
+
+        $this->seed(new JobFactory()->create(self::NAME));
+
+        $job = BeanstalkdQueueFixture::receive();
+
+        self::assertNotNull($job);
+        self::assertSame(1, $job->getAttempts());
+    }
+
+    public function testADeadLetteredJobKeepsTheProducerPriorityWhenBuried(): void
+    {
+        // A buried job can be kicked back onto the tube, so it must not lose the
+        // priority the producer asked for
+        $this->reserved();
+
+        BeanstalkdQueueFixture::settle(
+            new Job(name: self::NAME, priority: 24),
+            JobResult::DEAD_LETTER,
+            new InMemoryClient()
+        );
+
+        self::assertSame(
+            [[(string) self::JOB_ID, BeanstalkdClient::LOWEST_PRIORITY - 24]],
+            $this->pheanstalk->getCalls('bury')
+        );
     }
 
     public function testDisconnectWithNothingReservedReleasesNothing(): void
