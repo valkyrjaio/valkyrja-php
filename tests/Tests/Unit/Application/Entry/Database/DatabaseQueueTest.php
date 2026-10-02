@@ -248,6 +248,40 @@ final class DatabaseQueueTest extends TestCase
         self::assertSame(0, DatabaseQueueFixture::$waits);
     }
 
+    public function testAnUnreadableRowIsTakenOffTheTable(): void
+    {
+        // Nothing settles a row the factory cannot read, so the claim would
+        // lapse and the next worker would read the same bytes
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => '{not json']];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+
+        $deletes = $this->manager->getStatements('DELETE');
+
+        self::assertCount(1, $deletes);
+        self::assertSame(self::ROW_ID, $deletes[0]->bound['id']);
+    }
+
+    public function testARowThatCarriesNoObjectIsTakenOffTheTable(): void
+    {
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => '5']];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertCount(1, $this->manager->getStatements('DELETE'));
+    }
+
+    public function testAnUnreadableRowLeavesNothingReserved(): void
+    {
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => '{not json']];
+
+        DatabaseQueueFixture::receive();
+        DatabaseQueueFixture::disconnect();
+
+        // One UPDATE only: the claim. The delete already answered the row, so a
+        // release would hand back a row that no longer exists.
+        self::assertCount(1, $this->manager->getStatements('UPDATE'));
+    }
+
     #[DataProvider('terminalProvider')]
     public function testATerminalOutcomeTakesTheRowOffTheTable(JobResult $result): void
     {
