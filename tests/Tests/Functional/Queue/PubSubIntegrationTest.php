@@ -139,7 +139,14 @@ final class PubSubIntegrationTest extends TestCase
 
     public function testANackedJobIsRedeliveredBySubscription(): void
     {
-        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5);
+        // No ramp, so the retry drops the deadline to zero and the delivery
+        // comes back at once. The hold itself is pinned by PubSubQueueTest,
+        // which needs no live subscription to wait out.
+        $job = new Job(
+            name: QueueRoutingProviderFixture::ALWAYS_RETRY,
+            maxAttempts: 5,
+            retryDelayMs: 0,
+        );
 
         $client = $this->client();
         $client->push($job);
