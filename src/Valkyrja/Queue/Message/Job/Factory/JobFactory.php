@@ -88,20 +88,22 @@ class JobFactory implements JobFactoryContract
 
         try {
             $attributes = Attributes::fromArray($this->readArray($data, EnvelopeField::ATTRIBUTES));
+            $payload    = Payload::fromArray($this->readArray($data, EnvelopeField::PAYLOAD));
         } catch (QueueMessageInvalidArgumentException $exception) {
             // A caller reads one wire body and declares one failure for it, so
-            // an attribute it cannot accept reads as a bad envelope. The
-            // abstract catches a bad name and a bad value alike, so a new
-            // sibling cannot escape the declared contract.
+            // a value it cannot accept reads as a bad envelope. The abstract
+            // catches a bad attribute name, a bad attribute value, and a bad
+            // payload param alike, so a new sibling cannot escape the declared
+            // contract.
             throw new QueueMessageInvalidEnvelopeException(
-                'Job envelope must carry readable attributes',
+                'Job envelope must carry readable attributes and payload',
                 previous: $exception,
             );
         }
 
         return new Job(
             name: $name,
-            payload: Payload::fromArray($this->readArray($data, EnvelopeField::PAYLOAD)),
+            payload: $payload,
             attributes: $attributes,
             id: $id !== ''
                 ? $id
