@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Valkyrja\Application\Entry\Database\DatabaseQueue;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Orm\Manager\Contract\ManagerContract;
 use Valkyrja\Queue\Client\Data\QueueDatabaseClientConfig;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
@@ -307,6 +308,31 @@ final class DatabaseQueueTest extends TestCase
         DatabaseQueueFixture::disconnect();
 
         self::assertSame([], $this->manager->getStatements('UPDATE'));
+    }
+
+    public function testConnectResolvesTheManagerFromTheContainer(): void
+    {
+        // The seam opens no connection; it is a container lookup that a stub
+        // satisfies, so it carries no coverage exemption. Resetting drops the
+        // injected manager, which is what sends the fixture to the real seam.
+        DatabaseQueueFixture::reset();
+
+        $manager = new DatabaseManagerFixture();
+
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturnCallback(
+            static fn (string $id): object => $id === ManagerContract::class
+                ? $manager
+                : new QueueDatabaseClientConfig()
+        );
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        DatabaseQueueFixture::connect($app);
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertCount(1, $manager->getStatements('SELECT'));
     }
 
     protected function seed(Job $job): void
