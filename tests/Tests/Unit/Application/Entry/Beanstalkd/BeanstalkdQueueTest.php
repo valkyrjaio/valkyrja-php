@@ -227,6 +227,35 @@ final class BeanstalkdQueueTest extends TestCase
         self::assertTrue($this->pheanstalk->disconnected);
     }
 
+    public function testAnUnreadableEnvelopeIsBuriedRatherThanReserved(): void
+    {
+        // Nothing settles a body the factory cannot read, so the reserve would
+        // return the same bytes forever. beanstalkd has no redrive policy.
+        $this->pheanstalk->next = new BeanstalkdJob(new JobId(self::JOB_ID), '{not json');
+
+        self::assertNull(BeanstalkdQueueFixture::receive());
+        self::assertSame([[(string) self::JOB_ID, 1024]], $this->pheanstalk->getCalls('bury'));
+    }
+
+    public function testAnEnvelopeThatCarriesNoObjectIsBuried(): void
+    {
+        $this->pheanstalk->next = new BeanstalkdJob(new JobId(self::JOB_ID), '5');
+
+        self::assertNull(BeanstalkdQueueFixture::receive());
+        self::assertCount(1, $this->pheanstalk->getCalls('bury'));
+    }
+
+    public function testAnUnreadableEnvelopeIsNotReleasedOnDisconnect(): void
+    {
+        $this->pheanstalk->next = new BeanstalkdJob(new JobId(self::JOB_ID), '{not json');
+
+        BeanstalkdQueueFixture::receive();
+        BeanstalkdQueueFixture::disconnect();
+
+        // The bury already answered it, so a release would answer it twice
+        self::assertSame([], $this->pheanstalk->getCalls('release'));
+    }
+
     public function testDisconnectWithNothingReservedReleasesNothing(): void
     {
         BeanstalkdQueueFixture::disconnect();
