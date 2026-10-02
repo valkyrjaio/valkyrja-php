@@ -148,9 +148,10 @@ class PubSubQueue extends PullQueue
      * delivery, and the adapter normalizes that count, which is what lets
      * `max_attempts` stop a failing chain.
      *
-     * Pub/Sub reports the count only on a subscription that carries a
-     * dead-letter policy. Without one the count is absent, so a redelivery
-     * reads as a second attempt and the ceiling still ends the chain.
+     * Warning: Pub/Sub reports the count only on a subscription that carries a
+     * dead-letter policy. Without one the count is absent, the job keeps the
+     * `attempts` the producer published, and the ceiling never ends the chain.
+     * Give the subscription a dead-letter policy when the ceiling has to hold.
      */
     protected static function withNormalizedAttempts(JobContract $job, Message $message): JobContract
     {
