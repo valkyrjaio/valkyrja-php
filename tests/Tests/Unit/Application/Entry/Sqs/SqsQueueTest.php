@@ -210,6 +210,45 @@ final class SqsQueueTest extends TestCase
         self::assertSame([], $this->sqs->getCalls('deleteMessage'));
     }
 
+    public function testAnUnreadableEnvelopeIsRetiredRatherThanRedelivered(): void
+    {
+        // Nothing settles a body the factory cannot read, so SQS would hand the
+        // same message back on every visibility timeout
+        $this->sqs->next = [
+            new Message(['MessageId' => 'id-1', 'ReceiptHandle' => self::HANDLE, 'Body' => '{not json']),
+        ];
+
+        self::assertNull(SqsQueueFixture::receive());
+
+        $calls = $this->sqs->getCalls('deleteMessage');
+
+        self::assertCount(1, $calls);
+        self::assertSame(self::HANDLE, $calls[0]['ReceiptHandle']);
+    }
+
+    public function testAnEnvelopeThatCarriesNoObjectIsRetired(): void
+    {
+        $this->sqs->next = [
+            new Message(['MessageId' => 'id-1', 'ReceiptHandle' => self::HANDLE, 'Body' => '5']),
+        ];
+
+        self::assertNull(SqsQueueFixture::receive());
+        self::assertCount(1, $this->sqs->getCalls('deleteMessage'));
+    }
+
+    public function testAnUnreadableEnvelopeLeavesNothingInFlight(): void
+    {
+        $this->sqs->next = [
+            new Message(['MessageId' => 'id-1', 'ReceiptHandle' => self::HANDLE, 'Body' => '{not json']),
+        ];
+
+        SqsQueueFixture::receive();
+        SqsQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+
+        // The retire already answered it, so a settle would answer it twice
+        self::assertCount(1, $this->sqs->getCalls('deleteMessage'));
+    }
+
     public function testSettlingWithNothingInFlightDoesNothing(): void
     {
         SqsQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
