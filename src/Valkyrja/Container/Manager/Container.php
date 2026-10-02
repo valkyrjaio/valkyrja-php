@@ -90,10 +90,8 @@ class Container implements ContainerContract
     {
         $aliases = array_merge($this->aliases, $data->aliases);
 
-        // Only the incoming aliases start a walk, so a chain the container already held
-        // is no reason to reject this call. Each walk reads the whole merged map, and
-        // the container past it, so a chain the incoming data closes is still caught.
-        // Nothing is installed before the walks end, so a caught throw leaves all four.
+        // Only the incoming aliases start a walk, and each walk reads the container past
+        // the map it is given. Nothing is installed before the walks end.
         $this->validateAliasMapIsNotCyclic(
             $data->aliases,
             fn (string $id): string|null => $this->getAliasedId($id),
@@ -361,9 +359,8 @@ class Container implements ContainerContract
             return null;
         }
 
-        // A factory can register this id itself while it runs, so the map decides which
-        // instance every reader gets. The build stays outside the map, because a factory
-        // resolves its own dependencies through it.
+        // A factory can register this id while it runs, so the map decides what a reader
+        // gets.
         return $this->instances[$id] ??= $singleton;
     }
 

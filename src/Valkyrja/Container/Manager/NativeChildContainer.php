@@ -135,9 +135,8 @@ class NativeChildContainer extends Container
             return null;
         }
 
-        // The parent would resolve this target for the first time, and the child holds
-        // the same registration, so letting the parent do it would leave the request
-        // with one copy for the alias and another for the id.
+        // The child holds the same registration. One request must not hold one copy
+        // for the alias and another for the id.
         if ($this->resolvesInChild($target)) {
             return $this->getTargetOnce($id, $target, $arguments);
         }
@@ -249,10 +248,8 @@ class NativeChildContainer extends Container
      */
     private function getTargetOnce(string $id, string $target, array $arguments): object
     {
-        // A walk ends at the first hop the parent would answer, so a chain that closes
-        // across two of them returns here rather than to one walk. A factory that
-        // registered its own id while it runs has broken the chain, so read that first,
-        // and name the pair only when nothing can answer.
+        // A chain that closes across two walks returns here rather than to one walk. A
+        // factory that registered its own id has broken the chain, so read that first.
         if (isset($this->targetsInFlight[$target])) {
             // The factory receives the child, so the child's map is where a registration
             // made during this resolution lands.
