@@ -27,6 +27,7 @@ use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
 use function ceil;
@@ -95,9 +96,15 @@ class BeanstalkdQueue extends PullQueue
             return null;
         }
 
+        $job = static::decode($reserved);
+
+        if ($job === null) {
+            return null;
+        }
+
         static::$current = $reserved;
 
-        return static::withNormalizedAttempts(new JobFactory()->fromJson($reserved->getData()), $reserved);
+        return static::withNormalizedAttempts($job, $reserved);
     }
 
     /**
@@ -150,6 +157,25 @@ class BeanstalkdQueue extends PullQueue
         }
 
         $pheanstalk->delete($reserved);
+    }
+
+    /**
+     * Read the envelope, and bury a body the factory cannot read.
+     *
+     * An unreadable body never reaches the handler, so nothing settles it. The
+     * reserve would return the same bytes on the next cycle, and the worker
+     * would fail on them again. beanstalkd has no redrive policy to end that
+     * loop, so the entry buries the job itself.
+     */
+    protected static function decode(Job $reserved): JobContract|null
+    {
+        try {
+            return new JobFactory()->fromJson($reserved->getData());
+        } catch (JsonException|QueueMessageInvalidEnvelopeException) {
+            static::getConnection()->bury($reserved);
+
+            return null;
+        }
     }
 
     /**
