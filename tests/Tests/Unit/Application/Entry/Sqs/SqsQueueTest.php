@@ -193,7 +193,7 @@ final class SqsQueueTest extends TestCase
         self::assertSame([], $this->sqs->getCalls('changeMessageVisibility'));
     }
 
-    public function testARetryMakesTheDeliveryVisibleAgain(): void
+    public function testARetryHoldsTheDeliveryForItsRamp(): void
     {
         $this->seed(new JobFactory()->create(self::NAME));
 
