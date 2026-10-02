@@ -228,6 +228,20 @@ final class SqsQueueTest extends TestCase
 
     public function testASubSecondRampHoldsForOneSecond(): void
     {
+        // Under a second, so rounding down would leave no hold at all
+        $this->seed(new Job(name: self::NAME, retryDelayMs: 500));
+
+        $job = SqsQueueFixture::receive();
+
+        self::assertNotNull($job);
+
+        SqsQueueFixture::settle($job, JobResult::RETRY, new InMemoryClient());
+
+        self::assertSame(1, $this->sqs->getCalls('changeMessageVisibility')[0]['VisibilityTimeout']);
+    }
+
+    public function testARampOverAWholeSecondRoundsUp(): void
+    {
         $this->seed(new Job(name: self::NAME, retryDelayMs: 1500));
 
         $job = SqsQueueFixture::receive();
