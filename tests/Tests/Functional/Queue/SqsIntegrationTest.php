@@ -68,7 +68,7 @@ final class SqsIntegrationTest extends TestCase
 
         $this->purge();
 
-        SqsQueueFixture::inject($this->sqs, $this->queueUrl, waitTimeSeconds: 0, visibilityTimeout: 30);
+        SqsQueueFixture::inject($this->sqs, $this->queueUrl, waitTimeSeconds: 0);
 
         ResultLogMiddlewareFixture::reset();
     }
@@ -170,7 +170,7 @@ final class SqsIntegrationTest extends TestCase
      */
     private function poll(): JobContract|null
     {
-        SqsQueueFixture::inject($this->sqs, $this->queueUrl, waitTimeSeconds: 0, visibilityTimeout: 30);
+        SqsQueueFixture::inject($this->sqs, $this->queueUrl, waitTimeSeconds: 0);
 
         return SqsQueueFixture::receive();
     }
@@ -188,8 +188,36 @@ final class SqsIntegrationTest extends TestCase
         );
     }
 
+    /**
+     * Empty the queue by reading it, rather than by purging it.
+     *
+     * SQS allows one `PurgeQueue` per queue per minute, and this file empties
+     * the queue twice per test, so a purge would answer
+     * `PurgeQueueInProgress` for every test after the first.
+     */
     private function purge(): void
     {
-        $this->sqs->purgeQueue(['QueueUrl' => $this->queueUrl]);
+        while (true) {
+            $messages = $this->sqs->receiveMessage([
+                'QueueUrl'            => $this->queueUrl,
+                'MaxNumberOfMessages' => 10,
+                'WaitTimeSeconds'     => 0,
+            ])->getMessages();
+
+            if ($messages === []) {
+                return;
+            }
+
+            foreach ($messages as $message) {
+                $handle = $message->getReceiptHandle();
+
+                if ($handle !== null) {
+                    $this->sqs->deleteMessage([
+                        'QueueUrl'      => $this->queueUrl,
+                        'ReceiptHandle' => $handle,
+                    ]);
+                }
+            }
+        }
     }
 }

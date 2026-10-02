@@ -85,7 +85,8 @@ final class SqsQueueTest extends TestCase
         self::assertSame(self::QUEUE_URL, $input['QueueUrl']);
         self::assertSame(1, $input['MaxNumberOfMessages']);
         self::assertSame(2, $input['WaitTimeSeconds']);
-        self::assertSame(45, $input['VisibilityTimeout']);
+        // The queue's own ownership window stands, so the receive names none
+        self::assertArrayNotHasKey('VisibilityTimeout', $input);
     }
 
     public function testAReceivedDeliveryIsReadBackAsAJob(): void
