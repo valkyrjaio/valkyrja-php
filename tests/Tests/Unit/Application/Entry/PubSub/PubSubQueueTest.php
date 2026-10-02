@@ -27,6 +27,7 @@ use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Tests\Fixtures\Application\Entry\PubSubQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\PubSubSubscriptionFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -297,6 +298,15 @@ final class PubSubQueueTest extends TestCase
 
         self::assertNotNull($job);
         self::assertSame(1, $job->getAttempts());
+    }
+
+    public function testPullingWithoutAConnectionFails(): void
+    {
+        PubSubQueueFixture::reset();
+
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        PubSubQueueFixture::receive();
     }
 
     public function testAnUnreadableEnvelopeIsAcknowledgedRatherThanRedelivered(): void
