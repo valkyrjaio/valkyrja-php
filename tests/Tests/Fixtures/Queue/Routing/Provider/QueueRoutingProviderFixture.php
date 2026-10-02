@@ -35,6 +35,8 @@ final class QueueRoutingProviderFixture implements QueueRouteProviderContract
     /** @var non-empty-string */
     public const string ALWAYS_THROWS = 'AlwaysThrows';
     /** @var non-empty-string */
+    public const string ALWAYS_SHUTS_DOWN = 'AlwaysShutsDown';
+    /** @var non-empty-string */
     public const string RECORD_PROCESS_STATE = 'RecordProcessState';
 
     /** @var non-empty-string */
@@ -75,6 +77,11 @@ final class QueueRoutingProviderFixture implements QueueRouteProviderContract
                 name: self::ALWAYS_THROWS,
                 description: 'Always throws',
                 handler: [JobOutcomeFixture::class, 'throws'],
+            ),
+            new Route(
+                name: self::ALWAYS_SHUTS_DOWN,
+                description: 'Always throws the worker shutdown exception',
+                handler: [JobOutcomeFixture::class, 'shutsDown'],
             ),
             new Route(
                 name: self::PUSHES_THEN_FAILS,

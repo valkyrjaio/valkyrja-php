@@ -17,6 +17,7 @@ use Valkyrja\Queue\Client\Manager\SyncClient;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientSyncJobFailedException;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Handler\JobOutcomeFixture;
@@ -76,6 +77,25 @@ final class SyncClientTest extends TestCase
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($first->getId()));
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($second->getId()));
         self::assertSame(1, InternalQueueFixture::$configCount);
+    }
+
+    public function testAWorkerShutdownDoesNotSpinTheInlineDrain(): void
+    {
+        // The retry policy answers a shutdown without spending an attempt,
+        // because a broker would hand the job to another worker. There is no
+        // other worker in process, so the drain reads the ceiling itself.
+        // Without that read this test never returns.
+        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_SHUTS_DOWN, maxAttempts: 3);
+
+        $client = $this->client();
+        $client->push($job);
+
+        $results = ResultLogMiddlewareFixture::getResults($job->getId());
+
+        self::assertSame(
+            [JobResult::RETRY, JobResult::RETRY, JobResult::RETRY],
+            $results
+        );
     }
 
     public function testOnlyTheFirstTerminalFailureSurfaces(): void

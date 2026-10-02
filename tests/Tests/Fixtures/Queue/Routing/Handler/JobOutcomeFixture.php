@@ -18,6 +18,7 @@ use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerWorkerShutdownException;
 
 /**
  * Handlers whose outcome a test dictates.
@@ -61,5 +62,16 @@ final class JobOutcomeFixture
     public static function throws(ContainerContract $container, RouteContract $route): JobResult
     {
         throw new RuntimeException('the job blew up');
+    }
+
+    /**
+     * A handler that throws the worker shutdown exception.
+     *
+     * The retry policy answers this one without spending an attempt, so it is
+     * what a drain with no attempt ceiling of its own would spin on.
+     */
+    public static function shutsDown(ContainerContract $container, RouteContract $route): JobResult
+    {
+        throw new QueueServerWorkerShutdownException('the worker is going away');
     }
 }
