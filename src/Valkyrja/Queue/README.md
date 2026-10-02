@@ -87,9 +87,10 @@ broker answers it directly from `settle`, and never calls
 `ClientContract::requeue()`.
 
 The entry still supplies the hold, where the broker accepts one. `SqsQueue` sets
-the visibility timeout from the ramp, so the hold is the job's own and not the
-queue's default. `AmqpQueue` passes none, because a nack gives the broker no
-place to put one, so that broker redelivers on its own schedule.
+the visibility timeout from the ramp, and `BeanstalkdQueue` passes the same ramp
+to the release, so the hold is the job's own and not the queue's default.
+`AmqpQueue` passes none, because a nack gives the broker no place to put one, so
+that broker redelivers on its own schedule.
 
 Warning: the count such a broker reports has to reach the ceiling, or nothing
 dead-letters. A classic AMQP queue reports only that a delivery is a
