@@ -11,6 +11,7 @@
     "async-aws/sqs"              : "^2.9.0",
     "filp/whoops"                : "^2.18.5",
     "firebase/php-jwt"           : "^7.2.1",
+    "google/cloud-pubsub"        : "^2.19.4",
     "guzzlehttp/guzzle"          : "^7.15.5",
     "league/flysystem"           : "^3.36.0",
     "league/flysystem-aws-s3-v3" : "^3.35.3",

@@ -24,6 +24,7 @@ use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDatabaseClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueuePubSubClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
@@ -31,6 +32,7 @@ use Valkyrja\Queue\Client\Data\QueueAmqpClientConfig;
 use Valkyrja\Queue\Client\Data\QueueBeanstalkdClientConfig;
 use Valkyrja\Queue\Client\Data\QueueClientConfig;
 use Valkyrja\Queue\Client\Data\QueueDatabaseClientConfig;
+use Valkyrja\Queue\Client\Data\QueuePubSubClientConfig;
 use Valkyrja\Queue\Client\Data\QueueRedisClientConfig;
 use Valkyrja\Queue\Client\Data\QueueSqsClientConfig;
 use Valkyrja\Queue\Client\Manager\AmqpClient;
@@ -39,6 +41,7 @@ use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Manager\DatabaseClient;
 use Valkyrja\Queue\Client\Manager\DeferredClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
+use Valkyrja\Queue\Client\Manager\PubSubClient;
 use Valkyrja\Queue\Client\Manager\RedisClient;
 use Valkyrja\Queue\Client\Manager\SqsClient;
 use Valkyrja\Queue\Client\Manager\SyncClient;
@@ -49,6 +52,14 @@ use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\Data\QueueClientConfigFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
+
+use function file_put_contents;
+use function getenv;
+use function json_encode;
+use function putenv;
+use function sys_get_temp_dir;
+use function tempnam;
+use function unlink;
 
 final class ServiceProviderTest extends ServiceProviderTestCase
 {
@@ -92,6 +103,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(BeanstalkdClient::class, $publishers);
         self::assertArrayHasKey(QueueDatabaseClientConfigContract::class, $publishers);
         self::assertArrayHasKey(DatabaseClient::class, $publishers);
+        self::assertArrayHasKey(QueuePubSubClientConfigContract::class, $publishers);
+        self::assertArrayHasKey(PubSubClient::class, $publishers);
     }
 
     public function testPublishConfig(): void
@@ -399,6 +412,57 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $this->publish(DatabaseClient::class);
 
         self::assertInstanceOf(DatabaseClient::class, $this->container->getSingleton(DatabaseClient::class));
+    }
+
+    public function testPublishPubSubConfig(): void
+    {
+        $this->publish(QueuePubSubClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueuePubSubClientConfigContract::class);
+
+        self::assertSame('valkyrja', $config->pubSubProjectId);
+        self::assertSame('default', $config->pubSubTopic);
+    }
+
+    public function testPublishPubSubConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(QueuePubSubClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueuePubSubClientConfigContract::class);
+
+        self::assertSame('valkyrja-tests', $config->pubSubProjectId);
+        self::assertSame('jobs', $config->pubSubTopic);
+    }
+
+    public function testPublishPubSubClient(): void
+    {
+        $credentials = tempnam(sys_get_temp_dir(), 'valkyrja-gcp');
+        $previous    = getenv('GOOGLE_APPLICATION_CREDENTIALS');
+
+        // The SDK looks up credentials as it constructs, so the test names a
+        // service account file instead of relying on the machine it runs on
+        file_put_contents($credentials, json_encode([
+            'type'           => 'service_account',
+            'project_id'     => 'valkyrja-tests',
+            'client_email'   => 'queue@valkyrja-tests.iam.gserviceaccount.com',
+            'client_id'      => '0',
+            'private_key_id' => '0',
+            'private_key'    => 'not-a-key',
+        ]));
+        putenv('GOOGLE_APPLICATION_CREDENTIALS=' . $credentials);
+
+        try {
+            $this->container->setSingleton(QueuePubSubClientConfigContract::class, new QueuePubSubClientConfig());
+
+            $this->publish(PubSubClient::class);
+
+            self::assertInstanceOf(PubSubClient::class, $this->container->getSingleton(PubSubClient::class));
+        } finally {
+            putenv($previous === false ? 'GOOGLE_APPLICATION_CREDENTIALS' : 'GOOGLE_APPLICATION_CREDENTIALS=' . $previous);
+            unlink($credentials);
+        }
     }
 
     /**

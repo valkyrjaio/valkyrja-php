@@ -65,16 +65,20 @@ broker answers it directly from `settle`, and never calls
 `ClientContract::requeue()`.
 
 The entry still supplies the hold, where the broker accepts one. `SqsQueue` sets
-the visibility timeout from the ramp, and `BeanstalkdQueue` passes the same ramp
-to the release, so the hold is the job's own and not the queue's default.
+the visibility timeout from the ramp, `PubSubQueue` sets the acknowledgement
+deadline from it, and `BeanstalkdQueue` passes the same ramp to the release, so
+the hold is the job's own and not the queue's default.
 `AmqpQueue` passes none, because a nack gives the broker no place to put one, so
 that broker redelivers on its own schedule.
 
 Warning: the count such a broker reports has to reach the ceiling, or nothing
 dead-letters. A classic AMQP queue reports only that a delivery is a
 redelivery, not which one, so `AmqpQueue` cannot count past the second attempt.
-A quorum queue reports every attempt, so use one when the ceiling has to hold.
-Set the vhost's `default_queue_type` to `quorum` to get it. The framework
+Pub/Sub reports its count only on a subscription that carries a dead-letter
+policy, and without one `PubSubQueue` never advances the attempt at all.
+
+A quorum queue reports every attempt, so use one when the AMQP ceiling has to
+hold. Set the vhost's `default_queue_type` to `quorum` to get it. The framework
 declares the queue with no `x-queue-type`, so a queue the operator declared as
 quorum answers `PRECONDITION_FAILED` on the next declare and the worker cannot
 start; the vhost default carries no such argument and so cannot collide. The
@@ -98,6 +102,7 @@ overflow, and a retry answers with a nack that does requeue. A `max_attempts` of
 | `SqsClient`        | SQS        | processor  |
 | `BeanstalkdClient` | beanstalkd | processor  |
 | `DatabaseClient`   | a database | framework  |
+| `PubSubClient`     | Pub/Sub    | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -166,6 +171,7 @@ free, so a row that a crashed worker abandoned returns to the queue.
 | `SqsQueue`        | a worker that long-polls an SQS queue                 |
 | `BeanstalkdQueue` | a worker that reserves jobs from a tube               |
 | `DatabaseQueue`   | a worker that claims rows from a table                |
+| `PubSubQueue`     | a worker that pulls a Pub/Sub subscription            |
 | `PushQueue`       | one job that a broker delivers over HTTP              |
 | `InternalQueue`   | each job that `SyncClient` or `DeferredClient` pushes |
 
@@ -305,6 +311,17 @@ itself.
 | `databaseQueue` | `'default'`    | The queue that jobs are written under |
 | `databaseTable` | `'queue_jobs'` | The table that jobs are written to    |
 
+#### `QueuePubSubClientConfigContract`
+
+| Property          | Default      | Description                          |
+| :---------------- | :----------- | :----------------------------------- |
+| `pubSubProjectId` | `'valkyrja'` | The Google Cloud project             |
+| `pubSubTopic`     | `'default'`  | The topic that jobs are published to |
+
+Warning: the Google client reads the Application Default Credentials when the
+service provider builds the client. An application that resolves `PubSubClient`
+needs credentials in its environment, such as `GOOGLE_APPLICATION_CREDENTIALS`.
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
@@ -364,3 +381,4 @@ A broker adapter needs its own package, and the framework does not require one:
 | AMQP       | `php-amqplib/php-amqplib` |
 | SQS        | `async-aws/sqs`           |
 | beanstalkd | `pda/pheanstalk`          |
+| Pub/Sub    | `google/cloud-pubsub`     |

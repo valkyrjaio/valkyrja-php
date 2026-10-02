@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Valkyrja\Queue\Client\Provider;
 
+use Google\Cloud\PubSub\PubSubClient as GooglePubSubClient;
 use Override;
 use Pheanstalk\Pheanstalk;
 use PhpAmqpLib\Connection\AMQPLazyConnection;
@@ -25,6 +26,7 @@ use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDatabaseClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueuePubSubClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
@@ -32,6 +34,7 @@ use Valkyrja\Queue\Client\Data\QueueAmqpClientConfig;
 use Valkyrja\Queue\Client\Data\QueueBeanstalkdClientConfig;
 use Valkyrja\Queue\Client\Data\QueueClientConfig;
 use Valkyrja\Queue\Client\Data\QueueDatabaseClientConfig;
+use Valkyrja\Queue\Client\Data\QueuePubSubClientConfig;
 use Valkyrja\Queue\Client\Data\QueueRedisClientConfig;
 use Valkyrja\Queue\Client\Data\QueueSqsClientConfig;
 use Valkyrja\Queue\Client\Manager\AmqpClient;
@@ -40,6 +43,7 @@ use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Manager\DatabaseClient;
 use Valkyrja\Queue\Client\Manager\DeferredClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
+use Valkyrja\Queue\Client\Manager\PubSubClient;
 use Valkyrja\Queue\Client\Manager\RedisClient;
 use Valkyrja\Queue\Client\Manager\SqsClient;
 use Valkyrja\Queue\Client\Manager\SyncClient;
@@ -196,6 +200,25 @@ class QueueClientServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             QueueDatabaseClientConfigContract::class,
             new QueueDatabaseClientConfig()
+        );
+    }
+
+    /**
+     * Publish the Pub/Sub client config service.
+     */
+    public static function publishPubSubConfig(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(ConfigContract::class);
+
+        if ($config instanceof QueuePubSubClientConfigContract) {
+            $container->setSingleton(QueuePubSubClientConfigContract::class, $config);
+
+            return;
+        }
+
+        $container->setSingleton(
+            QueuePubSubClientConfigContract::class,
+            new QueuePubSubClientConfig()
         );
     }
 
@@ -359,6 +382,22 @@ class QueueClientServiceProvider implements ServiceProviderContract
     }
 
     /**
+     * Publish the Pub/Sub client service.
+     */
+    public static function publishPubSubClient(ContainerContract $container): void
+    {
+        $config = $container->getSingleton(QueuePubSubClientConfigContract::class);
+
+        $container->setSingleton(
+            PubSubClient::class,
+            new PubSubClient(
+                topic: new GooglePubSubClient(['projectId' => $config->pubSubProjectId])->topic($config->pubSubTopic),
+                applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
+            )
+        );
+    }
+
+    /**
      * Get the exception for an application config that does not implement a contract.
      *
      * @param class-string $contract The contract the application config must implement
@@ -385,6 +424,7 @@ class QueueClientServiceProvider implements ServiceProviderContract
             QueueSqsClientConfigContract::class        => [self::class, 'publishSqsConfig'],
             QueueBeanstalkdClientConfigContract::class => [self::class, 'publishBeanstalkdConfig'],
             QueueDatabaseClientConfigContract::class   => [self::class, 'publishDatabaseConfig'],
+            QueuePubSubClientConfigContract::class     => [self::class, 'publishPubSubConfig'],
             ClientContract::class                      => [self::class, 'publishClient'],
             SyncClient::class                          => [self::class, 'publishSyncClient'],
             DeferredClient::class                      => [self::class, 'publishDeferredClient'],
@@ -394,6 +434,7 @@ class QueueClientServiceProvider implements ServiceProviderContract
             SqsClient::class                           => [self::class, 'publishSqsClient'],
             BeanstalkdClient::class                    => [self::class, 'publishBeanstalkdClient'],
             DatabaseClient::class                      => [self::class, 'publishDatabaseClient'],
+            PubSubClient::class                        => [self::class, 'publishPubSubClient'],
         ];
     }
 }
