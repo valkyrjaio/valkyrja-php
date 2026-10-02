@@ -25,6 +25,7 @@ use Valkyrja\Queue\Client\Manager\DatabaseClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
 
@@ -107,9 +108,15 @@ class DatabaseQueue extends PullQueue
             return null;
         }
 
+        $job = static::decode($envelope, $id);
+
+        if ($job === null) {
+            return null;
+        }
+
         static::$current = $id;
 
-        return new JobFactory()->fromJson($envelope);
+        return $job;
     }
 
     /**
@@ -146,6 +153,25 @@ class DatabaseQueue extends PullQueue
         // A table owns no retry loop, so the framework publishes the job again
         if ($result === JobResult::RETRY) {
             $client->requeue($job);
+        }
+    }
+
+    /**
+     * Read the envelope, and take a row the factory cannot read off the table.
+     *
+     * An unreadable row never reaches the handler, so nothing settles it. The
+     * claim lapses after the reservation timeout, the next worker reads the same
+     * bytes, and nothing ends that. A database carries no dead-letter store of
+     * its own, so the row is dropped, the same as an unreadable Redis envelope.
+     */
+    protected static function decode(string $envelope, int $id): JobContract|null
+    {
+        try {
+            return new JobFactory()->fromJson($envelope);
+        } catch (JsonException|QueueMessageInvalidEnvelopeException) {
+            static::delete($id);
+
+            return null;
         }
     }
 
