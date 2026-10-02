@@ -151,8 +151,6 @@ class DatabaseQueue extends PullQueue
 
     /**
      * Get the manager the loop reads the table with.
-     *
-     * @codeCoverageIgnore A real database connection is unavailable in a test.
      */
     protected static function getManager(ContainerContract $container): ManagerContract
     {
