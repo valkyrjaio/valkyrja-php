@@ -953,7 +953,7 @@ The two answer `isDeferred()` and `isSingletonBinding()` about **themselves**
 differently, because they hold different state. `ChildContainer` copies the
 callbacks and the markers, so it answers for its own maps.
 `NativeChildContainer` copies nothing, so it answers for the child and the
-parent. The carve-out above reads both, so the two classes take it on different
+parent. The exception above reads both, so the two classes take it on different
 state for one id.
 
 ### Using a Child Container
@@ -1015,14 +1015,14 @@ run at registration, and a container installs no map before its walk ends, so a
 caller that catches the exception keeps the container it had. A container that
 writes an alias after a child reads through it is outside registration. The last
 two checks see one walk and one return, so a chain that reaches neither is
-unchecked. It ends in one of four ways:
+unchecked. It has one of four outcomes:
 
 - It resolves through the first hop the parent would answer.
 - It ends with a missing reference, when no hop answers. `NativeChildContainer`
   reports that for a parent which is itself a child.
 - It does not end, when a factory or a publish callback runs in a container that
   carries no such check. A plain `Container` carries none. A child gives the
-  lookup to the parent for a target the carve-out does not cover.
+  lookup to the parent for a target the exception does not cover.
   `ChildContainer` also gives the parent a factory the child does not hold.
 - It does not end, when an alias the child declares closes a chain through a
   factory or a publish callback the child runs. No check sits on that path.
