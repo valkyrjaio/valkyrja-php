@@ -281,6 +281,36 @@ final class JobFactoryTest extends TestCase
         self::assertStringContainsString('"tags":["a","b"]', $json);
     }
 
+    public function testToJsonWritesANestedNonEmptyMapAsAnObject(): void
+    {
+        // The ordinary nested payload. Without the cast it goes out as a JSON
+        // object anyway, so only a reader of the recursion can tell; the arm
+        // that keeps it an object has to be reached for that to stay true.
+        $job = new Job(
+            name: self::NAME,
+            payload: Payload::fromArray(['user' => ['id' => 42]]),
+        );
+
+        self::assertStringContainsString('"user":{"id":42}', $this->factory->toJson($job));
+    }
+
+    public function testANestedNonEmptyMapSurvivesARoundTrip(): void
+    {
+        $job = new Job(
+            name: self::NAME,
+            payload: Payload::fromArray(['user' => ['id' => 42, 'name' => 'Ada']]),
+        );
+
+        $read = $this->factory->fromJson($this->factory->toJson($job));
+
+        // asArray() flattens a nested payload back to plain arrays, where
+        // getAll() would hand back the nested PayloadContract
+        self::assertSame(
+            ['user' => ['id' => 42, 'name' => 'Ada']],
+            $read->getPayload()->asArray()
+        );
+    }
+
     public function testANestedEmptyMapSurvivesARoundTrip(): void
     {
         $job = $this->factory->fromJson((string) json_encode([
