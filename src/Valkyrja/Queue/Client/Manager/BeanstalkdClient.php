@@ -22,7 +22,7 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 
-use function intdiv;
+use function ceil;
 use function max;
 use function min;
 
@@ -59,6 +59,40 @@ class BeanstalkdClient extends Client
     }
 
     /**
+     * Invert the job's priority into beanstalkd's scale.
+     *
+     * beanstalkd treats 0 as the most urgent, so a higher envelope priority
+     * must map to a lower beanstalkd number. A publish and a release both read
+     * this, so the two cannot drift apart.
+     *
+     * @return int<0, 1024>
+     */
+    public static function getPriority(JobContract $job): int
+    {
+        $priority = max(0, min($job->getPriority(), self::LOWEST_PRIORITY));
+
+        return self::LOWEST_PRIORITY - $priority;
+    }
+
+    /**
+     * Convert a hold in milliseconds to the whole seconds beanstalkd takes.
+     *
+     * beanstalkd has no finer grain than a second, so a sub-second hold rounds
+     * up. Rounding down gives a job that asked for a hold no hold at all. A
+     * publish and a release both read this, so the two cannot drift apart.
+     *
+     * @param int<0, max> $delayMs The hold in milliseconds
+     *
+     * @return int<0, max>
+     */
+    public static function getDelaySeconds(int $delayMs): int
+    {
+        return $delayMs === 0
+            ? 0
+            : max(1, (int) ceil($delayMs / 1000));
+    }
+
+    /**
      * @inheritDoc
      *
      * @throws JsonException
@@ -70,8 +104,8 @@ class BeanstalkdClient extends Client
 
         $this->pheanstalk->put(
             $this->factory->toJson($job),
-            $this->getPriority($job),
-            $this->getDelaySeconds($job->getDelayMs()),
+            self::getPriority($job),
+            self::getDelaySeconds($job->getDelayMs()),
             $this->timeToRelease,
         );
     }
@@ -82,35 +116,5 @@ class BeanstalkdClient extends Client
     #[Override]
     protected function republish(JobContract $job, int $delayMs): void
     {
-    }
-
-    /**
-     * Invert the job's priority into beanstalkd's scale.
-     *
-     * beanstalkd treats 0 as the most urgent, so a higher envelope priority
-     * must map to a lower beanstalkd number.
-     *
-     * @return int<0, 1024>
-     */
-    protected function getPriority(JobContract $job): int
-    {
-        $priority = max(0, min($job->getPriority(), self::LOWEST_PRIORITY));
-
-        return self::LOWEST_PRIORITY - $priority;
-    }
-
-    /**
-     * Convert a hold in milliseconds to the whole seconds beanstalkd takes.
-     *
-     * A sub-second hold rounds down to zero, because beanstalkd has no finer
-     * grain.
-     *
-     * @param int<0, max> $delayMs The hold in milliseconds
-     *
-     * @return int<0, max>
-     */
-    protected function getDelaySeconds(int $delayMs): int
-    {
-        return max(0, intdiv($delayMs, 1000));
     }
 }
