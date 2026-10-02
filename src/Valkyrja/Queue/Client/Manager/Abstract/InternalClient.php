@@ -46,12 +46,24 @@ abstract class InternalClient extends Client
      *
      * The in-process processor has nothing to signal, so a retry is simply
      * published again and the attempt ceiling is what ends the chain.
+     *
+     * The ceiling is read here rather than left to the handler. A broker gives a
+     * worker shutdown to another worker without spending an attempt, so
+     * `RetryPolicyThrowableCaughtMiddleware` answers one with a retry before it
+     * reads the ceiling. There is no other worker in process, so a drain that
+     * trusted that answer would requeue the same job for ever.
      */
     public function settle(JobContract $job, JobResult $result): void
     {
-        if ($result === JobResult::RETRY) {
-            $this->requeue($job);
+        if ($result !== JobResult::RETRY) {
+            return;
         }
+
+        if ($job->getAttempts() >= $job->getMaxAttempts()) {
+            return;
+        }
+
+        $this->requeue($job);
     }
 
     /**
