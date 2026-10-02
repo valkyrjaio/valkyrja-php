@@ -188,7 +188,8 @@ class NativeChildContainer extends Container
     }
 
     /**
-     * Walk the parent's chain of aliases to the first id the parent could answer.
+     * Walk the parent's chain of aliases to the first id the parent could answer, or to the
+     * last hop when the chain ends first.
      *
      * @param class-string $id The alias
      *
@@ -220,23 +221,23 @@ class NativeChildContainer extends Container
     /**
      * Check whether the child resolves the target of a parent-declared alias itself.
      *
-     * @param class-string $id The target id
+     * @param class-string $target The target id
      */
-    private function resolvesInChild(string $id): bool
+    private function resolvesInChild(string $target): bool
     {
         // The parent publishes before it reads any map, so this test comes first. This
         // class copies no callback map, so the parent's callback is the child's as well.
-        if ($this->parent->isDeferred($id) && ! $this->parent->isPublished($id)) {
+        if ($this->parent->isDeferred($target) && ! $this->parent->isPublished($target)) {
             return true;
         }
 
-        if (isset($this->parent->instances[$id])) {
+        if (isset($this->parent->instances[$target])) {
             return false;
         }
 
         // This class copies no map, so the parent's marker is the child's as well. One read
         // carries what the portable child needs two for.
-        return $this->parent->isSingletonBinding($id);
+        return $this->parent->isSingletonBinding($target);
     }
 
     /**
