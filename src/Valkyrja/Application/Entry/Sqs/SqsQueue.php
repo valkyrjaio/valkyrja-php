@@ -38,11 +38,15 @@ class SqsQueue extends PullQueue
     /** The longest hold SQS accepts on a visibility timeout, in seconds. */
     public const int MAX_VISIBILITY_TIMEOUT = 43_200;
 
-    /** @var int<0, 20> The long-poll wait; 0 polls without blocking */
-    protected static int $waitTimeSeconds = 1;
-
-    /** @var int<0, max> The seconds a delivery stays hidden from other consumers */
-    protected static int $visibilityTimeout = 30;
+    /**
+     * The long-poll wait; 0 polls without blocking.
+     *
+     * Twenty is the longest SQS accepts and the cheapest: a one-second wait
+     * bills roughly 86,400 `ReceiveMessage` calls a day on an idle queue.
+     *
+     * @var int<0, 20>
+     */
+    protected static int $waitTimeSeconds = 20;
 
     protected static SqsClient|null $sqs = null;
 
@@ -81,7 +85,8 @@ class SqsQueue extends PullQueue
             'QueueUrl'                    => static::getQueueUrl(),
             'MaxNumberOfMessages'         => 1,
             'WaitTimeSeconds'             => static::$waitTimeSeconds,
-            'VisibilityTimeout'           => static::$visibilityTimeout,
+            // No VisibilityTimeout: the queue's own setting is the operator's,
+            // and settle() names the hold a retry needs explicitly
             // SQS owns the attempt count, and it only reports it when asked
             'MessageSystemAttributeNames' => [MessageSystemAttributeName::APPROXIMATE_RECEIVE_COUNT],
         ]);
