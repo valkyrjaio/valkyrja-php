@@ -15,6 +15,7 @@ namespace Valkyrja\Tests\Unit\Application\Entry\Sqs;
 use AsyncAws\Sqs\ValueObject\Message;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Valkyrja\Application\Entry\Sqs\SqsQueue;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Client\Data\QueueSqsClientConfig;
@@ -22,6 +23,7 @@ use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Tests\Fixtures\Application\Entry\SqsQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\SqsFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -205,9 +207,61 @@ final class SqsQueueTest extends TestCase
 
         self::assertCount(1, $calls);
         self::assertSame(self::HANDLE, $calls[0]['ReceiptHandle']);
-        // Zero: SQS redelivers at once and counts the receive
-        self::assertSame(0, $calls[0]['VisibilityTimeout']);
+        // The job's own ramp, so a retrying job does not burn every attempt back
+        // to back. SQS redelivers once the hold lapses and counts the receive.
+        self::assertSame(1, $calls[0]['VisibilityTimeout']);
         self::assertSame([], $this->sqs->getCalls('deleteMessage'));
+    }
+
+    public function testARetryWithNoRampComesBackAtOnce(): void
+    {
+        $this->seed(new Job(name: self::NAME, retryDelayMs: 0));
+
+        $job = SqsQueueFixture::receive();
+
+        self::assertNotNull($job);
+
+        SqsQueueFixture::settle($job, JobResult::RETRY, new InMemoryClient());
+
+        self::assertSame(0, $this->sqs->getCalls('changeMessageVisibility')[0]['VisibilityTimeout']);
+    }
+
+    public function testASubSecondRampHoldsForOneSecond(): void
+    {
+        $this->seed(new Job(name: self::NAME, retryDelayMs: 1500));
+
+        $job = SqsQueueFixture::receive();
+
+        self::assertNotNull($job);
+
+        SqsQueueFixture::settle($job, JobResult::RETRY, new InMemoryClient());
+
+        self::assertSame(2, $this->sqs->getCalls('changeMessageVisibility')[0]['VisibilityTimeout']);
+    }
+
+    public function testARampLongerThanSqsAllowsIsClamped(): void
+    {
+        $this->seed(new Job(name: self::NAME, retryDelayMs: 90_000_000));
+
+        $job = SqsQueueFixture::receive();
+
+        self::assertNotNull($job);
+
+        SqsQueueFixture::settle($job, JobResult::RETRY, new InMemoryClient());
+
+        self::assertSame(
+            SqsQueue::MAX_VISIBILITY_TIMEOUT,
+            $this->sqs->getCalls('changeMessageVisibility')[0]['VisibilityTimeout']
+        );
+    }
+
+    public function testReceivingWithoutAConnectionFails(): void
+    {
+        SqsQueueFixture::reset();
+
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        SqsQueueFixture::receive();
     }
 
     public function testAnUnreadableEnvelopeIsRetiredRatherThanRedelivered(): void

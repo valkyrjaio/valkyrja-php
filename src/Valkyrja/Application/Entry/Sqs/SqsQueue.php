@@ -28,11 +28,16 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
+use function ceil;
 use function max;
+use function min;
 use function preg_match;
 
 class SqsQueue extends PullQueue
 {
+    /** The longest hold SQS accepts on a visibility timeout, in seconds. */
+    public const int MAX_VISIBILITY_TIMEOUT = 43_200;
+
     /** @var int<0, 20> The long-poll wait; 0 polls without blocking */
     protected static int $waitTimeSeconds = 1;
 
@@ -145,8 +150,10 @@ class SqsQueue extends PullQueue
         static::$current = null;
 
         if ($result === JobResult::RETRY) {
-            // Make it visible again: SQS redelivers and counts the receives
-            static::changeVisibility($handle, 0);
+            // SQS redelivers once the visibility timeout lapses, and it counts
+            // the receive. That timeout is the one hold it offers, so a retrying
+            // job waits for its ramp rather than burning every attempt at once.
+            static::changeVisibility($handle, static::getVisibilityTimeout($job));
 
             return;
         }
@@ -263,6 +270,25 @@ class SqsQueue extends PullQueue
      *
      * @param int<0, max> $timeout The seconds to stay hidden; 0 makes it visible at once
      */
+    /**
+     * The visibility timeout that holds the next attempt, in whole seconds.
+     *
+     * SQS takes whole seconds, and the envelope holds milliseconds, so a
+     * sub-second hold rounds up rather than down to no hold at all.
+     *
+     * @return int<0, 43200>
+     */
+    protected static function getVisibilityTimeout(JobContract $job): int
+    {
+        $milliseconds = $job->getRetryDelayForAttemptMs();
+
+        if ($milliseconds === 0) {
+            return 0;
+        }
+
+        return max(1, min((int) ceil($milliseconds / 1000), self::MAX_VISIBILITY_TIMEOUT));
+    }
+
     protected static function changeVisibility(string $handle, int $timeout): void
     {
         static::getConnection()->changeMessageVisibility([
