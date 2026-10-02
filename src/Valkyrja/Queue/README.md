@@ -198,9 +198,9 @@ than an addition to the default, so a host application names both providers.
 ```php
 use App\Queue\InternalApp;
 use Valkyrja\Application\Data\HttpConfig;
+use Valkyrja\Application\Provider\HttpApplicationComponentProvider;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
-use Valkyrja\Application\Provider\HttpApplicationComponentProvider;
 use Valkyrja\Queue\Client\Manager\SyncClient;
 use Valkyrja\Queue\Client\Provider\QueueClientComponentProvider;
 
