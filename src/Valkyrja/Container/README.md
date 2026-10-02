@@ -1021,8 +1021,9 @@ unchecked. It ends in one of four ways:
 - It ends with a missing reference, when no hop answers. `NativeChildContainer`
   reports that for a parent which is itself a child.
 - It does not end, when a factory or a publish callback runs in a container that
-  carries no such check. A plain `Container` carries none, and a child gives the
+  carries no such check. A plain `Container` carries none. A child gives the
   lookup to the parent for a target the carve-out does not cover.
+  `ChildContainer` also gives the parent a factory the child does not hold.
 - It does not end, when an alias the child declares closes a chain through a
   factory or a publish callback the child runs. No check sits on that path.
 
