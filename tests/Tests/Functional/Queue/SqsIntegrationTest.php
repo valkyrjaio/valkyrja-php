@@ -127,7 +127,10 @@ final class SqsIntegrationTest extends TestCase
 
     public function testARetriedJobIsRedeliveredByTheQueue(): void
     {
-        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5);
+        // No ramp, so the retry sets a zero visibility timeout and the message
+        // comes back at once. The hold itself is pinned by SqsQueueTest, which
+        // needs no live broker to wait out.
+        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_RETRY, maxAttempts: 5, retryDelayMs: 0);
 
         $client = $this->client();
         $client->push($job);
