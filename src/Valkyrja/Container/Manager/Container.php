@@ -59,7 +59,7 @@ class Container implements ContainerContract
     public function __construct(
         protected ContainerData $data = new ContainerData()
     ) {
-        // Nothing is installed yet, so past the map there is nothing to read
+        // Nothing is installed yet, so past the map there is nothing to read.
         $this->validateAliasMapIsNotCyclic($data->aliases, static fn (): null => null);
 
         $this->aliases          = $data->aliases;
@@ -359,8 +359,8 @@ class Container implements ContainerContract
             return null;
         }
 
-        // A factory can register this id while it runs, so the map decides what a reader
-        // gets.
+        // The map decides which instance every reader gets. The build stays outside it,
+        // because a factory resolves its own dependencies through this same map.
         return $this->instances[$id] ??= $singleton;
     }
 
