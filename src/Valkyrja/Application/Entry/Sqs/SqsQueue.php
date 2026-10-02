@@ -72,7 +72,7 @@ class SqsQueue extends PullQueue
     /**
      * @inheritDoc
      *
-     * @throws JsonException
+     * @throws QueueServerNotConnectedException
      */
     #[Override]
     public static function receive(): JobContract|null
@@ -266,11 +266,6 @@ class SqsQueue extends PullQueue
     }
 
     /**
-     * Set how long a delivery stays hidden from other consumers.
-     *
-     * @param int<0, max> $timeout The seconds to stay hidden; 0 makes it visible at once
-     */
-    /**
      * The visibility timeout that holds the next attempt, in whole seconds.
      *
      * SQS takes whole seconds, and the envelope holds milliseconds, so a
@@ -289,6 +284,11 @@ class SqsQueue extends PullQueue
         return max(1, min((int) ceil($milliseconds / 1000), self::MAX_VISIBILITY_TIMEOUT));
     }
 
+    /**
+     * Set how long a delivery stays hidden from other consumers.
+     *
+     * @param int<0, max> $timeout The seconds to stay hidden; 0 makes it visible at once
+     */
     protected static function changeVisibility(string $handle, int $timeout): void
     {
         static::getConnection()->changeMessageVisibility([
