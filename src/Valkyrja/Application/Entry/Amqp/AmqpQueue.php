@@ -183,8 +183,9 @@ class AmqpQueue extends PullQueue
      * the first without saying which one it is.
      *
      * Warning: a classic queue therefore cannot count past the second attempt.
-     * Give the queue a dead-letter policy, or declare it as a quorum queue, when
-     * the ceiling has to hold.
+     * Declare it as a quorum queue when the ceiling has to hold. A dead-letter
+     * exchange alone does not end a retry chain, because a retry answers with a
+     * nack that requeues, and that is not what dead-letters a classic queue.
      */
     protected static function withNormalizedAttempts(JobContract $job, AMQPMessage $message): JobContract
     {
