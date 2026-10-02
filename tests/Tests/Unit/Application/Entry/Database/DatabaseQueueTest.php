@@ -23,6 +23,7 @@ use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Fixtures\Application\Entry\DatabaseQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\DatabaseManagerFixture;
@@ -246,6 +247,15 @@ final class DatabaseQueueTest extends TestCase
 
         self::assertNull(DatabaseQueueFixture::receive());
         self::assertSame(0, DatabaseQueueFixture::$waits);
+    }
+
+    public function testReceivingWithoutAConnectionFails(): void
+    {
+        DatabaseQueueFixture::reset();
+
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        DatabaseQueueFixture::receive();
     }
 
     public function testAnUnreadableRowIsTakenOffTheTable(): void
