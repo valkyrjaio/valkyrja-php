@@ -160,6 +160,9 @@ $container->bindAlias(NotifierContract::class, SlackNotifier::class);
 
 // Throws: the chain from NotifierContract returns to SlackNotifier.
 $container->bindAlias(SlackNotifier::class, NotifierContract::class);
+
+// Throws: SlackNotifier cannot point at itself.
+$container->bindAlias(SlackNotifier::class, SlackNotifier::class);
 ```
 
 ### setSingleton()
