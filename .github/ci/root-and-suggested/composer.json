@@ -17,6 +17,7 @@
     "mailgun/mailgun-php"        : "^4.5.2",
     "monolog/monolog"            : "^3.12.1",
     "openswoole/core"            : "^26.2.1",
+    "pda/pheanstalk"             : "^8.0.2",
     "php-amqplib/php-amqplib"    : "^3.7.4",
     "phpmailer/phpmailer"        : "^7.1.1",
     "predis/predis"              : "^3.6.1",

@@ -65,9 +65,10 @@ broker answers it directly from `settle`, and never calls
 `ClientContract::requeue()`.
 
 The entry still supplies the hold, where the broker accepts one. `SqsQueue` sets
-the visibility timeout from the ramp, so the hold is the job's own and not the
-queue's default. `AmqpQueue` passes none, because a nack gives the broker no
-place to put one, so that broker redelivers on its own schedule.
+the visibility timeout from the ramp, and `BeanstalkdQueue` passes the same ramp
+to the release, so the hold is the job's own and not the queue's default.
+`AmqpQueue` passes none, because a nack gives the broker no place to put one, so
+that broker redelivers on its own schedule.
 
 Warning: the count such a broker reports has to reach the ceiling, or nothing
 dead-letters. A classic AMQP queue reports only that a delivery is a
@@ -87,14 +88,15 @@ overflow, and a retry answers with a nack that does requeue. A `max_attempts` of
 
 ## Clients
 
-| Client           | Broker | Redelivery |
-| ---------------- | ------ | ---------- |
-| `SyncClient`     | none   | framework  |
-| `DeferredClient` | none   | framework  |
-| `InMemoryClient` | none   | framework  |
-| `RedisClient`    | Redis  | framework  |
-| `AmqpClient`     | AMQP   | processor  |
-| `SqsClient`      | SQS    | processor  |
+| Client             | Broker     | Redelivery |
+| ------------------ | ---------- | ---------- |
+| `SyncClient`       | none       | framework  |
+| `DeferredClient`   | none       | framework  |
+| `InMemoryClient`   | none       | framework  |
+| `RedisClient`      | Redis      | framework  |
+| `AmqpClient`       | AMQP       | processor  |
+| `SqsClient`        | SQS        | processor  |
+| `BeanstalkdClient` | beanstalkd | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -127,15 +129,16 @@ gives one request the deferred jobs of the request before it.
 
 ## Entry Points
 
-| Entry           | Runs                                                  |
-| --------------- | ----------------------------------------------------- |
-| `Queue`         | one job, then exits                                   |
-| `PullQueue`     | the poll loop that a processor entry extends          |
-| `RedisQueue`    | a worker that takes jobs from a redis list            |
-| `AmqpQueue`     | a worker that consumes an AMQP queue                  |
-| `SqsQueue`      | a worker that long-polls an SQS queue                 |
-| `PushQueue`     | one job that a broker delivers over HTTP              |
-| `InternalQueue` | each job that `SyncClient` or `DeferredClient` pushes |
+| Entry             | Runs                                                  |
+| ----------------- | ----------------------------------------------------- |
+| `Queue`           | one job, then exits                                   |
+| `PullQueue`       | the poll loop that a processor entry extends          |
+| `RedisQueue`      | a worker that takes jobs from a redis list            |
+| `AmqpQueue`       | a worker that consumes an AMQP queue                  |
+| `SqsQueue`        | a worker that long-polls an SQS queue                 |
+| `BeanstalkdQueue` | a worker that reserves jobs from a tube               |
+| `PushQueue`       | one job that a broker delivers over HTTP              |
+| `InternalQueue`   | each job that `SyncClient` or `DeferredClient` pushes |
 
 `PullQueue` is abstract, because polling and settling are specific to one
 processor. An entry such as `RedisQueue` implements `connect`, `receive`,
@@ -257,6 +260,15 @@ itself.
 | `sqsAccessKeySecret` | `null`                                                       | The access key secret; null for the AWS credential chain         |
 | `sqsQueueUrl`        | `'https://sqs.us-east-1.amazonaws.com/000000000000/default'` | The URL of the queue that jobs are sent to                       |
 
+#### `QueueBeanstalkdClientConfigContract`
+
+| Property                  | Default       | Description                                                    |
+| :------------------------ | :------------ | :------------------------------------------------------------- |
+| `beanstalkdHost`          | `'127.0.0.1'` | The host to connect to                                         |
+| `beanstalkdPort`          | `11300`       | The port to connect to                                         |
+| `beanstalkdTube`          | `'default'`   | The tube that jobs are put on                                  |
+| `beanstalkdTimeToRelease` | `60`          | The seconds a worker holds a job before beanstalkd releases it |
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
@@ -310,8 +322,9 @@ names.
 
 A broker adapter needs its own package, and the framework does not require one:
 
-| Adapter | Package                   |
-| ------- | ------------------------- |
-| Redis   | `predis/predis`           |
-| AMQP    | `php-amqplib/php-amqplib` |
-| SQS     | `async-aws/sqs`           |
+| Adapter    | Package                   |
+| ---------- | ------------------------- |
+| Redis      | `predis/predis`           |
+| AMQP       | `php-amqplib/php-amqplib` |
+| SQS        | `async-aws/sqs`           |
+| beanstalkd | `pda/pheanstalk`          |
