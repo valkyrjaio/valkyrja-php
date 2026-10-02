@@ -214,6 +214,50 @@ final class PubSubQueueTest extends TestCase
         self::assertSame([], $this->subscription->acknowledged);
     }
 
+    public function testTheDeliveryAttemptBecomesTheJobAttempts(): void
+    {
+        // A processor-owned adapter never rewrites the envelope, so the count
+        // Pub/Sub reports is the only thing that advances the attempt
+        $this->subscription->next = [
+            new Message(
+                ['data' => new JobFactory()->toJson(new JobFactory()->create(self::NAME)), 'messageId' => 'm-1'],
+                ['ackId' => 'ack-id-1', 'deliveryAttempt' => 3]
+            ),
+        ];
+
+        $job = PubSubQueueFixture::receive();
+
+        self::assertNotNull($job);
+        self::assertSame(3, $job->getAttempts());
+    }
+
+    public function testAnAbsentDeliveryAttemptKeepsTheEnvelopeCount(): void
+    {
+        // Pub/Sub reports the count only on a subscription with a dead-letter
+        // policy, so without one the envelope's own count stands
+        $this->seed(new JobFactory()->create(self::NAME));
+
+        $job = PubSubQueueFixture::receive();
+
+        self::assertNotNull($job);
+        self::assertSame(1, $job->getAttempts());
+    }
+
+    public function testAZeroDeliveryAttemptKeepsTheEnvelopeCount(): void
+    {
+        $this->subscription->next = [
+            new Message(
+                ['data' => new JobFactory()->toJson(new JobFactory()->create(self::NAME)), 'messageId' => 'm-1'],
+                ['ackId' => 'ack-id-1', 'deliveryAttempt' => 0]
+            ),
+        ];
+
+        $job = PubSubQueueFixture::receive();
+
+        self::assertNotNull($job);
+        self::assertSame(1, $job->getAttempts());
+    }
+
     public function testAnUnreadableEnvelopeIsAcknowledgedRatherThanRedelivered(): void
     {
         // Nothing settles a body the factory cannot read, so the subscription
