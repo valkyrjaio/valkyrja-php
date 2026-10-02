@@ -311,6 +311,12 @@ final class ComponentProvider implements ComponentProviderContract
         ];
     }
 
+    #[Override]
+    public static function getQueueProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
+
     public static function publish(ApplicationContract $app): void
     {
         $container = $app->getContainer();
