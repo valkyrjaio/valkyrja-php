@@ -21,8 +21,10 @@ use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Queue\Message\Payload\Contract\PayloadContract;
 use Valkyrja\Queue\Message\Payload\Payload;
+use Valkyrja\Queue\Message\Throwable\Exception\Abstract\QueueMessageInvalidArgumentException;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Type\Array\Factory\ArrayFactory;
+use Valkyrja\Type\Array\Throwable\Exception\ArrayInvalidEncodedArrayException;
 
 use function array_is_list;
 use function is_array;
@@ -84,10 +86,23 @@ class JobFactory implements JobFactoryContract
 
         $id = $this->readString($data, EnvelopeField::ID, '');
 
+        try {
+            $attributes = Attributes::fromArray($this->readArray($data, EnvelopeField::ATTRIBUTES));
+        } catch (QueueMessageInvalidArgumentException $exception) {
+            // A caller reads one wire body and declares one failure for it, so
+            // an attribute it cannot accept reads as a bad envelope. The
+            // abstract catches a bad name and a bad value alike, so a new
+            // sibling cannot escape the declared contract.
+            throw new QueueMessageInvalidEnvelopeException(
+                'Job envelope must carry readable attributes',
+                previous: $exception,
+            );
+        }
+
         return new Job(
             name: $name,
             payload: Payload::fromArray($this->readArray($data, EnvelopeField::PAYLOAD)),
-            attributes: Attributes::fromArray($this->readArray($data, EnvelopeField::ATTRIBUTES)),
+            attributes: $attributes,
             id: $id !== ''
                 ? $id
                 : null,
@@ -112,7 +127,17 @@ class JobFactory implements JobFactoryContract
     #[Override]
     public function fromJson(string $json): JobContract
     {
-        return $this->fromArray(ArrayFactory::fromString($json));
+        try {
+            $data = ArrayFactory::fromString($json);
+        } catch (ArrayInvalidEncodedArrayException $exception) {
+            // Valid JSON that carries no object, such as `5` or `"text"`
+            throw new QueueMessageInvalidEnvelopeException(
+                'Job envelope must be a JSON object',
+                previous: $exception,
+            );
+        }
+
+        return $this->fromArray($data);
     }
 
     /**

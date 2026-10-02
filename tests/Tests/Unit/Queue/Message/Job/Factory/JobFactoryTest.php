@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Queue\Message\Job\Factory;
 
 use Override;
+use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -33,6 +34,19 @@ final class JobFactoryTest extends TestCase
     protected const int FROZEN_MS = 1768564798000;
 
     protected JobFactory $factory;
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function nonObjectJsonProvider(): array
+    {
+        return [
+            'number'  => ['5'],
+            'boolean' => ['true'],
+            'string'  => ['"text"'],
+            'null'    => ['null'],
+        ];
+    }
 
     /**
      * @return array<non-empty-string, mixed>
@@ -296,5 +310,31 @@ final class JobFactoryTest extends TestCase
             $job->asArray(),
             $this->factory->fromJson($this->factory->toJson($job))->asArray()
         );
+    }
+
+    #[DataProvider('nonObjectJsonProvider')]
+    public function testFromJsonRejectsValidJsonThatCarriesNoObject(string $json): void
+    {
+        // A consumer declares one failure for a body it cannot read, so this
+        // cannot surface as a throwable from the array component
+        $this->expectException(QueueMessageInvalidEnvelopeException::class);
+
+        $this->factory->fromJson($json);
+    }
+
+    public function testFromArrayRejectsANonScalarAttributeValue(): void
+    {
+        $this->expectException(QueueMessageInvalidEnvelopeException::class);
+
+        $this->factory->fromArray(['name' => 'SendWelcomeEmail', 'attributes' => ['a' => [null]]]);
+    }
+
+    public function testFromArrayRejectsAnEmptyAttributeName(): void
+    {
+        // A bad name and a bad value are siblings under one abstract, so both
+        // reach the caller as the one failure the contract declares
+        $this->expectException(QueueMessageInvalidEnvelopeException::class);
+
+        $this->factory->fromArray(['name' => 'SendWelcomeEmail', 'attributes' => ['' => ['v']]]);
     }
 }
