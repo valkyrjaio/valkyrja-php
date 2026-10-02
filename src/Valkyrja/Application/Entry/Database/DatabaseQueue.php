@@ -102,9 +102,8 @@ class DatabaseQueue extends PullQueue
 
         if (! static::claim($id)) {
             // Another worker claimed the row between the read and the write.
-            // The loop asks again rather than this one waiting for a winner.
-            static::wait();
-
+            // Work is known to exist, so the loop asks again at once rather
+            // than pausing exactly when the backlog is deepest.
             return null;
         }
 
