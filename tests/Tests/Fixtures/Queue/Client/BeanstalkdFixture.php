@@ -37,6 +37,8 @@ use function array_fill_keys;
 final class BeanstalkdFixture implements PheanstalkManagerInterface, PheanstalkPublisherInterface, PheanstalkSubscriberInterface
 {
     /** @var int<0, max> The reserve count that statsJob reports */
+    public int $priority = 1024;
+
     public int $reserves = 1;
 
     /** @var array<int, array{0: string, 1: array<int, mixed>}> */
@@ -224,7 +226,7 @@ final class BeanstalkdFixture implements PheanstalkManagerInterface, PheanstalkP
             id: new JobId($job->getId()),
             tube: new TubeName('valkyrja'),
             state: JobState::RESERVED,
-            priority: 1024,
+            priority: $this->priority,
             age: 0,
             delay: 0,
             timeToRelease: 90,
