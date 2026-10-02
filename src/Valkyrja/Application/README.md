@@ -251,10 +251,10 @@ loop.
 
 ```php
 // app/bin/queue
-require __DIR__ . '/../vendor/autoload.php';
-
 use Valkyrja\Application\Data\QueueConfig;
 use Valkyrja\Application\Entry\Redis\RedisQueue;
+
+require __DIR__ . '/../vendor/autoload.php';
 
 RedisQueue::run(new QueueConfig(
     dir: __DIR__ . '/..',
