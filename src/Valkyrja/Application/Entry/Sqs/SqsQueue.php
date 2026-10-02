@@ -25,6 +25,7 @@ use Valkyrja\Queue\Client\Manager\SqsClient as ValkyrjaSqsClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
 use function max;
@@ -100,17 +101,20 @@ class SqsQueue extends PullQueue
         // A delivery with no body cannot be run, and leaving it in flight would
         // poison every later poll, so it is retired rather than handed back
         if ($body === null) {
-            static::getConnection()->deleteMessage([
-                'QueueUrl'      => static::getQueueUrl(),
-                'ReceiptHandle' => $handle,
-            ]);
+            static::retire($handle);
 
+            return null;
+        }
+
+        $job = static::decode($body, $handle);
+
+        if ($job === null) {
             return null;
         }
 
         static::$current = $handle;
 
-        return static::withNormalizedAttempts(new JobFactory()->fromJson($body), $message);
+        return static::withNormalizedAttempts($job, $message);
     }
 
     /**
@@ -150,6 +154,35 @@ class SqsQueue extends PullQueue
         // A dead letter is terminal here as well. SQS moves a message to the
         // dead-letter queue through the redrive policy, on the receive count,
         // so the framework deleting it is what stops the chain.
+        static::getConnection()->deleteMessage([
+            'QueueUrl'      => static::getQueueUrl(),
+            'ReceiptHandle' => $handle,
+        ]);
+    }
+
+    /**
+     * Read the envelope, and retire a body the factory cannot read.
+     *
+     * An unreadable body never reaches the handler, so nothing settles it. SQS
+     * would hand the same message back on every visibility timeout, and a queue
+     * without a redrive policy has nothing to end that.
+     */
+    protected static function decode(string $body, string $handle): JobContract|null
+    {
+        try {
+            return new JobFactory()->fromJson($body);
+        } catch (JsonException|QueueMessageInvalidEnvelopeException) {
+            static::retire($handle);
+
+            return null;
+        }
+    }
+
+    /**
+     * Take a delivery off the queue without running it.
+     */
+    protected static function retire(string $handle): void
+    {
         static::getConnection()->deleteMessage([
             'QueueUrl'      => static::getQueueUrl(),
             'ReceiptHandle' => $handle,
