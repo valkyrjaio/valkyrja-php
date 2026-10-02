@@ -359,8 +359,8 @@ class Container implements ContainerContract
             return null;
         }
 
-        // The write stays after the build, so a factory that resolves this id reaches
-        // the cycle guard rather than a half-built object.
+        // The map decides which instance every reader gets, because a factory can
+        // register this id while it runs, before this write.
         return $this->instances[$id] ??= $singleton;
     }
 
