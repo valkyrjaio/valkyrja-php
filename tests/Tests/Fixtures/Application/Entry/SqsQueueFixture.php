@@ -27,21 +27,18 @@ final class SqsQueueFixture extends SqsQueue
     /**
      * Point the entry at a client, as though connect() had built it.
      *
-     * @param non-empty-string $queueUrl          The queue jobs are consumed from
-     * @param int<0, 20>       $waitTimeSeconds   The long-poll wait
-     * @param int<0, max>      $visibilityTimeout The seconds a delivery stays hidden
+     * @param non-empty-string $queueUrl        The queue jobs are consumed from
+     * @param int<0, 20>       $waitTimeSeconds The long-poll wait
      */
     public static function inject(
         SqsClient $sqs,
         string $queueUrl,
         int $waitTimeSeconds = 2,
-        int $visibilityTimeout = 45,
     ): void {
         self::$injected            = $sqs;
         self::$sqs                 = $sqs;
         self::$queueUrl            = $queueUrl;
         self::$waitTimeSeconds     = $waitTimeSeconds;
-        self::$visibilityTimeout   = $visibilityTimeout;
     }
 
     /**
@@ -54,7 +51,6 @@ final class SqsQueueFixture extends SqsQueue
         self::$current             = null;
         self::$queueUrl            = null;
         self::$waitTimeSeconds     = 1;
-        self::$visibilityTimeout   = 30;
     }
 
     /**
