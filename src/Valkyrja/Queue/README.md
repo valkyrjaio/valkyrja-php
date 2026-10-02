@@ -73,8 +73,11 @@ that broker redelivers on its own schedule.
 Warning: the count such a broker reports has to reach the ceiling, or nothing
 dead-letters. A classic AMQP queue reports only that a delivery is a
 redelivery, not which one, so `AmqpQueue` cannot count past the second attempt.
-A quorum queue reports every attempt, so use one when the ceiling has to hold.
-Set the vhost's `default_queue_type` to `quorum` to get it. The framework
+Pub/Sub reports its count only on a subscription that carries a dead-letter
+policy, and without one `PubSubQueue` never advances the attempt at all.
+
+A quorum queue reports every attempt, so use one when the AMQP ceiling has to
+hold. Set the vhost's `default_queue_type` to `quorum` to get it. The framework
 declares the queue with no `x-queue-type`, so a queue the operator declared as
 quorum answers `PRECONDITION_FAILED` on the next declare and the worker cannot
 start; the vhost default carries no such argument and so cannot collide. The
