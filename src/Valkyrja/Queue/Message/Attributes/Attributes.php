@@ -33,7 +33,7 @@ class Attributes implements AttributesContract
     protected array $attributes = [];
 
     /**
-     * @param array<non-empty-string, string[]> $attributes The attributes
+     * @param array<non-empty-string|int, string[]> $attributes The attributes
      */
     public function __construct(array $attributes = [])
     {

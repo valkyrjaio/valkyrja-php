@@ -200,7 +200,7 @@ class Payload implements PayloadContract
     /**
      * Validate params.
      *
-     * @param array<non-empty-string|int, mixed> $params The params to validate
+     * @param array<array-key, mixed> $params The params to validate
      *
      * @psalm-assert array<array-key, scalar|PayloadContract|null> $params
      *
