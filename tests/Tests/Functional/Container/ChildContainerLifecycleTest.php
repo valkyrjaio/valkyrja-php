@@ -19,8 +19,6 @@ use Valkyrja\Tests\Fixtures\Container\ServiceFixture;
 use Valkyrja\Tests\Fixtures\Container\SingletonFixture;
 use Valkyrja\Tests\Functional\Abstract\TestCase;
 
-use function array_keys;
-
 /**
  * Test the container lifecycle a worker runs: one frozen parent, one snapshot, a child per request.
  */
@@ -86,7 +84,7 @@ final class ChildContainerLifecycleTest extends TestCase
 
         self::assertSame($registrations->aliases, $current->aliases);
         self::assertSame($registrations->singletons, $current->singletons);
-        self::assertSame(array_keys($registrations->services), array_keys($current->services));
-        self::assertSame(array_keys($registrations->callbacks), array_keys($current->callbacks));
+        self::assertSame($registrations->services, $current->services);
+        self::assertSame($registrations->callbacks, $current->callbacks);
     }
 }
