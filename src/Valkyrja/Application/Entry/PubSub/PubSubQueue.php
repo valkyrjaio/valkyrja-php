@@ -27,6 +27,7 @@ use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
 class PubSubQueue extends PullQueue
@@ -87,9 +88,15 @@ class PubSubQueue extends PullQueue
             return null;
         }
 
+        $job = static::decode($message);
+
+        if ($job === null) {
+            return null;
+        }
+
         static::$current = $message;
 
-        return new JobFactory()->fromJson($message->data());
+        return $job;
     }
 
     /**
@@ -129,6 +136,25 @@ class PubSubQueue extends PullQueue
         // the dead-letter topic on the delivery-attempt count, so the framework
         // acknowledging it is what stops the chain.
         static::getConnection()->acknowledge($message);
+    }
+
+    /**
+     * Read the envelope, and acknowledge a body the factory cannot read.
+     *
+     * An unreadable body never reaches the handler, so nothing settles it. The
+     * subscription would redeliver the same message on every acknowledgement
+     * deadline, and nothing ends that. An acknowledgement retires it, the same
+     * answer a dead-lettered job takes on this processor.
+     */
+    protected static function decode(Message $message): JobContract|null
+    {
+        try {
+            return new JobFactory()->fromJson($message->data());
+        } catch (JsonException|QueueMessageInvalidEnvelopeException) {
+            static::getConnection()->acknowledge($message);
+
+            return null;
+        }
     }
 
     /**
