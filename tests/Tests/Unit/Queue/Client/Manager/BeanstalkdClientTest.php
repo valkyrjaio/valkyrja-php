@@ -79,10 +79,19 @@ final class BeanstalkdClientTest extends TestCase
         self::assertSame(5, $this->pheanstalk->getCalls('put')[0][2]);
     }
 
-    public function testASubSecondDelayRoundsDownToZero(): void
+    public function testASubSecondDelayRoundsUpToOneSecond(): void
     {
-        // beanstalkd has no finer grain than a second
+        // beanstalkd has no finer grain than a second. Rounding down gives a job
+        // that asked for a hold no hold at all, and it makes a publish disagree
+        // with the release that a retry sends.
         $this->client()->push(new Job(name: self::NAME, delayMs: 999));
+
+        self::assertSame(1, $this->pheanstalk->getCalls('put')[0][2]);
+    }
+
+    public function testNoDelayStaysImmediate(): void
+    {
+        $this->client()->push(new Job(name: self::NAME, delayMs: 0));
 
         self::assertSame(0, $this->pheanstalk->getCalls('put')[0][2]);
     }
