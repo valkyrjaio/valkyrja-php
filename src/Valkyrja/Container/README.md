@@ -116,7 +116,8 @@ $same   = $container->getSingleton(LoggerContract::class); // Later calls return
 ```
 
 Warning: a build keeps the first instance the map holds for an id. A
-factory that registers the id it is building decides what every reader gets.
+factory that caches an instance for the id it is building decides what every
+reader gets.
 The object that factory returns is discarded then.
 
 Warning: that rule holds inside one container. A `ChildContainer` hands a
@@ -1007,8 +1008,8 @@ to it, so the chain has no end. Four checks reject one:
   keep acyclic, so it carries no such check.
 - A child resolving a parent-declared alias checks the target it returns to. The
   check sits on the container that resolves, so a parent which is itself a child
-  throws from its own. A factory that cached an instance for the target while it
-  ran has broken the chain, so the lookup answers with that instance.
+  throws from its own. An instance cached for the target while the lookup ran
+  has broken the chain, so the lookup answers with that instance.
 
 The exception extends the SPL `InvalidArgumentException`. The first two checks
 run at registration, and a container installs no map before its walk ends, so a

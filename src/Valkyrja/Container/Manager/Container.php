@@ -359,8 +359,8 @@ class Container implements ContainerContract
             return null;
         }
 
-        // The map decides which instance every reader gets, because a factory can
-        // register this id while it runs, before this write.
+        // The map decides which instance every reader gets, because a factory can cache
+        // an instance for this id while it runs, before this write.
         return $this->instances[$id] ??= $singleton;
     }
 
