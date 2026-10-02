@@ -115,10 +115,9 @@ $logger = $container->getSingleton(LoggerContract::class); // The first call bui
 $same   = $container->getSingleton(LoggerContract::class); // Later calls return the cached instance.
 ```
 
-Warning: a build keeps the first instance the map holds for an id. A
-factory that caches an instance for the id it is building decides what every
-reader gets.
-The object that factory returns is discarded then.
+Warning: a build keeps the first instance the map holds for an id. A factory
+that caches an instance for the id it is building decides what every reader
+gets. The object that factory returns is discarded then.
 
 Warning: that rule holds inside one container. A `ChildContainer` hands a
 parent-owned factory to the parent, so the registration lands in the parent and

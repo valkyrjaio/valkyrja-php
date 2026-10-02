@@ -190,9 +190,6 @@ class NativeChildContainer extends Container
     /**
      * Walk the parent's chain of aliases, and return the last hop it reaches.
      *
-     * The walk stops at a hop the parent's own resolution would stop at, or at the end of
-     * the chain.
-     *
      * @param class-string $id The alias
      *
      * @return class-string|null
@@ -254,8 +251,8 @@ class NativeChildContainer extends Container
         // A chain that closes across two walks returns here rather than to one walk. An
         // instance cached for the target has broken the chain, so read that first.
         if (isset($this->targetsInFlight[$target])) {
-            // The factory receives the child, so the child's map is where a registration
-            // made during this resolution lands.
+            // This class runs the parent's callable itself, so the child's map is where a
+            // write made during this resolution lands.
             $registered = $this->instances[$target] ?? null;
 
             if ($registered !== null) {
