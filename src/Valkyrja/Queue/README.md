@@ -68,12 +68,18 @@ broker answers it directly from `settle`, and never calls
 Warning: the count such a broker reports has to reach the ceiling, or nothing
 dead-letters. A classic AMQP queue reports only that a delivery is a
 redelivery, not which one, so `AmqpQueue` cannot count past the second attempt.
-Declare it as a quorum queue when the ceiling has to hold, because a quorum queue
-reports every attempt. A dead-letter exchange alone does not end a retry chain: a
-classic queue dead-letters on a nack that does not requeue, on a message TTL, or
-on a length overflow, and a retry answers with a nack that does requeue. A
-`max_attempts` of 2 also holds, because the second attempt is the one a classic
-queue can report.
+A quorum queue reports every attempt, so use one when the ceiling has to hold.
+Set the vhost's `default_queue_type` to `quorum` to get it. The framework
+declares the queue with no `x-queue-type`, so a queue the operator declared as
+quorum answers `PRECONDITION_FAILED` on the next declare and the worker cannot
+start; the vhost default carries no such argument and so cannot collide. The
+same holds for `x-max-priority`, `x-message-ttl`, and `x-dead-letter-exchange`
+set as queue arguments.
+
+A dead-letter exchange alone does not end a retry chain: a classic queue
+dead-letters on a nack that does not requeue, on a message TTL, or on a length
+overflow, and a retry answers with a nack that does requeue. A `max_attempts` of
+2 also holds, because the second attempt is the one a classic queue can report.
 
 ## Clients
 
@@ -105,8 +111,8 @@ so a buffer that nobody drains never runs. It is not durable, and it needs a
 host runtime that can keep working after the response.
 
 `AmqpClient` publishes without a hold. AMQP carries no per-message delay, and
-giving it one needs a delay queue and a dead-letter exchange that the broker owner
-declares rather than the client. A job pushed with `delay_ms` is therefore
+giving it one needs a delay queue and a dead-letter exchange that the broker
+owner declares rather than the client. A job pushed with `delay_ms` is therefore
 consumable as soon as it lands. Every other broker client applies the hold at
 enqueue.
 
@@ -227,12 +233,13 @@ an application config that does not implement its contract.
 | `amqpQueue`    | `'queues.default'` | The queue jobs are published to                        |
 | `amqpExchange` | `''`               | The exchange to publish through; empty for the default |
 
-Warning: the worker declares the queue when it connects, and nothing declares an
-exchange or binds one to it. A producer that starts before any worker publishes to
-a queue the broker does not hold yet, and the broker discards the message while
-`push()` still returns. Call `AmqpClient::declareQueue()` first in that case. A
-non-empty `amqpExchange` with no binding for the queue's name has the same effect,
-so an application that sets it declares and binds the exchange itself.
+Warning: the worker declares the queue when it connects, and nothing declares
+an exchange or binds one to it. A producer that starts before any worker
+publishes to a queue the broker does not hold yet, and the broker discards the
+message while `push()` still returns. Call `AmqpClient::declareQueue()` first in
+that case. A non-empty `amqpExchange` with no binding for the queue's name has
+the same effect, so an application that sets it declares and binds the exchange
+itself.
 
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
