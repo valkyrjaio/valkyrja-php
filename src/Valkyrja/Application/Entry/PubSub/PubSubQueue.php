@@ -30,7 +30,10 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
+use function ceil;
 use function is_int;
+use function max;
+use function min;
 
 class PubSubQueue extends PullQueue
 {
@@ -38,6 +41,9 @@ class PubSubQueue extends PullQueue
      * The cURL error number for a request that ran out its own deadline.
      */
     public const int CURL_OPERATION_TIMED_OUT = 28;
+
+    /** The longest hold Pub/Sub accepts on an acknowledgement deadline, in seconds. */
+    public const int MAX_ACK_DEADLINE = 600;
 
     /** @var int<1, max> The deadline for one pull, in milliseconds */
     protected static int $timeoutMs = 1000;
@@ -129,7 +135,9 @@ class PubSubQueue extends PullQueue
         static::$current = null;
 
         if ($result === JobResult::RETRY) {
-            static::release($message);
+            // The deadline is the one hold Pub/Sub offers, so a retrying job
+            // waits for its ramp rather than burning every attempt at once
+            static::release($message, static::getAckDeadline($job));
 
             return;
         }
@@ -289,8 +297,27 @@ class PubSubQueue extends PullQueue
      * A zero deadline is Pub/Sub's nack: the message becomes available again
      * and its delivery-attempt count goes up.
      */
-    protected static function release(Message $message): void
+    protected static function release(Message $message, int $seconds = 0): void
     {
-        static::getConnection()->modifyAckDeadline($message, 0);
+        static::getConnection()->modifyAckDeadline($message, $seconds);
+    }
+
+    /**
+     * The acknowledgement deadline that holds the next attempt, in whole seconds.
+     *
+     * Pub/Sub takes whole seconds, and the envelope holds milliseconds, so a
+     * sub-second hold rounds up rather than down to no hold at all.
+     *
+     * @return int<0, 600>
+     */
+    protected static function getAckDeadline(JobContract $job): int
+    {
+        $milliseconds = $job->getRetryDelayForAttemptMs();
+
+        if ($milliseconds === 0) {
+            return 0;
+        }
+
+        return max(1, min((int) ceil($milliseconds / 1000), self::MAX_ACK_DEADLINE));
     }
 }
