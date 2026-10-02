@@ -1007,8 +1007,8 @@ to it, so the chain has no end. Four checks reject one:
   keep acyclic, so it carries no such check.
 - A child resolving a parent-declared alias checks the target it returns to. The
   check sits on the container that resolves, so a parent which is itself a child
-  throws from its own. A factory that registered the target while it ran has
-  broken the chain, so the lookup answers with what the factory registered.
+  throws from its own. A factory that cached an instance for the target while it
+  ran has broken the chain, so the lookup answers with that instance.
 
 The exception extends the SPL `InvalidArgumentException`. The first two checks
 run at registration, and a container installs no map before its walk ends, so a

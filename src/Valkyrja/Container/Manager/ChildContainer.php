@@ -160,8 +160,7 @@ class ChildContainer extends Container
     }
 
     /**
-     * Walk the parent's chain of aliases to the first id the parent could answer, or to the
-     * last hop when the chain ends first.
+     * Walk the parent's chain of aliases, and return the last hop it reaches.
      *
      * @param class-string $id The alias
      *
