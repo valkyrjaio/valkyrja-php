@@ -1,6 +1,21 @@
 # Release Notes for 26.x
 
-## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.16.15...26.x)
+## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.17.0...26.x)
+
+## [v26.17.0](https://github.com/valkyrjaio/valkyrja/compare/v26.16.15...v26.17.0) - 2026-10-02
+
+* [Jwt] feat!: Move the signing algorithm onto the firebase adapter config by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1337
+* [Session] feat!: Name the php session config for its adapter by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1336
+* [CliRouting] deprecate!: Remove the unused cli routing config contract by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1335
+* [Log] feat: Configure the psr logger name, path and level by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1338
+* [CliServer] feat: Publish the server config contracts with default implementations by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1334
+* [Auth] feat!: Move the session authenticator settings into their own config contract by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1332
+* [Crypt] feat: Add the sodium adapter config contract by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1331
+* [Config] feat!: Give each log adapter its own logger setting by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1333
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1339
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1340
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1341
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1342
 
 ## [v26.16.15](https://github.com/valkyrjaio/valkyrja/compare/v26.16.14...v26.16.15) - 2026-09-30
 
