@@ -20,7 +20,7 @@ class ContainerCyclicAliasException extends ContainerInvalidArgumentException
     /**
      * @param class-string $alias The id the chain leaves from
      * @param class-string $id    The id it points at, from which the chain returns. The
-     *                            message names the pair instead when it is the alias
+     *                            message names one id instead when the two are the same
      */
     public function __construct(
         string $alias,
