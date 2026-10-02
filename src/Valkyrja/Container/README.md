@@ -1022,7 +1022,7 @@ unchecked. It has one of four outcomes:
   reports that for a parent which is itself a child.
 - It does not end, when a factory or a publish callback runs in a container that
   carries no such check. A plain `Container` carries none. A child gives the
-  lookup to the parent for a target the exception does not cover.
+  lookup to the parent for a target the child does not resolve itself.
   `ChildContainer` also gives the parent a factory the child does not hold.
 - It does not end, when an alias the child declares closes a chain through a
   factory or a publish callback the child runs. No check sits on that path.
