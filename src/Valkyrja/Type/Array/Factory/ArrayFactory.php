@@ -91,6 +91,7 @@ class ArrayFactory
      * @param string $subject The subject array as a string
      *
      * @throws JsonException
+     * @throws ArrayInvalidEncodedArrayException
      *
      * @return array<array-key, mixed>
      */
