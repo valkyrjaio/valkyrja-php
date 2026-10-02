@@ -615,6 +615,19 @@ final class NativeChildContainerTest extends TestCase
         $this->child->setFromData(new ContainerData(aliases: ['second' => 'first']));
     }
 
+    public function testGetAliasedAnswersFromTheParentWhenBothHoldAnInstance(): void
+    {
+        $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
+        $shared = $this->parent->getSingleton(SingletonFixture::class);
+        $this->parent->bindAlias('parentAlias', SingletonFixture::class);
+        $this->child->setSingleton(SingletonFixture::class, $scoped = new SingletonFixture());
+
+        // This class reads the parent's marker, so only the parent's instance keeps the
+        // alias on the parent
+        self::assertSame($shared, $this->child->getAliased('parentAlias'));
+        self::assertNotSame($scoped, $this->child->getAliased('parentAlias'));
+    }
+
     public function testGetAliasedAnswersFromTheParentWhenTheChildHoldsTheTarget(): void
     {
         $this->parent->setSingleton(SingletonFixture::class, $shared = new SingletonFixture());
