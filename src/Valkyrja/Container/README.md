@@ -158,7 +158,7 @@ alias, and when the two are the same id, because such a chain has no end:
 ```php
 $container->bindAlias(NotifierContract::class, SlackNotifier::class);
 
-// Throws: SlackNotifier already reaches NotifierContract.
+// Throws: the chain from NotifierContract returns to SlackNotifier.
 $container->bindAlias(SlackNotifier::class, NotifierContract::class);
 ```
 
@@ -878,7 +878,7 @@ direct child lookup reuses the parent's instance.
 The parent answers the target as it would for any caller, with one exception.
 The child resolves a target the parent would answer for the first time, when the
 child holds that registration too. Letting the parent do it would leave the
-request with one copy for the alias and another for the id. Three cases:
+request with one copy for the alias and another for the target. Three cases:
 
 - **A singleton the parent registered and never built** — the child resolves it
   when the child reports that binding.
