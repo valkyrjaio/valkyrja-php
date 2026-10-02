@@ -997,7 +997,7 @@ type. It extends the SPL `InvalidArgumentException`.
 `RuntimeException`.
 
 **`ContainerCyclicAliasException`** — an alias points at a chain that returns
-to it, so the chain has no end. Four checks reject one:
+to it, so the chain has no end. Four checks look for one:
 
 - `bindAlias()` checks the pair it is asked to store.
 - The constructor and `setFromData()` check the aliases they receive, and the
