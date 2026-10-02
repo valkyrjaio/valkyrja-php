@@ -292,10 +292,14 @@ class PubSubQueue extends PullQueue
     }
 
     /**
-     * Make a delivery redeliverable at once.
+     * Hand a delivery back to the subscription after a hold.
      *
-     * A zero deadline is Pub/Sub's nack: the message becomes available again
-     * and its delivery-attempt count goes up.
+     * Setting the deadline is Pub/Sub's nack: the message becomes available
+     * again once the hold elapses, and its delivery-attempt count goes up. A
+     * retry passes the job's ramp, and a shutdown passes zero so another worker
+     * can take the job at once.
+     *
+     * @param int<0, 600> $seconds The hold before the delivery comes back
      */
     protected static function release(Message $message, int $seconds = 0): void
     {
