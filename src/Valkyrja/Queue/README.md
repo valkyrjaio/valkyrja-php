@@ -58,12 +58,16 @@ hold comes from the job that was dispatched, read before the increment, so the
 ramp is keyed to the attempt that just failed.
 
 A broker that redelivers a job itself owns the retry counter instead. A retry is
-signaled by the consumer — a nack, a shortened visibility timeout, a release —
-and never by publishing the job again. Publishing again would duplicate the
-message, because the original delivery is still unacknowledged. The broker owns
-its own backoff, so the framework's ramp does not apply. The entry of such a
+signaled by the consumer — a nack, a new visibility timeout, a release — and
+never by publishing the job again. Publishing again would duplicate the message,
+because the original delivery is still unacknowledged. The entry of such a
 broker answers it directly from `settle`, and never calls
 `ClientContract::requeue()`.
+
+The entry still supplies the hold, where the broker accepts one. `SqsQueue` sets
+the visibility timeout from the ramp, so the hold is the job's own and not the
+queue's default. `AmqpQueue` passes none, because a nack gives the broker no
+place to put one, so that broker redelivers on its own schedule.
 
 Warning: the count such a broker reports has to reach the ceiling, or nothing
 dead-letters. A classic AMQP queue reports only that a delivery is a
@@ -90,6 +94,7 @@ overflow, and a retry answers with a nack that does requeue. A `max_attempts` of
 | `InMemoryClient` | none   | framework  |
 | `RedisClient`    | Redis  | framework  |
 | `AmqpClient`     | AMQP   | processor  |
+| `SqsClient`      | SQS    | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -128,6 +133,7 @@ gives one request the deferred jobs of the request before it.
 | `PullQueue`     | the poll loop that a processor entry extends          |
 | `RedisQueue`    | a worker that takes jobs from a redis list            |
 | `AmqpQueue`     | a worker that consumes an AMQP queue                  |
+| `SqsQueue`      | a worker that long-polls an SQS queue                 |
 | `PushQueue`     | one job that a broker delivers over HTTP              |
 | `InternalQueue` | each job that `SyncClient` or `DeferredClient` pushes |
 
@@ -241,6 +247,16 @@ that case. A non-empty `amqpExchange` with no binding for the queue's name has
 the same effect, so an application that sets it declares and binds the exchange
 itself.
 
+#### `QueueSqsClientConfigContract`
+
+| Property             | Default                                                      | Description                                                      |
+| :------------------- | :----------------------------------------------------------- | :--------------------------------------------------------------- |
+| `sqsRegion`          | `'us-east-1'`                                                | The AWS region                                                   |
+| `sqsEndpoint`        | `null`                                                       | The endpoint to send to; null for the AWS endpoint of the region |
+| `sqsAccessKeyId`     | `null`                                                       | The access key id; null for the AWS credential chain             |
+| `sqsAccessKeySecret` | `null`                                                       | The access key secret; null for the AWS credential chain         |
+| `sqsQueueUrl`        | `'https://sqs.us-east-1.amazonaws.com/000000000000/default'` | The URL of the queue that jobs are sent to                       |
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
@@ -298,3 +314,4 @@ A broker adapter needs its own package, and the framework does not require one:
 | ------- | ------------------------- |
 | Redis   | `predis/predis`           |
 | AMQP    | `php-amqplib/php-amqplib` |
+| SQS     | `async-aws/sqs`           |
