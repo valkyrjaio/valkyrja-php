@@ -46,4 +46,23 @@ final class MicrotimeTest extends TestCase
 
         Microtime::unfreeze();
     }
+
+    public function testGetMillisecondsReadsTheClock(): void
+    {
+        Microtime::freeze(1768564798.25);
+
+        self::assertSame(1768564798250, Microtime::getMilliseconds());
+
+        Microtime::unfreeze();
+    }
+
+    public function testGetMillisecondsFloorsAtZero(): void
+    {
+        // A frozen time before the epoch would otherwise give a negative stamp
+        Microtime::freeze(-1.0);
+
+        self::assertSame(0, Microtime::getMilliseconds());
+
+        Microtime::unfreeze();
+    }
 }
