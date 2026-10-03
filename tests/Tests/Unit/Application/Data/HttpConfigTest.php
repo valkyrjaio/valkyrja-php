@@ -33,6 +33,7 @@ final class HttpConfigTest extends TestCase
         self::assertSame('UTC', $config->timezone);
         self::assertSame('App/Provider/Data', $config->dataPath);
         self::assertSame('App\\Provider\\Data', $config->dataNamespace);
+        self::assertSame('valkyrja', $config->applicationName);
         self::assertCount(1, $config->providers);
         self::assertCount(1, $config->routeNotMatchedMiddleware);
         self::assertCount(2, $config->throwableCaughtMiddleware);
@@ -50,10 +51,12 @@ final class HttpConfigTest extends TestCase
             namespace: 'My',
             debugMode: true,
             environment: 'testing',
+            applicationName: 'my-app',
         );
 
         self::assertSame('My', $config->namespace);
         self::assertTrue($config->debugMode);
         self::assertSame('testing', $config->environment);
+        self::assertSame('my-app', $config->applicationName);
     }
 }
