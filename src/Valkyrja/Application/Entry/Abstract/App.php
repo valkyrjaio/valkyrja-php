@@ -15,6 +15,7 @@ namespace Valkyrja\Application\Entry\Abstract;
 use Valkyrja\Application\Data\Contract\CliConfigContract;
 use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\Application\Data\Contract\HttpConfigContract;
+use Valkyrja\Application\Data\Contract\QueueConfigContract;
 use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Application\Kernel\Valkyrja;
@@ -119,6 +120,10 @@ abstract class App
 
         if ($config instanceof HttpConfigContract) {
             $container->setSingleton(HttpConfigContract::class, $config);
+        }
+
+        if ($config instanceof QueueConfigContract) {
+            $container->setSingleton(QueueConfigContract::class, $config);
         }
 
         $app->publishProviderCallbacks();
