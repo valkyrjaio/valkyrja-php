@@ -8,8 +8,8 @@ This component also carries the entry classes, the config classes, the
 `Directory` path helper, and the built-in component providers. This document
 covers each in turn:
 
-- [Entry Points](#entry-points) — HTTP, CLI, and the persistent worker
-  runtimes
+- [Entry Points](#entry-points) — HTTP, CLI, queue, and the persistent
+  worker runtimes
 - [Configuration](#configuration) — the three config classes, environment
   sourcing, your own config class, and callbacks
 - [The Bootstrap Sequence](#the-bootstrap-sequence) — what `run()` does, step
@@ -34,6 +34,13 @@ Do not instantiate `Valkyrja` directly. Use an entry class:
 
 - `Valkyrja\Application\Entry\Http` — PHP-FPM / CGI web applications
 - `Valkyrja\Application\Entry\Cli` — console applications
+- `Valkyrja\Application\Entry\Queue` — one job, run once (see
+  [Queue Entry Classes](#queue-entry-classes))
+- `Valkyrja\Application\Entry\Abstract\PullQueue` — the poll loop that a
+  processor entry extends, such as
+  `Valkyrja\Application\Entry\Redis\RedisQueue`
+- `Valkyrja\Application\Entry\PushQueue` — a job that a broker pushes over
+  HTTP
 - Worker entry classes — persistent worker runtimes (see
   [Persistent Worker Lifecycle](#persistent-worker-lifecycle))
 
@@ -224,6 +231,43 @@ class AppHttp extends Http
 The same pattern applies to the other bootstrap steps: `getContainer()`
 returns the container to use, `getApplication()` returns the application to
 use, and `getThrowableHandler()` returns the debug-mode throwable handler.
+
+### Queue Entry Classes
+
+A queue has five entry classes, because a job reaches an application in
+several different ways.
+
+`Queue` is single-shot. It builds an application, runs one job, and exits. Use
+it for a one-off dispatch and for a test. A host that pushes repeatedly pays a
+full boot on every push, so use `WorkerQueue` instead.
+
+`PullQueue` is the poll loop that takes jobs from a broker one at a time. It
+extends `Valkyrja\Application\Entry\Abstract\WorkerQueue`, which boots the
+application once and then gives each job a fresh child container. The class is
+abstract, because connecting, receiving, and settling are specific to one
+processor. An entry such as `Valkyrja\Application\Entry\Redis\RedisQueue`
+implements `connect`, `receive`, `disconnect`, and `settle`, and inherits the
+loop.
+
+```php
+// app/bin/queue
+use Valkyrja\Application\Data\QueueConfig;
+use Valkyrja\Application\Entry\Redis\RedisQueue;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+RedisQueue::run(new QueueConfig(
+    dir: __DIR__ . '/..',
+));
+```
+
+`PushQueue` answers a broker that delivers a job over HTTP. It maps the inbound
+request onto a job, runs it, and returns the outcome as the response status.
+
+`InternalQueue` runs each job that a `SyncClient` or a `DeferredClient` pushes.
+The class is abstract. An application extends it and returns its queue config
+from `getConfig()`, so the job runs in a separate queue application, the same
+way that a job from a broker runs.
 
 ## Configuration
 
