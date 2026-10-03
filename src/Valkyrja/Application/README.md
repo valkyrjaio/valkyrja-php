@@ -483,18 +483,19 @@ $app->getVersion();     // string — config->version
 
 The full `ApplicationContract` surface:
 
-| Method                       | Returns                       | Description                                            |
-| ---------------------------- | ----------------------------- | ------------------------------------------------------ |
-| `getContainer()`             | `ContainerContract`           | The container                                          |
-| `publishProviderCallbacks()` | `void`                        | Invoke each config callback — the bootstrap calls this |
-| `getProviders()`             | `ComponentProviderContract[]` | The expanded, flat component provider list             |
-| `getContainerProviders()`    | `ServiceProviderContract[]`   | Every component's service providers, merged            |
-| `getEventProviders()`        | `ListenerProviderContract[]`  | Every component's listener providers, merged           |
-| `getCliProviders()`          | `CliRouteProviderContract[]`  | Every component's CLI route providers, merged          |
-| `getHttpProviders()`         | `HttpRouteProviderContract[]` | Every component's HTTP route providers, merged         |
-| `getDebugMode()`             | `bool`                        | `config->debugMode`                                    |
-| `getEnvironment()`           | `string`                      | `config->environment`                                  |
-| `getVersion()`               | `string`                      | `config->version`                                      |
+| Method                       | Returns                        | Description                                            |
+| ---------------------------- | ------------------------------ | ------------------------------------------------------ |
+| `getContainer()`             | `ContainerContract`            | The container                                          |
+| `publishProviderCallbacks()` | `void`                         | Invoke each config callback — the bootstrap calls this |
+| `getProviders()`             | `ComponentProviderContract[]`  | The expanded, flat component provider list             |
+| `getContainerProviders()`    | `ServiceProviderContract[]`    | Every component's service providers, merged            |
+| `getEventProviders()`        | `ListenerProviderContract[]`   | Every component's listener providers, merged           |
+| `getCliProviders()`          | `CliRouteProviderContract[]`   | Every component's CLI route providers, merged          |
+| `getHttpProviders()`         | `HttpRouteProviderContract[]`  | Every component's HTTP route providers, merged         |
+| `getQueueProviders()`        | `QueueRouteProviderContract[]` | Every component's queue route providers, merged        |
+| `getDebugMode()`             | `bool`                         | `config->debugMode`                                    |
+| `getEnvironment()`           | `string`                       | `config->environment`                                  |
+| `getVersion()`               | `string`                       | `config->version`                                      |
 
 The config is a singleton too. Resolve it under `ConfigContract` for the
 shared properties, or under the entry-specific contract for the full set:
@@ -520,7 +521,7 @@ application object. The application is a framework-level concern.
 
 A component provider is the top-level unit, listed in `config->providers`. It
 implements `Valkyrja\Application\Provider\Contract\ComponentProviderContract`,
-which has five methods:
+which has six methods:
 
 ```text
 config->providers[]
@@ -529,22 +530,25 @@ config->providers[]
         ├── getContainerProviders() → ServiceProviderContract[]
         ├── getEventProviders()     → ListenerProviderContract[]
         ├── getCliProviders()       → CliRouteProviderContract[]
-        └── getHttpProviders()      → HttpRouteProviderContract[]
+        ├── getHttpProviders()      → HttpRouteProviderContract[]
+        └── getQueueProviders()     → QueueRouteProviderContract[]
 ```
 
 Each method receives the `ApplicationContract` and returns instances of the
 matching contract:
 
-| Method                    | Element contract                                                    | Registers             |
-| ------------------------- | ------------------------------------------------------------------- | --------------------- |
-| `getComponentProviders()` | `Valkyrja\Application\Provider\Contract\ComponentProviderContract`  | Dependency components |
-| `getContainerProviders()` | `Valkyrja\Container\Provider\Contract\ServiceProviderContract`      | Container services    |
-| `getEventProviders()`     | `Valkyrja\Event\Provider\Contract\ListenerProviderContract`         | Event listeners       |
-| `getCliProviders()`       | `Valkyrja\Cli\Routing\Provider\Contract\CliRouteProviderContract`   | CLI commands          |
-| `getHttpProviders()`      | `Valkyrja\Http\Routing\Provider\Contract\HttpRouteProviderContract` | HTTP routes           |
+| Method                    | Element contract                                                      | Registers             |
+| ------------------------- | --------------------------------------------------------------------- | --------------------- |
+| `getComponentProviders()` | `Valkyrja\Application\Provider\Contract\ComponentProviderContract`    | Dependency components |
+| `getContainerProviders()` | `Valkyrja\Container\Provider\Contract\ServiceProviderContract`        | Container services    |
+| `getEventProviders()`     | `Valkyrja\Event\Provider\Contract\ListenerProviderContract`           | Event listeners       |
+| `getCliProviders()`       | `Valkyrja\Cli\Routing\Provider\Contract\CliRouteProviderContract`     | CLI commands          |
+| `getHttpProviders()`      | `Valkyrja\Http\Routing\Provider\Contract\HttpRouteProviderContract`   | HTTP routes           |
+| `getQueueProviders()`     | `Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract` | Queue routes          |
 
 **Service providers** map service ids to resolution logic in the container.
-**Route providers** (CLI and HTTP) register commands and routes. **Listener
+**Route providers** (CLI, HTTP, and queue) register commands, routes, and job
+names. **Listener
 providers** register event listeners. Each component's own README documents
 its provider contract. The application collects each kind lazily, on the first
 call to the matching `get*Providers()` method, and caches the result. Nothing
@@ -554,7 +558,7 @@ is first requested.
 ### Writing a Component Provider
 
 A typical application declares one component provider of its own, returns its
-child providers from the five methods, and lists the component provider in the
+child providers from the six methods, and lists the component provider in the
 config after a built-in aggregator:
 
 ```php
@@ -591,6 +595,11 @@ class AppComponentProvider implements ComponentProviderContract
     public function getHttpProviders(ApplicationContract $app): array
     {
         return [new AppHttpRouteProvider()];
+    }
+
+    public function getQueueProviders(ApplicationContract $app): array
+    {
+        return [new AppQueueRouteProvider()];
     }
 }
 ```

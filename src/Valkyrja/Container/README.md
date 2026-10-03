@@ -662,6 +662,11 @@ class AppComponentProvider implements ComponentProviderContract
     {
         return [];
     }
+
+    public function getQueueProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }
 ```
 
