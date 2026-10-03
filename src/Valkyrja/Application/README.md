@@ -491,6 +491,7 @@ The full `ApplicationContract` surface:
 | `getEventProviders()`        | `ListenerProviderContract[]`  | Every component's listener providers, merged           |
 | `getCliProviders()`          | `CliRouteProviderContract[]`  | Every component's CLI route providers, merged          |
 | `getHttpProviders()`         | `HttpRouteProviderContract[]` | Every component's HTTP route providers, merged         |
+| `getGrpcProviders()`         | `GrpcRouteProviderContract[]` | Every component's gRPC route providers, merged         |
 | `getDebugMode()`             | `bool`                        | `config->debugMode`                                    |
 | `getEnvironment()`           | `string`                      | `config->environment`                                  |
 | `getVersion()`               | `string`                      | `config->version`                                      |
@@ -519,7 +520,7 @@ application object. The application is a framework-level concern.
 
 A component provider is the top-level unit, listed in `config->providers`. It
 implements `Valkyrja\Application\Provider\Contract\ComponentProviderContract`,
-which has five methods:
+which has six methods:
 
 ```text
 config->providers[]
@@ -528,7 +529,8 @@ config->providers[]
         ├── getContainerProviders() → ServiceProviderContract[]
         ├── getEventProviders()     → ListenerProviderContract[]
         ├── getCliProviders()       → CliRouteProviderContract[]
-        └── getHttpProviders()      → HttpRouteProviderContract[]
+        ├── getHttpProviders()      → HttpRouteProviderContract[]
+        └── getGrpcProviders()      → GrpcRouteProviderContract[]
 ```
 
 Each method receives the `ApplicationContract` and returns instances of the
@@ -541,19 +543,20 @@ matching contract:
 | `getEventProviders()`     | `Valkyrja\Event\Provider\Contract\ListenerProviderContract`         | Event listeners       |
 | `getCliProviders()`       | `Valkyrja\Cli\Routing\Provider\Contract\CliRouteProviderContract`   | CLI commands          |
 | `getHttpProviders()`      | `Valkyrja\Http\Routing\Provider\Contract\HttpRouteProviderContract` | HTTP routes           |
+| `getGrpcProviders()`      | `Valkyrja\Grpc\Routing\Provider\Contract\GrpcRouteProviderContract` | gRPC routes           |
 
 **Service providers** map service ids to resolution logic in the container.
-**Route providers** (CLI and HTTP) register commands and routes. **Listener
-providers** register event listeners. Each component's own README documents
-its provider contract. The application collects each kind lazily, on the first
-call to the matching `get*Providers()` method, and caches the result. Nothing
-is instantiated at collection time. The framework pays the cost when a service
-is first requested.
+**Route providers** (CLI, HTTP, and gRPC) register commands and routes.
+**Listener providers** register event listeners. Each component's own README
+documents its provider contract. The application collects each kind lazily, on
+the first call to the matching `get*Providers()` method, and caches the
+result. Nothing is instantiated at collection time. The framework pays the
+cost when a service is first requested.
 
 ### Writing a Component Provider
 
 A typical application declares one component provider of its own, returns its
-child providers from the five methods, and lists the component provider in the
+child providers from the six methods, and lists the component provider in the
 config after a built-in aggregator:
 
 ```php
@@ -590,6 +593,11 @@ class AppComponentProvider implements ComponentProviderContract
     public function getHttpProviders(ApplicationContract $app): array
     {
         return [new AppHttpRouteProvider()];
+    }
+
+    public function getGrpcProviders(ApplicationContract $app): array
+    {
+        return [new AppGrpcRouteProvider()];
     }
 }
 ```
@@ -629,7 +637,7 @@ list.
 
 The framework ships four aggregators in `Valkyrja\Application\Provider`. Each
 declares framework components through `getComponentProviders()` and returns
-`[]` from the other four methods.
+`[]` from the other five methods.
 
 | Provider                                  | Composition                                                                                         | Default for  |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------ |
