@@ -291,23 +291,17 @@ public static function bootstrapParentServices(ApplicationContract $app): void
 }
 ```
 
-Anything resolved here lives in the frozen parent and is shared read-only across
-all requests. A child that holds the publish callback, or the singleton binding
-from the data, builds the id fresh in the child's own scope. That is correct,
-and the build costs time on every request.
+Anything resolved here lives in the frozen parent, and every request reads it.
+The parent also publishes a deferred id, and caches a singleton, when it
+answers a lookup a child handed to it. A child that holds the publish callback,
+or the singleton binding from the data, builds the id fresh in the child's own
+scope. That is correct, and the build costs time on every request.
 
-Warning: resolve here any id that a child must reach through the parent while
-the parent would write to answer it. The child refuses instead:
-
-- A direct lookup raises `ContainerUnpublishedParentTargetException` when the
-  parent holds an unrun publish callback for the id.
-- A lookup through an alias that only the parent declares raises
-  `ContainerUnresolvedParentAliasException`. Two parent states raise it: an
-  unrun publish callback for the target, and a singleton binding the parent has
-  not resolved.
-
-A child that can answer the id from its own maps resolves it and never reaches
-the parent. See
+An id the child cannot answer from its own maps goes to the parent, and the
+parent answers it as it would for any caller. A parent-declared alias is the
+exception: the child resolves a target the parent has not resolved, when the
+child holds that registration too. That covers a singleton binding and a
+publisher alike. Resolve here whatever every request should share. See
 [Where an Alias Resolves](Container/README.md#where-an-alias-resolves).
 
 ### Child Container Variants
@@ -318,14 +312,14 @@ Two implementations are available for the per-request child container:
   `ContainerContract`. Portable and works with any parent that implements the
   contract.
 - **`NativeChildContainer`** — accesses the parent's protected fields directly
-  for lower construction overhead. Requires a concrete `Container` parent. It
-  follows the same alias rule, so it raises
-  `ContainerUnresolvedParentAliasException` too. It answers a direct lookup from
-  the parent's maps rather than delegating, so it never raises
-  `ContainerUnpublishedParentTargetException`. The two also differ on the factory
-  receiver: a factory bound on the parent receives the child here, and the parent
-  under `ChildContainer`. A parent-declared alias is the exception, because both
-  hand that call to the parent.
+  for lower construction overhead. Requires a concrete `Container` parent.
+
+The two differ on the factory receiver: a factory bound on the parent receives
+the child under `NativeChildContainer`, and the parent under `ChildContainer`. A
+parent-declared alias is the exception, because both hand that call to the
+parent. The one case they do not is a target the parent would resolve for the
+first time, when the child holds that registration too: a singleton the parent
+never built, or a publisher it has not run.
 
 ## Focus on Configuration
 

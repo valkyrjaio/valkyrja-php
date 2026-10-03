@@ -115,6 +115,16 @@ $logger = $container->getSingleton(LoggerContract::class); // The first call bui
 $same   = $container->getSingleton(LoggerContract::class); // Later calls return the cached instance.
 ```
 
+Warning: a build keeps the first instance the map holds for an id. A factory
+that caches an instance for the id it is building decides what every reader
+gets. The object that factory returns is discarded then.
+
+Warning: that rule holds inside one container. A `ChildContainer` hands a
+parent-owned factory to the parent, so the registration lands in the parent and
+the child caches the object the factory returned
+([Where a Factory Runs](#where-a-factory-runs)). The two containers then hold
+different objects for that id.
+
 ### bindAlias()
 
 `bindAlias(string $alias, string $id): static` maps one service id to another
@@ -137,9 +147,23 @@ $logger = $container->get(LoggerContract::class);
 $same   = $container->get(FileLogger::class);
 ```
 
-`bindAlias()` stores the mapping only. The target id needs its own binding.
-The container checks the target when the alias resolves, not when you bind
-the alias.
+`bindAlias()` stores the mapping only. The target id needs its own binding, and
+the container checks that target when the alias resolves, not when you bind the
+alias.
+
+The alias itself is checked at once. `bindAlias()` throws
+`ContainerCyclicAliasException` when the target already resolves back to the
+alias, and when the two are the same id, because such a chain has no end:
+
+```php
+$container->bindAlias(NotifierContract::class, SlackNotifier::class);
+
+// Throws: the chain from NotifierContract returns to SlackNotifier.
+$container->bindAlias(SlackNotifier::class, NotifierContract::class);
+
+// Throws: SlackNotifier cannot point at itself.
+$container->bindAlias(SlackNotifier::class, SlackNotifier::class);
+```
 
 ### setSingleton()
 
@@ -720,12 +744,23 @@ OpenSwoole, RoadRunner) use to keep request-scoped state out of the parent.
 
 ### The Parent/Child Invariant
 
-The parent container bootstraps once when the worker process starts. The
-parent is then **frozen**. Nothing may write to the parent again. Each
-incoming request receives a fresh child container. The child checks its own
-maps first; when an id is not registered locally, the child falls back to the
-parent read-only. When the request ends, the child is discarded and the
-parent is unchanged.
+The parent container bootstraps once when the worker process starts. The parent
+is then **frozen**: a request writes nothing into it directly. A lookup it
+answers for a child is the one path that still changes it. On that path it
+publishes a deferred id, caches a singleton, and registers whatever a publisher
+it runs binds. That is a shared service resolving once. Each incoming request
+receives a fresh child container built from one snapshot of the parent, so the
+child holds the parent's singleton markers and publish callbacks and answers
+almost everything itself.
+
+The child checks its own maps first, so it publishes a deferred id and caches
+an unbuilt singleton itself. The container that the singleton's factory receives
+depends on the implementation ([Where a Factory Runs](#where-a-factory-runs)).
+An id the child cannot answer at all goes to the parent, and the parent answers
+it as it would for any caller. What the child never does is rebuild something
+the parent already holds, and what it never leaks is its own state: a
+registration made during a request stays in the child, and the child is
+discarded when the request ends.
 
 Deferred services stay available in a child. The child receives the parent's
 publish callbacks through `ContainerData`, so the first lookup of an
@@ -738,21 +773,6 @@ or the singleton binding from the data. An id that the method force-resolves
 before the request loop is cached in the frozen parent once, and every child
 reuses that instance. An id left unresolved is built again in each child that
 requests it.
-
-Warning: the method is about correctness whenever a child must reach an id
-through a parent that would write while answering it. The child refuses instead
-of delegating.
-
-- A direct lookup the child cannot answer raises
-  `ContainerUnpublishedParentTargetException` when the parent holds an unrun
-  publish callback for the id.
-- A lookup through an alias that only the parent declares raises
-  `ContainerUnresolvedParentAliasException`. Two parent states raise it: an
-  unrun publish callback for the target, and a singleton binding the parent has
-  not resolved ([Where an Alias Resolves](#where-an-alias-resolves)).
-
-A parent that answers without writing delegates as before, and so does an id the
-child can answer from its own maps.
 
 ### The Child's Copy of the Data
 
@@ -803,10 +823,11 @@ way, a built singleton caches in the child's own instance map, and a
 `bind()` factory caches nowhere.
 
 Warning: under `ChildContainer`, a factory bound on the parent resolves its
-dependencies from the parent. The factory cannot see a service that exists
-only on the child. A request-scoped `setSingleton()` registers such a
-service. When a service needs a request-scoped dependency, register it
-through a provider's publish callback, which runs with the child.
+dependencies from the parent, and the parent caches any singleton that the
+factory resolves. The factory cannot see a service that exists only on the
+child. A request-scoped `setSingleton()` registers such a service. When a
+service needs a request-scoped dependency, register it through a provider's
+publish callback, which runs with the child.
 `NativeChildContainer` behaves differently on this path
 ([Available Implementations](#available-implementations)).
 
@@ -838,8 +859,8 @@ access also removes the method-call overhead on the fallback path.
 
 An alias resolves in the container that declares it, so **where you declare an
 alias selects the resolution scope.** A child lookup of an alias that only the
-parent declares resolves in the parent. This is the one way to reach the
-parent's copy of a service that the child also binds:
+parent declares resolves in the parent. That is the way to reach what the
+**parent's own binding** answers, for a service the child also binds:
 
 ```php
 // Once, at bootstrap. The child never declares this alias.
@@ -857,39 +878,83 @@ The example binds a service. The three-step strategy above takes precedence over
 an alias. When the parent holds a resolved instance and the child holds none, a
 direct child lookup reuses the parent's instance.
 
-Warning: the parent must already answer the target without caching it. When the
-parent would build and cache the target for the first time, a child container
-throws `ContainerUnresolvedParentAliasException` instead of writing to the
-frozen parent. Resolve or publish that target in `bootstrapParentServices()`.
+The parent answers the target as it would for any caller, with one exception.
+The child resolves a target the parent would answer for the first time, when the
+child holds that registration too. Letting the parent do it would leave the
+request with one copy for the alias and another for the target. Three cases:
 
-Both implementations follow this rule and apply the same guard.
-`ChildContainer` reads the parent through `ContainerContract`, and
-`NativeChildContainer` reads the parent's maps. Both ask the same questions in
-the same order.
+- **A singleton the parent registered and never built** — the child resolves it
+  when the child reports that binding.
+- **A publisher the parent has not run** — the child resolves it when the child
+  reports that callback.
+- **Every other target** — the parent answers the whole lookup, whatever the
+  child carries.
 
-Warning: a **parent-declared** alias hands the call to the parent in both
-implementations, so a parent-bound factory receives the parent. This is the one
-path where `NativeChildContainer` gives the parent for a lookup it could have
-answered itself.
+A worker takes one snapshot after boot, so a request carries every registration.
+Anything the parent has already built or published is reused as it stands.
+
+What the child reports differs by implementation. `ChildContainer` answers from
+the maps its snapshot copied. `NativeChildContainer` copies none, so it answers
+from the parent's maps.
+
+Warning: that exception also decides which binding the alias reaches. Give the
+parent a singleton it never builds. Give the child the marker for that id, from
+its snapshot or from its own `bindSingleton()`, and a factory of its own. The
+alias then reaches the factory of the **child**. A child that holds the marker
+and no factory reaches the parent's factory instead.
+
+Warning: outside that exception, a **parent-declared** alias hands the call to
+the parent in both implementations, so a parent-bound factory receives the
+parent. A `bind()` service is outside it, whether the parent built one or not.
+This is the one path where `NativeChildContainer` gives the parent for a lookup
+it could have answered itself.
+
+Warning: on that path the parent reads none of the child's maps. An instance the
+child holds for the target does not answer the alias. The parent answers from
+its own maps in one of four ways:
+
+- It returns the copy it holds.
+- It runs its own binding.
+- It publishes a provider it holds, and answers with what that publisher
+  registered. Only `ChildContainer` hands that lookup over, because
+  `NativeChildContainer` resolves every unrun publisher in the child.
+- It throws `ContainerInvalidReferenceException`, when it holds no registration
+  for the target.
+
+To reach the child's copy through an alias, declare the alias on the child:
+
+```php
+// Once, at bootstrap.
+$parent->setSingleton(ClockContract::class, $bootClock);
+$parent->bindAlias(TimeSourceContract::class, ClockContract::class);
+
+// Per request.
+$child->setSingleton(ClockContract::class, $requestClock);
+
+$child->get(ClockContract::class);       // $requestClock
+$child->get(TimeSourceContract::class);  // $bootClock, answered by the parent
+
+$child->bindAlias(TimeSourceContract::class, ClockContract::class);
+
+$child->get(TimeSourceContract::class);  // $requestClock
+```
 
 Off that path the receiver follows the implementation, not the alias.
 `NativeChildContainer` invokes a parent-bound factory itself and gives it the
 child. `ChildContainer` hands the same call to the parent and gives it the
-parent.
+parent. The exception path above follows the same rule, and the child's own
+factory runs when the child declares one for that id. A singleton the child
+builds on that path caches in the child. A publisher decides what it registers,
+so a publisher that binds a `bind()` factory caches nothing. A deferred target
+is the one case both give the child, because the publish callback runs in the
+container that publishes it.
 
-The guard asks the parent the same questions the parent's own `get()` asks, in
-the same order:
-
-1. Is a publish callback registered and still unrun? `isDeferred()` reports the
-   registration, and `isPublished()` reports the run.
-2. Is an instance cached?
-3. Is a singleton bound?
-
-Both containers ask the parent these questions the same way. They answer
-`isDeferred()` about **themselves** differently, because they hold different
-state. `ChildContainer` copies the callbacks, so it answers for its own map.
+The two answer `isDeferred()` and `isSingletonBinding()` about **themselves**
+differently, because they hold different state. `ChildContainer` copies the
+callbacks and the markers, so it answers for its own maps.
 `NativeChildContainer` copies nothing, so it answers for the child and the
-parent.
+parent. The exception above reads both, so the two classes take it on different
+state for one id.
 
 ### Using a Child Container
 
@@ -919,7 +984,7 @@ the full lifecycle.
 
 ## Exceptions
 
-The container throws four exceptions, all under
+The container throws three exceptions, all under
 `Valkyrja\Container\Throwable\Exception`.
 
 **`ContainerInvalidReferenceException`** — A resolution method received an id
@@ -931,25 +996,38 @@ type. It extends the SPL `InvalidArgumentException`.
 `publishers()` map entry that is not callable. It extends the SPL
 `RuntimeException`.
 
-**`ContainerUnresolvedParentAliasException`** — A child container lookup of an
-alias that only the parent declares would make the parent build and cache the
-target for the first time
-([Where an Alias Resolves](#where-an-alias-resolves)). It extends the SPL
-`RuntimeException`. The same lookup raises
-`ContainerInvalidReferenceException` for a cyclic chain of parent aliases,
-because such a chain reaches no target.
+**`ContainerCyclicAliasException`** — an alias points at a chain that returns
+to it, so the chain has no end. Four checks look for one:
 
-**`ContainerUnpublishedParentTargetException`** — A `ChildContainer` lookup
-would delegate an id to a parent that still holds an unrun publish callback for
-it, so the parent would publish during the request loop. It covers a service
-and a singleton alike. It extends the SPL `RuntimeException`. Three remedies
-answer it:
+- `bindAlias()` checks the pair it is asked to store.
+- The constructor and `setFromData()` check the aliases they receive, and the
+  chain those aliases reach.
+- `ChildContainer` walking the parent's aliases checks the hops of one walk.
+  `NativeChildContainer` reads the parent's own map, which the first two checks
+  keep acyclic, so it carries no such check.
+- A child resolving a parent-declared alias checks the target it returns to. The
+  check sits on the container that resolves, so a parent which is itself a child
+  throws from its own. An instance cached for the target while the lookup ran
+  has broken the chain, so the lookup answers with that instance.
 
-- Resolve the id in `bootstrapParentServices()`.
-- Call `publish()` there instead, when the publisher binds a service.
-- Give the child the publish callbacks.
+The exception extends the SPL `InvalidArgumentException`. The first two checks
+run at registration, and a container installs no map before its walk ends, so a
+caller that catches the exception keeps the container it had. A container that
+writes an alias after a child reads through it is outside registration. The last
+two checks see one walk and one return, so a chain that reaches neither is
+unchecked. It has one of four outcomes:
 
-All four implement `Valkyrja\Container\Throwable\Contract\ContainerThrowable`,
+- It resolves through the first hop the parent would answer.
+- It ends with a missing reference, when no hop answers. `NativeChildContainer`
+  reports that for a parent which is itself a child.
+- It does not end, when a factory or a publish callback runs in a container that
+  carries no such check. A plain `Container` carries none. A child gives the
+  lookup to the parent for a target the child does not resolve itself.
+  `ChildContainer` also gives the parent a factory the child does not hold.
+- It does not end, when an alias the child declares closes a chain through a
+  factory or a publish callback the child runs. No check sits on that path.
+
+All three implement `Valkyrja\Container\Throwable\Contract\ContainerThrowable`,
 so one catch covers everything the container throws:
 
 ```php
