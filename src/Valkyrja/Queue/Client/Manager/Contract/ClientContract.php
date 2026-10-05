@@ -22,7 +22,7 @@ interface ClientContract
     public function push(JobContract $job): void;
 
     /**
-     * Re-enqueue an already incremented job for a retry.
+     * Settle a retry for an already incremented job.
      *
      * @param JobContract $job     The incremented copy, not the dispatched job
      * @param int<0, max> $delayMs The hold before the job becomes eligible again
@@ -53,8 +53,10 @@ interface ClientContract
     /**
      * Drop the record, ending the unit of work it belongs to.
      *
-     * A long-running worker holds one client for its whole life, so the record
-     * has to end with each job rather than with the process.
+     * The framework calls this at the end of a unit of work, after a drain has
+     * run every recorded job. A long-running worker holds one client for its
+     * whole life, so the record has to end with each job rather than with the
+     * process.
      */
     public function clearPushed(): void;
 }
