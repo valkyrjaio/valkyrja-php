@@ -50,7 +50,7 @@ final class SqsQueueFixture extends SqsQueue
         self::$sqs                 = null;
         self::$current             = null;
         self::$queueUrl            = null;
-        self::$waitTimeSeconds     = 1;
+        self::$waitTimeSeconds     = 20;
     }
 
     /**
