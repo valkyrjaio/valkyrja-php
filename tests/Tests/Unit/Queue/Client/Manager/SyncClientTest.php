@@ -79,22 +79,28 @@ final class SyncClientTest extends TestCase
         self::assertSame(1, InternalQueueFixture::$configCount);
     }
 
-    public function testAWorkerShutdownDoesNotSpinTheInlineDrain(): void
+    public function testAnExhaustedWorkerShutdownEndsAsATerminalOutcome(): void
     {
         // The retry policy answers a shutdown without spending an attempt,
         // because a broker would hand the job to another worker. There is no
-        // other worker in process, so the drain reads the ceiling itself.
-        // Without that read this test never returns.
+        // other worker in process, so the entry ends the chain itself. Without
+        // that cap this test never returns, and without the terminal outcome
+        // the caller of a sync push is told the job succeeded.
         $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_SHUTS_DOWN, maxAttempts: 3);
 
         $client = $this->client();
-        $client->push($job);
 
-        $results = ResultLogMiddlewareFixture::getResults($job->getId());
+        try {
+            $client->push($job);
+
+            self::fail('A sync push must report a job it abandoned.');
+        } catch (QueueClientSyncJobFailedException) {
+            // The throw is the report, and the log below is the record
+        }
 
         self::assertSame(
-            [JobResult::RETRY, JobResult::RETRY, JobResult::RETRY],
-            $results
+            [JobResult::RETRY, JobResult::RETRY, JobResult::DEAD_LETTER],
+            ResultLogMiddlewareFixture::getResults($job->getId())
         );
     }
 
