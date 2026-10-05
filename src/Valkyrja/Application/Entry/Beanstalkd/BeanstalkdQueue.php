@@ -83,7 +83,7 @@ class BeanstalkdQueue extends PullQueue
     /**
      * @inheritDoc
      *
-     * @throws JsonException
+     * @throws QueueServerNotConnectedException
      */
     #[Override]
     public static function receive(): JobContract|null
