@@ -45,6 +45,7 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param non-empty-string|null        $sqsAccessKeyId
      * @param non-empty-string|null        $sqsAccessKeySecret
      * @param non-empty-string             $sqsQueueUrl
+     * @param int<0, 20>                   $sqsWaitTimeSeconds
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -66,6 +67,7 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public string|null $sqsAccessKeyId = 'key',
         public string|null $sqsAccessKeySecret = 'secret',
         public string $sqsQueueUrl = 'http://sqs.test/000000000000/test',
+        public int $sqsWaitTimeSeconds = 20,
     ) {
         parent::__construct(
             applicationName: 'host',
