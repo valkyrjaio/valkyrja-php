@@ -77,6 +77,11 @@ final class SqsIntegrationTest extends TestCase
     protected function tearDown(): void
     {
         if (isset($this->sqs)) {
+            // Reading the queue sees only visible messages, so a delivery this
+            // test left in flight would survive the drain and reappear in the
+            // next one. Disconnecting hands it back first.
+            SqsQueueFixture::disconnect();
+
             $this->purge();
         }
 
@@ -208,6 +213,8 @@ final class SqsIntegrationTest extends TestCase
                 return;
             }
 
+            $deleted = 0;
+
             foreach ($messages as $message) {
                 $handle = $message->getReceiptHandle();
 
@@ -216,7 +223,15 @@ final class SqsIntegrationTest extends TestCase
                         'QueueUrl'      => $this->queueUrl,
                         'ReceiptHandle' => $handle,
                     ]);
+
+                    $deleted++;
                 }
+            }
+
+            // A delivery with no handle cannot be deleted, so reading again
+            // would return it for ever
+            if ($deleted === 0) {
+                return;
             }
         }
     }
