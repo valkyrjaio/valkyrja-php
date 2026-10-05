@@ -392,11 +392,12 @@ changing its visibility rather than by publishing again.
 `BeanstalkdClient` refuses both as well. The job stays reserved, so the entry
 answers a retry by releasing it with a priority and a hold.
 
-`AmqpClient` publishes without a hold. AMQP carries no per-message delay, and
-giving it one needs a delay queue and a dead-letter exchange that the broker
-owner declares rather than the client. A job pushed with `delay_ms` is therefore
-consumable as soon as it lands. Every other broker client applies the hold at
-enqueue.
+`AmqpClient` and `PubSubClient` publish without a hold, because neither broker
+carries a per-message delay. Giving AMQP one needs a delay queue and a
+dead-letter exchange that the broker owner declares rather than the client, and
+Cloud Pub/Sub has no equivalent at all. A job pushed with `delay_ms` is
+therefore consumable as soon as it lands on either. The Redis, SQS, beanstalkd,
+and database clients each apply the hold at enqueue.
 
 `SqsClient` takes whole seconds, so a `delay_ms` below one second becomes no
 delay at all and the job is consumable at once. A retry hold rounds the other
