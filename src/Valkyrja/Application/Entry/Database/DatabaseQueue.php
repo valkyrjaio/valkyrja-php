@@ -29,6 +29,7 @@ use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeExcept
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
 
+use function ctype_digit;
 use function is_int;
 use function is_string;
 use function sleep;
@@ -86,7 +87,7 @@ class DatabaseQueue extends PullQueue
     /**
      * @inheritDoc
      *
-     * @throws JsonException
+     * @throws QueueServerNotConnectedException
      */
     #[Override]
     public static function receive(): JobContract|null
@@ -226,8 +227,6 @@ class DatabaseQueue extends PullQueue
     /**
      * Find the next job whose hold has elapsed and that no worker holds.
      *
-     * @throws JsonException
-     *
      * @return array{0: int, 1: string}|null
      */
     protected static function findEligible(): array|null
@@ -254,11 +253,49 @@ class DatabaseQueue extends PullQueue
         $id       = $row['id'] ?? null;
         $envelope = $row['envelope'] ?? null;
 
+        // A driver hands a BIGINT back as text on pgsql, and on mysql whenever
+        // it emulates prepares, so a numeric string is the expected shape. Any
+        // other string would cast to 0, and `WHERE id = 0` matches every row
+        // with a non-numeric key on mysql, so the delete would take them too.
+        if (is_string($id) && ! ctype_digit($id)) {
+            $id = null;
+        }
+
         if (! is_string($envelope) || (! is_int($id) && ! is_string($id))) {
+            // A select takes nothing off the table, so a row this method cannot
+            // read stays at the queue head and is handed back on every poll.
+            // `decode()` settled the policy for a row the adapter cannot read:
+            // drop it, because nothing else ends the loop.
+            static::discardHead();
+
             return null;
         }
 
         return [(int) $id, $envelope];
+    }
+
+    /**
+     * Drop the row at the queue head, when it cannot be read.
+     *
+     * The key is the value this case cannot trust, so the delete repeats the
+     * select's own predicate and ordering rather than naming an id.
+     */
+    protected static function discardHead(): void
+    {
+        $now   = Microtime::getMilliseconds();
+        $table = static::$table;
+
+        $statement = static::getConnection()->prepare(
+            "DELETE FROM $table"
+            . ' WHERE queue = :queue AND available_at_ms <= :now'
+            . ' AND (reserved_at_ms IS NULL OR reserved_at_ms <= :stale)'
+            . ' ORDER BY priority DESC, id ASC LIMIT 1'
+        );
+
+        $statement->bindValue(new Value('queue', static::$queue));
+        $statement->bindValue(new Value('now', $now));
+        $statement->bindValue(new Value('stale', $now - static::$reservationTimeoutMs));
+        $statement->execute();
     }
 
     /**
