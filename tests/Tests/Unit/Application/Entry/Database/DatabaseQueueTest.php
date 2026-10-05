@@ -258,6 +258,33 @@ final class DatabaseQueueTest extends TestCase
         DatabaseQueueFixture::receive();
     }
 
+    public function testARowWithANonNumericKeyIsTakenOffTheTable(): void
+    {
+        // The cast would make it 0, and on mysql `WHERE id = 0` matches every
+        // row with a non-numeric key, so the delete would take them too
+        $this->manager->rows = [['id' => 'not-a-number', 'envelope' => '{}']];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+
+        $deletes = $this->manager->getStatements('DELETE');
+
+        self::assertCount(1, $deletes);
+        // Deleted by the select's own predicate, because the key is the value
+        // this case cannot trust
+        self::assertStringNotContainsString('id = :id', $deletes[0]->query);
+        self::assertSame([], $this->manager->getStatements('UPDATE'));
+    }
+
+    public function testARowWithNoEnvelopeIsTakenOffTheTable(): void
+    {
+        // A select takes nothing off the table, so leaving it would hand the
+        // same row back on every poll and stall the whole queue
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => null]];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertCount(1, $this->manager->getStatements('DELETE'));
+    }
+
     public function testAnUnreadableRowIsTakenOffTheTable(): void
     {
         // Nothing settles a row the factory cannot read, so the claim would
