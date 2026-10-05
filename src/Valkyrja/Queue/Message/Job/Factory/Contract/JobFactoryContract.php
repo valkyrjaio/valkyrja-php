@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Valkyrja\Queue\Message\Job\Factory\Contract;
 
+use JsonException;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Payload\Contract\PayloadContract;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
@@ -42,6 +43,8 @@ interface JobFactoryContract
      * breaking older producers.
      *
      * @param array<array-key, mixed> $data The decoded envelope
+     *
+     * @throws QueueMessageInvalidEnvelopeException
      */
     public function fromArray(array $data): JobContract;
 
@@ -49,11 +52,16 @@ interface JobFactoryContract
      * Build a job from an encoded envelope.
      *
      * @param string $json The encoded envelope
+     *
+     * @throws JsonException
+     * @throws QueueMessageInvalidEnvelopeException
      */
     public function fromJson(string $json): JobContract;
 
     /**
      * Encode a job as the wire envelope.
+     *
+     * @throws JsonException
      */
     public function toJson(JobContract $job): string;
 }
