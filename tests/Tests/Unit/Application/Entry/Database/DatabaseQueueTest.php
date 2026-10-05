@@ -269,9 +269,10 @@ final class DatabaseQueueTest extends TestCase
         $deletes = $this->manager->getStatements('DELETE');
 
         self::assertCount(1, $deletes);
-        // Deleted by the select's own predicate, because the key is the value
-        // this case cannot trust
-        self::assertStringNotContainsString('id = :id', $deletes[0]->query);
+        // By the key the select returned, uncast, so a concurrent insert at the
+        // queue head cannot be the row that goes
+        self::assertStringContainsString('WHERE id = :id', $deletes[0]->query);
+        self::assertSame('not-a-number', $deletes[0]->bound['id']);
         self::assertSame([], $this->manager->getStatements('UPDATE'));
     }
 
@@ -282,7 +283,43 @@ final class DatabaseQueueTest extends TestCase
         $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => null]];
 
         self::assertNull(DatabaseQueueFixture::receive());
-        self::assertCount(1, $this->manager->getStatements('DELETE'));
+
+        $deletes = $this->manager->getStatements('DELETE');
+
+        self::assertCount(1, $deletes);
+        self::assertSame(self::ROW_ID, $deletes[0]->bound['id']);
+    }
+
+    public function testTheDiscardIsPortableSql(): void
+    {
+        // `ORDER BY` with `LIMIT` on a delete is a MySQL extension that
+        // PostgreSQL rejects at prepare time, and the repo ships PgsqlManager
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => null]];
+
+        DatabaseQueueFixture::receive();
+
+        $query = $this->manager->getStatements('DELETE')[0]->query;
+
+        self::assertStringNotContainsString('ORDER BY', $query);
+        self::assertStringNotContainsString('LIMIT', $query);
+    }
+
+    public function testAnEmptyTableDeletesNothing(): void
+    {
+        // The unreadable-row guard must not fire on an idle poll, or a job
+        // pushed between the select and the delete would go unread
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertSame([], $this->manager->getStatements('DELETE'));
+    }
+
+    public function testARowWithNoKeyDeletesNothing(): void
+    {
+        // Without a key there is nothing to identify the row by, so an
+        // unqualified delete would be the only option and would take a job
+        $this->manager->rows = [['envelope' => '{}']];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertSame([], $this->manager->getStatements('DELETE'));
     }
 
     public function testAnUnreadableRowIsTakenOffTheTable(): void
