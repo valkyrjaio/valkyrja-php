@@ -23,6 +23,7 @@ use Valkyrja\Queue\Client\Manager\Abstract\InternalClient;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
+use Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract;
 
 use function date_default_timezone_get;
 use function date_default_timezone_set;
@@ -101,9 +102,43 @@ abstract class InternalQueue extends WorkerQueue
     }
 
     /**
+     * @inheritDoc
+     *
+     * The outcome is capped before it is settled and recorded. A broker answers
+     * a worker shutdown by handing the job to another worker, so the retry
+     * policy spends no attempt on it and the handler leaves the ceiling alone.
+     * There is no other worker in process, so this entry ends the chain itself
+     * rather than dropping the job with a retry as its last word.
+     */
+    #[Override]
+    public static function handleJob(
+        ContainerContract $container,
+        JobContract $job,
+        ClientContract $client,
+    ): void {
+        $handler = $container->getSingleton(JobHandlerContract::class);
+
+        $result = static::capExhaustedRetry($job, $handler->run($job));
+
+        static::settle($job, $result, $client);
+
+        $handler->resultSettled($job, $result);
+    }
+
+    /**
      * Get the config of the queue application that runs each job.
      */
     abstract public static function getConfig(): QueueConfigContract;
+
+    /**
+     * Turn a retry the job has no attempt left for into the terminal outcome.
+     */
+    protected static function capExhaustedRetry(JobContract $job, JobResult $result): JobResult
+    {
+        return $result === JobResult::RETRY && $job->getAttempts() >= $job->getMaxAttempts()
+            ? JobResult::DEAD_LETTER
+            : $result;
+    }
 
     /**
      * Set the process-wide state that an application reads.
