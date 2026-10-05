@@ -118,9 +118,11 @@ final class DatabaseQueueTest extends TestCase
         self::assertSame(self::FROZEN_MS, $select->bound['now']);
     }
 
-    public function testARowWithNoEnvelopeIsSkipped(): void
+    public function testARowWithNoEnvelopeIsNeverClaimed(): void
     {
-        // A row the adapter cannot read is not one it may claim
+        // A row the adapter cannot read is not one it may claim. It is dropped
+        // rather than skipped, which testARowWithNoEnvelopeIsTakenOffTheTable
+        // pins; this one pins that no worker ever owns it.
         $this->manager->rows = [['id' => self::ROW_ID]];
 
         self::assertNull(DatabaseQueueFixture::receive());

@@ -258,8 +258,10 @@ class DatabaseQueue extends PullQueue
         $id       = $row['id'] ?? null;
         $envelope = $row['envelope'] ?? null;
 
-        // Without a key there is nothing to identify the row by, so it cannot
-        // be dropped either
+        // Without a key there is nothing to name the row by, and an unqualified
+        // delete would take whichever row is at the head instead. The row
+        // therefore stays, and the queue stalls on it. The documented DDL makes
+        // `id` the primary key, so this needs a table that allows it to be null.
         if (! is_int($id) && ! is_string($id)) {
             return null;
         }
@@ -272,33 +274,15 @@ class DatabaseQueue extends PullQueue
             // A select takes nothing off the table, so a row this method cannot
             // read stays at the queue head and is handed back on every poll.
             // `decode()` settled the policy for a row the adapter cannot read:
-            // drop it, because nothing else ends the loop.
-            static::discard($id);
+            // drop it, because nothing else ends the loop. The key the select
+            // returned is exact here, so the delete names it rather than
+            // repeating the predicate and taking whichever row is at the head.
+            static::delete($id);
 
             return null;
         }
 
         return [(int) $id, $envelope];
-    }
-
-    /**
-     * Drop one row by its key, when the entry cannot read it.
-     *
-     * The key the select returned is exact in both cases that reach here, so the
-     * delete names it. Repeating the select's predicate would instead delete
-     * whichever row is at the head when the delete runs, and `ORDER BY` with
-     * `LIMIT` on a delete is a MySQL extension that PostgreSQL rejects.
-     *
-     * @param int|string $id The key the select returned, uncast
-     */
-    protected static function discard(int|string $id): void
-    {
-        $table = static::$table;
-
-        $statement = static::getConnection()->prepare("DELETE FROM $table WHERE id = :id");
-
-        $statement->bindValue(new Value('id', $id));
-        $statement->execute();
     }
 
     /**
@@ -348,7 +332,7 @@ class DatabaseQueue extends PullQueue
     /**
      * Take a row off the table for good.
      */
-    protected static function delete(int $id): void
+    protected static function delete(int|string $id): void
     {
         $table = static::$table;
 
