@@ -36,9 +36,10 @@ use function array_fill_keys;
  */
 final class BeanstalkdFixture implements PheanstalkManagerInterface, PheanstalkPublisherInterface, PheanstalkSubscriberInterface
 {
-    /** @var int<0, max> The reserve count that statsJob reports */
+    /** @var int<0, max> The priority that statsJob reports */
     public int $priority = 1024;
 
+    /** @var int<0, max> The reserve count that statsJob reports */
     public int $reserves = 1;
 
     /** @var array<int, array{0: string, 1: array<int, mixed>}> */
