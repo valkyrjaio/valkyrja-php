@@ -35,6 +35,7 @@ final class SqsWorkerConfigFixture extends QueueConfig implements QueueClientCon
      * @param non-empty-string|null $sqsAccessKeyId     The access key
      * @param non-empty-string|null $sqsAccessKeySecret The access secret
      * @param non-empty-string      $sqsQueueUrl        The queue jobs are published to
+     * @param int<0, 20>            $sqsWaitTimeSeconds The long-poll wait; 0 keeps the suite quick
      */
     public function __construct(
         public string $sqsQueueUrl = 'http://localhost:9325/000000000000/valkyrja-test',
@@ -42,6 +43,7 @@ final class SqsWorkerConfigFixture extends QueueConfig implements QueueClientCon
         public string|null $sqsEndpoint = null,
         public string|null $sqsAccessKeyId = 'key',
         public string|null $sqsAccessKeySecret = 'secret',
+        public int $sqsWaitTimeSeconds = 0,
     ) {
         parent::__construct(
             dir: Directory::$basePath,

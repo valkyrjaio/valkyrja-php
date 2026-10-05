@@ -69,8 +69,9 @@ class SqsQueue extends PullQueue
     {
         $config = $app->getContainer()->getSingleton(QueueSqsClientConfigContract::class);
 
-        static::$queueUrl = $config->sqsQueueUrl;
-        static::$sqs      = static::getSqs($config);
+        static::$queueUrl        = $config->sqsQueueUrl;
+        static::$waitTimeSeconds = $config->sqsWaitTimeSeconds;
+        static::$sqs             = static::getSqs($config);
     }
 
     /**
@@ -87,6 +88,7 @@ class SqsQueue extends PullQueue
             'WaitTimeSeconds'             => static::$waitTimeSeconds,
             // No VisibilityTimeout: the queue's own setting is the operator's,
             // and settle() names the hold a retry needs explicitly
+
             // SQS owns the attempt count, and it only reports it when asked
             'MessageSystemAttributeNames' => [MessageSystemAttributeName::APPROXIMATE_RECEIVE_COUNT],
         ]);

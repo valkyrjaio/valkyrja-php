@@ -38,4 +38,16 @@ interface QueueSqsClientConfigContract
     public string $sqsQueueUrl {
         get;
     }
+
+    /**
+     * The long-poll wait, in seconds; 0 polls without blocking.
+     *
+     * This is also how long a worker can overrun `maxSeconds`, because the loop
+     * reads its bounds only between receives.
+     *
+     * @var int<0, 20>
+     */
+    public int $sqsWaitTimeSeconds {
+        get;
+    }
 }
