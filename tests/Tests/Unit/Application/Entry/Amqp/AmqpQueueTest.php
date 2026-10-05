@@ -55,12 +55,13 @@ final class AmqpQueueTest extends TestCase
         parent::tearDown();
     }
 
-    public function testConnectDeclaresTheQueueAndLimitsUnacknowledgedDeliveries(): void
+    public function testConnectDeclaresTheQueueAndSetsThePrefetch(): void
     {
         AmqpQueueFixture::connect($this->application());
 
         self::assertCount(1, $this->channel->getCalls('queue_declare'));
-        // One in flight at a time, matching the single delivery slot
+        // Set for the day the entry registers a consumer; the broker ignores it
+        // for the basic_get this entry fetches with
         self::assertSame([[0, 1, false]], $this->channel->getCalls('basic_qos'));
     }
 
