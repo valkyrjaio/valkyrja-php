@@ -14,6 +14,8 @@ namespace Valkyrja\Queue\Message\Job\Factory\Contract;
 
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Payload\Contract\PayloadContract;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
 
 interface JobFactoryContract
 {
@@ -26,6 +28,9 @@ interface JobFactoryContract
      *
      * @param non-empty-string                        $name    The routing key
      * @param PayloadContract|array<array-key, mixed> $payload The body
+     *
+     * @throws QueueMessageInvalidEnvelopeException
+     * @throws QueueMessageInvalidPayloadParamException
      */
     public function create(string $name, PayloadContract|array $payload = []): JobContract;
 
