@@ -61,7 +61,7 @@ class Attributes implements AttributesContract
             $attributes[(string) $name] = static::normalizeValues($values);
         }
 
-        /** @var array<non-empty-string, string[]> $attributes */
+        /** @var array<non-empty-string|int, string[]> $attributes */
         return new static($attributes);
     }
 
