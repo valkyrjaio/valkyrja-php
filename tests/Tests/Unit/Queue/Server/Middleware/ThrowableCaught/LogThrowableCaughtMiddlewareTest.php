@@ -19,6 +19,7 @@ use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Queue\Middleware\Handler\ThrowableCaughtHandler;
 use Valkyrja\Queue\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddleware;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerWorkerShutdownException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class LogThrowableCaughtMiddlewareTest extends TestCase
@@ -35,6 +36,31 @@ final class LogThrowableCaughtMiddlewareTest extends TestCase
                 $throwable,
                 "Queue Job Error\nJob: SendWelcomeEmail\nId: job-id\nAttempt: 2/5"
             );
+
+        $middleware = new LogThrowableCaughtMiddleware($logger);
+
+        $result = $middleware->throwableCaught(
+            $job,
+            JobResult::RETRY,
+            $throwable,
+            new ThrowableCaughtHandler(new Container())
+        );
+
+        self::assertSame(JobResult::RETRY, $result);
+    }
+
+    public function testLogsAWorkerShutdownAtNoticeRatherThanAsAnError(): void
+    {
+        // A supervisor cycling a worker is a scheduled event, so a whole batch
+        // of in-flight jobs must not read as a burst of errors
+        $throwable = new QueueServerWorkerShutdownException('going away');
+        $job       = new Job(name: 'SendWelcomeEmail', id: 'job-id', attempts: 2, maxAttempts: 5);
+
+        $logger = $this->createMock(LoggerContract::class);
+        $logger->expects($this->once())
+            ->method('notice')
+            ->with("Queue Job Returned\nJob: SendWelcomeEmail\nId: job-id\nAttempt: 2/5");
+        $logger->expects($this->never())->method('throwable');
 
         $middleware = new LogThrowableCaughtMiddleware($logger);
 

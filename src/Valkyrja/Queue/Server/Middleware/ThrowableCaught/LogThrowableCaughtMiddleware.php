@@ -19,6 +19,7 @@ use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 use Valkyrja\Queue\Middleware\Handler\Contract\ThrowableCaughtHandlerContract;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerWorkerShutdownException;
 
 class LogThrowableCaughtMiddleware implements ThrowableCaughtMiddlewareContract
 {
@@ -41,6 +42,15 @@ class LogThrowableCaughtMiddleware implements ThrowableCaughtMiddlewareContract
         $id       = $job->getId();
         $attempts = $job->getAttempts();
         $max      = $job->getMaxAttempts();
+
+        // A shutdown did not complete the work, so the job is not at fault and
+        // the retry costs it no attempt. Logging a routine supervisor cycle at
+        // throwable severity would page an operator for a scheduled event.
+        if ($throwable instanceof QueueServerWorkerShutdownException) {
+            $this->logger->notice("Queue Job Returned\nJob: $name\nId: $id\nAttempt: $attempts/$max");
+
+            return $handler->throwableCaught($job, $result, $throwable);
+        }
 
         $this->logger->throwable($throwable, "Queue Job Error\nJob: $name\nId: $id\nAttempt: $attempts/$max");
 
