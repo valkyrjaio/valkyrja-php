@@ -250,23 +250,30 @@ class DatabaseQueue extends PullQueue
         // an empty queue is the normal case here rather than a failure
         $row = $statement->fetchAll()[0] ?? [];
 
+        // An idle queue is the normal case, and it is not an unreadable row
+        if ($row === []) {
+            return null;
+        }
+
         $id       = $row['id'] ?? null;
         $envelope = $row['envelope'] ?? null;
 
-        // A driver hands a BIGINT back as text on pgsql, and on mysql whenever
-        // it emulates prepares, so a numeric string is the expected shape. Any
-        // other string would cast to 0, and `WHERE id = 0` matches every row
-        // with a non-numeric key on mysql, so the delete would take them too.
-        if (is_string($id) && ! ctype_digit($id)) {
-            $id = null;
+        // Without a key there is nothing to identify the row by, so it cannot
+        // be dropped either
+        if (! is_int($id) && ! is_string($id)) {
+            return null;
         }
 
-        if (! is_string($envelope) || (! is_int($id) && ! is_string($id))) {
+        // A driver hands a BIGINT back as text on pgsql, and on mysql whenever
+        // it emulates prepares, so a numeric string is the expected shape. Any
+        // other string would cast to 0, and on mysql `WHERE id = 0` matches
+        // every row with a non-numeric key, so the delete would take them too.
+        if (! is_string($envelope) || (is_string($id) && ! ctype_digit($id))) {
             // A select takes nothing off the table, so a row this method cannot
             // read stays at the queue head and is handed back on every poll.
             // `decode()` settled the policy for a row the adapter cannot read:
             // drop it, because nothing else ends the loop.
-            static::discardHead();
+            static::discard($id);
 
             return null;
         }
@@ -275,26 +282,22 @@ class DatabaseQueue extends PullQueue
     }
 
     /**
-     * Drop the row at the queue head, when it cannot be read.
+     * Drop one row by its key, when the entry cannot read it.
      *
-     * The key is the value this case cannot trust, so the delete repeats the
-     * select's own predicate and ordering rather than naming an id.
+     * The key the select returned is exact in both cases that reach here, so the
+     * delete names it. Repeating the select's predicate would instead delete
+     * whichever row is at the head when the delete runs, and `ORDER BY` with
+     * `LIMIT` on a delete is a MySQL extension that PostgreSQL rejects.
+     *
+     * @param int|string $id The key the select returned, uncast
      */
-    protected static function discardHead(): void
+    protected static function discard(int|string $id): void
     {
-        $now   = Microtime::getMilliseconds();
         $table = static::$table;
 
-        $statement = static::getConnection()->prepare(
-            "DELETE FROM $table"
-            . ' WHERE queue = :queue AND available_at_ms <= :now'
-            . ' AND (reserved_at_ms IS NULL OR reserved_at_ms <= :stale)'
-            . ' ORDER BY priority DESC, id ASC LIMIT 1'
-        );
+        $statement = static::getConnection()->prepare("DELETE FROM $table WHERE id = :id");
 
-        $statement->bindValue(new Value('queue', static::$queue));
-        $statement->bindValue(new Value('now', $now));
-        $statement->bindValue(new Value('stale', $now - static::$reservationTimeoutMs));
+        $statement->bindValue(new Value('id', $id));
         $statement->execute();
     }
 
