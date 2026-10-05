@@ -145,11 +145,12 @@ from the terminate stage of its host. Nothing in the framework calls `drain()`,
 so a buffer that nobody drains never runs. It is not durable, and it needs a
 host runtime that can keep working after the response.
 
-`AmqpClient` publishes without a hold. AMQP carries no per-message delay, and
-giving it one needs a delay queue and a dead-letter exchange that the broker
-owner declares rather than the client. A job pushed with `delay_ms` is therefore
-consumable as soon as it lands. Every other broker client applies the hold at
-enqueue.
+`AmqpClient` and `PubSubClient` publish without a hold, because neither broker
+carries a per-message delay. Giving AMQP one needs a delay queue and a
+dead-letter exchange that the broker owner declares rather than the client, and
+Cloud Pub/Sub has no equivalent at all. A job pushed with `delay_ms` is
+therefore consumable as soon as it lands on either. The Redis, SQS, beanstalkd,
+and database clients each apply the hold at enqueue.
 
 `AmqpClient` carries the job's priority onto the message, and a classic queue
 orders by it only when the broker gave the queue a priority bound. The framework
