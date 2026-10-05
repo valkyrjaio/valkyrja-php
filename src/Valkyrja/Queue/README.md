@@ -138,6 +138,16 @@ owner declares rather than the client. A job pushed with `delay_ms` is therefore
 consumable as soon as it lands. Every other broker client applies the hold at
 enqueue.
 
+`AmqpClient` carries the job's priority onto the message, and a classic queue
+orders by it only when the broker gave the queue a priority bound. The framework
+declares no bound, so a default setup delivers in publish order and carries the
+priority without effect.
+
+Warning: RabbitMQ carries no redelivery backoff, and `AmqpQueue` answers a retry
+with a nack that requeues at once. A job on that broker retries with no hold at
+all, as fast as the worker can run it, and `retry_delay_ms` and
+`retry_delay_multiply_by_attempt` do nothing for this adapter.
+
 Warning: a client scopes `getPushed` to one request, one command, or one job. A
 client that keeps a process-global record leaks in a long-running server, and it
 gives one request the deferred jobs of the request before it.
