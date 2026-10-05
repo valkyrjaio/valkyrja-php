@@ -23,6 +23,7 @@ use Valkyrja\Queue\Message\Payload\Contract\PayloadContract;
 use Valkyrja\Queue\Message\Payload\Payload;
 use Valkyrja\Queue\Message\Throwable\Exception\Abstract\QueueMessageInvalidArgumentException;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
 use Valkyrja\Type\Array\Factory\ArrayFactory;
 use Valkyrja\Type\Array\Throwable\Exception\ArrayInvalidEncodedArrayException;
 
@@ -58,6 +59,9 @@ class JobFactory implements JobFactoryContract
 
     /**
      * @inheritDoc
+     *
+     * @throws QueueMessageInvalidEnvelopeException
+     * @throws QueueMessageInvalidPayloadParamException
      */
     #[Override]
     public function create(string $name, PayloadContract|array $payload = []): JobContract
