@@ -20,6 +20,7 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Queue\Message\Payload\Payload;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
@@ -357,6 +358,24 @@ final class JobFactoryTest extends TestCase
         $this->expectException(QueueMessageInvalidEnvelopeException::class);
 
         $this->factory->fromArray(['name' => 'SendWelcomeEmail', 'attributes' => ['a' => [null]]]);
+    }
+
+    public function testFromArrayRejectsANonScalarPayloadParam(): void
+    {
+        // The payload read sits inside the same guard as the attributes read,
+        // so a param it cannot accept reads as a bad envelope too
+        $this->expectException(QueueMessageInvalidEnvelopeException::class);
+
+        $this->factory->fromArray(['name' => 'SendWelcomeEmail', 'payload' => ['a' => new stdClass()]]);
+    }
+
+    public function testCreateRejectsANonScalarPayloadParam(): void
+    {
+        // create() is producer-facing, so the payload throwable reaches the
+        // caller as itself rather than as an envelope failure
+        $this->expectException(QueueMessageInvalidPayloadParamException::class);
+
+        $this->factory->create('SendWelcomeEmail', ['a' => new stdClass()]);
     }
 
     public function testFromArrayRejectsAnEmptyAttributeName(): void
