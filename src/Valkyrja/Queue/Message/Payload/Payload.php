@@ -198,8 +198,12 @@ class Payload implements PayloadContract
 
         $new->params = $params;
         // The flag describes the params, so replacing them recomputes it rather
-        // than carrying the old node's shape onto the new one
-        $new->isList = $params !== [] && array_is_list($params);
+        // than carrying the old node's shape onto the new one. Emptying a node
+        // keeps the shape it had, because an empty list and an empty map encode
+        // differently and emptying a node does not reshape it.
+        $new->isList = $params === []
+            ? $this->isList
+            : array_is_list($params);
 
         return $new;
     }
@@ -219,7 +223,9 @@ class Payload implements PayloadContract
             $new->params[$name] = $param;
         }
 
-        $new->isList = $new->params !== [] && array_is_list($new->params);
+        $new->isList = $new->params === []
+            ? $this->isList
+            : array_is_list($new->params);
 
         return $new;
     }

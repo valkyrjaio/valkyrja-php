@@ -153,4 +153,37 @@ final class PayloadTest extends TestCase
 
         self::assertSame($nested, $payload->get('user'));
     }
+
+    public function testFromJsonValueReadsAMapFromAPhpArray(): void
+    {
+        // `fromJsonValue()` admits a map, so the list half of the flag is not
+        // the only side that can be reached
+        $payload = Payload::fromJsonValue(['a' => 1]);
+
+        self::assertFalse($payload->isList());
+        self::assertSame(['a' => 1], $payload->asArray());
+    }
+
+    public function testWithRecomputesTheListFlagInBothDirections(): void
+    {
+        $map  = new Payload(['a' => 1]);
+        $list = new Payload([1, 2], isList: true);
+
+        self::assertTrue($map->with([1, 2])->isList());
+        self::assertFalse($list->with(['a' => 1])->isList());
+    }
+
+    public function testWithKeepsTheShapeOfAnEmptiedNode(): void
+    {
+        // An empty list and an empty map encode differently, so emptying a
+        // node cannot reshape it
+        self::assertTrue(new Payload([1, 2], isList: true)->with([])->isList());
+        self::assertFalse(new Payload(['a' => 1])->with([])->isList());
+    }
+
+    public function testWithAddedKeepsTheShapeOfAnEmptiedNode(): void
+    {
+        self::assertTrue(new Payload([], isList: true)->withAdded([])->isList());
+        self::assertFalse(new Payload()->withAdded([])->isList());
+    }
 }
