@@ -34,8 +34,9 @@ interface ClientContract
      *
      * The framework calls this with the job as dispatched, and this derives the
      * hold from that job. The ramp applies only where the job sets it. A client
-     * that owns redelivery increments the attempt count. A client whose
-     * processor counts the attempt hands that processor the retry signal.
+     * that owns redelivery increments the attempt count and stamps the
+     * modification time. A client whose processor counts the attempt hands that
+     * processor the retry signal, and authors neither field.
      *
      * @param JobContract $job The job as dispatched, before any increment
      */
