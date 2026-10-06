@@ -19,7 +19,6 @@ use stdClass;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
-use Valkyrja\Queue\Message\Payload\Contract\PayloadContract;
 use Valkyrja\Queue\Message\Payload\Payload;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
@@ -385,39 +384,62 @@ final class JobFactoryTest extends TestCase
         self::assertSame([], $job->getPayload()->asArray());
     }
 
+    public function testReplacingAMapNodeWithAListEncodesAsAnArray(): void
+    {
+        // The flag describes the params, so replacing them recomputes it, and
+        // the encoded node is what a consumer in another language reads
+        $node = Payload::fromJsonValue(json_decode('{"a":1}', false));
+
+        $job = new Job(name: self::NAME, payload: new Payload(['items' => $node->with([1, 2])]));
+
+        self::assertStringContainsString('"payload":{"items":[1,2]}', $this->factory->toJson($job));
+    }
+
     public function testReplacingAListNodeWithAMapEncodesAsAnObject(): void
     {
-        // The flag describes the params, so replacing them has to recompute it
-        $payload = Payload::fromJsonValue(json_decode('{"items":[1,2]}', false));
+        $node = Payload::fromJsonValue(json_decode('[1,2]', false));
 
-        $items = $payload->get('items');
+        $job = new Job(name: self::NAME, payload: new Payload(['items' => $node->with(['a' => 1])]));
 
-        self::assertInstanceOf(PayloadContract::class, $items);
-        self::assertTrue($items->isList());
-
-        $replaced = $items->with(['a' => 1]);
-
-        self::assertFalse($replaced->isList());
+        self::assertStringContainsString('"payload":{"items":{"a":1}}', $this->factory->toJson($job));
     }
 
-    public function testAddingToAListNodeKeepsItAList(): void
+    public function testEmptyingAListNodeKeepsItAnArray(): void
     {
-        $payload = Payload::fromJsonValue(json_decode('{"items":[1]}', false));
+        // Emptying a node does not reshape it, and an empty list and an empty
+        // map are different envelopes to a consumer in another language
+        $node = Payload::fromJsonValue(json_decode('[1,2]', false));
 
-        $items = $payload->get('items');
+        $job = new Job(name: self::NAME, payload: new Payload(['ids' => $node->with([])]));
 
-        self::assertInstanceOf(PayloadContract::class, $items);
-        self::assertTrue($items->withAdded([1 => 2])->isList());
+        self::assertStringContainsString('"payload":{"ids":[]}', $this->factory->toJson($job));
     }
 
-    public function testFromJsonValueReadsAMapFromAPhpArray(): void
+    public function testEmptyingAMapNodeKeepsItAnObject(): void
     {
-        // `fromArray()` admits a map, so the list half of the flag is not the
-        // only side that can be reached
-        $payload = Payload::fromJsonValue(['a' => 1]);
+        $node = Payload::fromJsonValue(json_decode('{"a":1}', false));
 
-        self::assertFalse($payload->isList());
-        self::assertSame(['a' => 1], $payload->asArray());
+        $job = new Job(name: self::NAME, payload: new Payload(['meta' => $node->with([])]));
+
+        self::assertStringContainsString('"payload":{"meta":{}}', $this->factory->toJson($job));
+    }
+
+    public function testAddingNothingToAnEmptyListNodeKeepsItAnArray(): void
+    {
+        $node = Payload::fromJsonValue(json_decode('[]', false));
+
+        $job = new Job(name: self::NAME, payload: new Payload(['ids' => $node->withAdded([])]));
+
+        self::assertStringContainsString('"payload":{"ids":[]}', $this->factory->toJson($job));
+    }
+
+    public function testAnEnvelopeWhosePayloadIsAnArrayOfObjectsIsReadable(): void
+    {
+        // The decode keeps a JSON object apart from a JSON array, so the
+        // elements of a top-level array arrive as objects rather than arrays
+        $job = $this->factory->fromJson('{"name":"X","payload":[{"id":1}]}');
+
+        self::assertSame([0 => ['id' => 1]], $job->getPayload()->asArray());
     }
 
     public function testFromArrayAcceptsAnAlreadyBuiltPayload(): void
