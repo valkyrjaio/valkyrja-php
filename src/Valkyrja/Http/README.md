@@ -60,6 +60,7 @@ Every constructor argument, with its default and what it does:
 | `debugMode`                | `false`                                    | Enables the Whoops handler and fresh route collection (see [debug mode](#the-route-collection-and-debug-mode))                     |
 | `timezone`                 | `'UTC'`                                    | PHP's default timezone, set at boot                                                                                                |
 | `key`                      | `'some_secret_app_key'`                    | The application secret — always override this                                                                                      |
+| `applicationName`          | `'valkyrja'`                               | The application's name, stamped into the provenance of a queued job                                                                |
 | `dataPath`                 | `'App/Provider/Data'`                      | Names the location of generated data classes; the framework does not read this property                                            |
 | `dataNamespace`            | `'App\\Provider\\Data'`                    | Names the namespace of generated data classes; the framework does not read this property                                           |
 | `providers`                | `[new HttpApplicationComponentProvider()]` | The `ComponentProviderContract` instances to boot                                                                                  |
