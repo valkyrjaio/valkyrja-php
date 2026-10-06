@@ -321,6 +321,19 @@ final class PubSubQueueTest extends TestCase
         self::assertCount(1, $this->subscription->acknowledged);
     }
 
+    public function testADeliveryWithNoBodyIsAcknowledged(): void
+    {
+        // Pub/Sub accepts a message with attributes and no data, and the factory
+        // takes a string under strict types, so this would be a TypeError the
+        // decode guard does not hold
+        $this->subscription->next = [
+            new Message(['messageId' => 'm-1'], ['ackId' => 'ack-id-1']),
+        ];
+
+        self::assertNull(PubSubQueueFixture::receive());
+        self::assertCount(1, $this->subscription->acknowledged);
+    }
+
     public function testAnEnvelopeThatCarriesNoObjectIsAcknowledged(): void
     {
         $this->subscription->next = [

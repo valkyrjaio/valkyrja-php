@@ -32,6 +32,7 @@ use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 
 use function ceil;
 use function is_int;
+use function is_string;
 use function max;
 use function min;
 
@@ -182,8 +183,28 @@ class PubSubQueue extends PullQueue
      */
     protected static function decode(Message $message): JobContract|null
     {
+        /**
+         * Pub/Sub accepts a message that carries attributes and no data at all,
+         * and `fromJson()` takes a string under strict types, so a body-less
+         * delivery would raise a TypeError that the catch below does not hold.
+         * The library types `data()` as `@return string` with no native type
+         * while its own constructor defaults the key to null, so the guard is
+         * only unreachable on paper.
+         *
+         * @psalm-suppress DocblockTypeContradiction
+         *
+         * @var string|null $data
+         */
+        $data = $message->data();
+
+        if (! is_string($data)) {
+            static::getConnection()->acknowledge($message);
+
+            return null;
+        }
+
         try {
-            return new JobFactory()->fromJson($message->data());
+            return new JobFactory()->fromJson($data);
         } catch (JsonException|QueueMessageInvalidEnvelopeException) {
             static::getConnection()->acknowledge($message);
 
