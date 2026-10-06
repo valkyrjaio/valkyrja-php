@@ -192,11 +192,16 @@ the database sorts the eligible rows on every poll. Tune the index for the
 queue's own shape when the eligible set grows large enough to matter.
 
 `id` may be any key the driver reads back as an integer or a string, so a
-`CHAR(36)` UUID works as well as the auto-increment above. A key unrelated to
-insertion time gives up the first-in-first-out tiebreak, because the claim
-orders by `id ASC` among equal priorities. A random UUID sorts lexically rather
-than by age, so equal-priority jobs run in no particular order. The queue still
-drains.
+`CHAR(36)` UUID works. The column has to supply its own value, because the
+client never writes it: `INSERT` names `queue`, `envelope`, `priority`,
+`available_at_ms`, and `reserved_at_ms` only. `AUTO_INCREMENT` supplies it
+above, and a UUID key needs a database-side default such as `DEFAULT (UUID())`
+or `gen_random_uuid()`. Without one every push fails on the missing column.
+
+Warning: a key unrelated to insertion time gives up the first-in-first-out
+tiebreak, because the claim orders by `id ASC` among equal priorities. A random
+UUID sorts lexically rather than by age, so equal-priority jobs run in no
+particular order. The queue still drains.
 
 `DatabaseQueue` claims a row by stamping `reserved_at_ms`, which is what stops
 two workers taking the same job. A reservation older than the timeout counts as
