@@ -191,6 +191,13 @@ with, because a b-tree stops narrowing at the first column carrying a range, so
 the database sorts the eligible rows on every poll. Tune the index for the
 queue's own shape when the eligible set grows large enough to matter.
 
+`id` may be any key the driver reads back as an integer or a string, so a
+`CHAR(36)` UUID works as well as the auto-increment above. A key unrelated to
+insertion time gives up the first-in-first-out tiebreak, because the claim
+orders by `id ASC` among equal priorities. A random UUID sorts lexically rather
+than by age, so equal-priority jobs run in no particular order. The queue still
+drains.
+
 `DatabaseQueue` claims a row by stamping `reserved_at_ms`, which is what stops
 two workers taking the same job. A reservation older than the timeout counts as
 free, so a row that a crashed worker abandoned returns to the queue.
