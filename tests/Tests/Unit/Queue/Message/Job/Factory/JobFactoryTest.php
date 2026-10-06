@@ -359,6 +359,19 @@ final class JobFactoryTest extends TestCase
         self::assertStringContainsString('"payload":' . $payload, $json);
     }
 
+    public function testFromArrayAcceptsAnAlreadyBuiltPayload(): void
+    {
+        // The signature takes mixed, so a caller can hand over a payload it
+        // already built. Casting it like a decoded object would read the
+        // payload's own properties instead of its params.
+        $payload = Payload::fromArray(['user_id' => 42]);
+
+        $job = $this->factory->fromArray(['name' => self::NAME, 'payload' => $payload]);
+
+        self::assertSame($payload, $job->getPayload());
+        self::assertSame(['user_id' => 42], $job->getPayload()->asArray());
+    }
+
     public function testThePayloadFieldIsAlwaysAnObject(): void
     {
         // Whatever its keys look like, the envelope's payload field is an object
