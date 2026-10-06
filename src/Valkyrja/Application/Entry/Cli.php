@@ -46,9 +46,14 @@ class Cli extends App
         /** @var non-empty-string[] $args */
         $args = $_SERVER['argv'] ?? [];
 
+        // The base config contract declares the type, and a checker that reads
+        // a hook declared on an interface itself does not read one inherited
+        /** @var non-empty-string $applicationName */
+        $applicationName = $config->applicationName;
+
         $input = InputFactory::fromGlobals(
             args: $args,
-            applicationName: $config->applicationName,
+            applicationName: $applicationName,
             commandName: $config->defaultCommandName,
         );
 

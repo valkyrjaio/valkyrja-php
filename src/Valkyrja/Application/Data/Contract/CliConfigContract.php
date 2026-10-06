@@ -22,10 +22,6 @@ use Valkyrja\Cli\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 interface CliConfigContract extends ConfigContract
 {
     /** @var non-empty-string */
-    public string $applicationName {
-        get;
-    }
-    /** @var non-empty-string */
     public string $defaultCommandName {
         get;
     }
