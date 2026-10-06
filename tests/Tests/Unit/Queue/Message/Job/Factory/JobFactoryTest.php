@@ -50,6 +50,21 @@ final class JobFactoryTest extends TestCase
     }
 
     /**
+     * @return array<string, array{string}>
+     */
+    public static function payloadShapeProvider(): array
+    {
+        return [
+            'nested empty map'    => ['{"meta":{}}'],
+            'nested empty list'   => ['{"ids":[]}'],
+            'empty map in a list' => ['{"items":[{}]}'],
+            'empty list in a map' => ['{"meta":{"ids":[]}}'],
+            'non-empty list'      => ['{"ids":[1,2]}'],
+            'non-empty map'       => ['{"user":{"id":42}}'],
+        ];
+    }
+
+    /**
      * @return array<non-empty-string, mixed>
      */
     protected static function fullEnvelope(): array
@@ -331,6 +346,25 @@ final class JobFactoryTest extends TestCase
         );
 
         self::assertStringContainsString('"payload":{"0":"first"}', $this->factory->toJson($job));
+    }
+
+    #[DataProvider('payloadShapeProvider')]
+    public function testAPayloadShapeSurvivesTheWireUnchanged(string $payload): void
+    {
+        // `json_decode` with associative arrays turns a JSON object and a JSON
+        // array into the same PHP array, so the shape has to be carried rather
+        // than inferred from the keys
+        $json = $this->factory->toJson($this->factory->fromJson('{"name":"X","payload":' . $payload . '}'));
+
+        self::assertStringContainsString('"payload":' . $payload, $json);
+    }
+
+    public function testThePayloadFieldIsAlwaysAnObject(): void
+    {
+        // Whatever its keys look like, the envelope's payload field is an object
+        $json = $this->factory->toJson($this->factory->fromJson('{"name":"X","payload":[1,2]}'));
+
+        self::assertStringContainsString('"payload":{"0":1,"1":2}', $json);
     }
 
     public function testJsonRoundTrip(): void

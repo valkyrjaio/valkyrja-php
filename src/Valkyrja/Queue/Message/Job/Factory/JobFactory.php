@@ -14,6 +14,7 @@ namespace Valkyrja\Queue\Message\Job\Factory;
 
 use JsonException;
 use Override;
+use stdClass;
 use Valkyrja\Queue\Message\Attributes\Attributes;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
@@ -27,34 +28,70 @@ use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamEx
 use Valkyrja\Type\Array\Factory\ArrayFactory;
 use Valkyrja\Type\Array\Throwable\Exception\ArrayInvalidEncodedArrayException;
 
-use function array_is_list;
 use function is_array;
 use function is_bool;
 use function is_int;
+use function is_object;
 use function is_string;
+use function json_decode;
+
+use const JSON_THROW_ON_ERROR;
 
 class JobFactory implements JobFactoryContract
 {
     /**
-     * Render a map as a JSON object, to any depth.
+     * Read the payload, from either shape the envelope can carry.
      *
-     * A nested empty map goes out as `[]` otherwise, which is the same failure
-     * one level down, and it makes a round trip unstable: a `{}` that was read
-     * would be written back as `[]`. A non-empty list keeps its integer keys,
-     * so it stays a JSON array, which is what an attribute's value list needs.
+     * `fromJson()` hands this the value decoded without associative arrays, so
+     * a JSON object and a JSON array stay apart. A caller of `fromArray()` has
+     * a PHP array, where an empty one cannot say which it was.
      *
-     * @param array<array-key, mixed> $map The map to render
+     * @param array<array-key, mixed> $data The envelope
      */
-    protected static function asObject(array $map): object
+    protected static function readPayload(array $data): PayloadContract
     {
-        /** @var mixed $value */
-        foreach ($map as $key => $value) {
-            if (is_array($value) && ($value === [] || ! array_is_list($value))) {
-                $map[$key] = static::asObject($value);
-            }
+        /** @var mixed $payload */
+        $payload = $data[EnvelopeField::PAYLOAD] ?? [];
+
+        if ($payload instanceof PayloadContract) {
+            return $payload;
         }
 
-        return (object) $map;
+        if (is_object($payload)) {
+            return Payload::fromJsonValue($payload);
+        }
+
+        return Payload::fromArray(is_array($payload) ? $payload : []);
+    }
+
+    /**
+     * Render a payload node for the wire.
+     *
+     * A nested map goes out as a JSON object and a nested list as a JSON array.
+     * The encoder writes an empty PHP array as `[]`, and the keys cannot tell an
+     * empty map from an empty list, so each node is asked rather than guessed at.
+     *
+     * The envelope's own `payload` field is always an object, whatever its keys
+     * look like, because that is the shape the wire contract names.
+     *
+     * @param bool $isRoot Whether this is the envelope's payload field
+     *
+     * @return object|array<array-key, mixed>
+     */
+    protected static function renderPayload(PayloadContract $payload, bool $isRoot = false): object|array
+    {
+        $rendered = [];
+
+        /** @var scalar|PayloadContract|null $value */
+        foreach ($payload->getAll() as $key => $value) {
+            $rendered[$key] = $value instanceof PayloadContract
+                ? static::renderPayload($value)
+                : $value;
+        }
+
+        return ! $isRoot && $payload->isList()
+            ? $rendered
+            : (object) $rendered;
     }
 
     /**
@@ -92,7 +129,7 @@ class JobFactory implements JobFactoryContract
 
         try {
             $attributes = Attributes::fromArray($this->readArray($data, EnvelopeField::ATTRIBUTES));
-            $payload    = Payload::fromArray($this->readArray($data, EnvelopeField::PAYLOAD));
+            $payload    = static::readPayload($data);
         } catch (QueueMessageInvalidArgumentException $exception) {
             // A caller reads one wire body and declares one failure for it, so
             // a value it cannot accept reads as a bad envelope. The abstract
@@ -143,6 +180,21 @@ class JobFactory implements JobFactoryContract
             );
         }
 
+        // The payload is read again without associative arrays, so a JSON object
+        // and a JSON array stay apart. The decode above turns both into a PHP
+        // array, and an empty map is then indistinguishable from an empty list.
+        /** @var object|array<array-key, mixed>|scalar|null $raw */
+        $raw = json_decode($json, false, 512, JSON_THROW_ON_ERROR);
+
+        if ($raw instanceof stdClass && isset($raw->{EnvelopeField::PAYLOAD})) {
+            /** @var mixed $payload */
+            $payload = $raw->{EnvelopeField::PAYLOAD};
+
+            if (is_object($payload) || is_array($payload)) {
+                $data[EnvelopeField::PAYLOAD] = $payload;
+            }
+        }
+
         return $this->fromArray($data);
     }
 
@@ -156,9 +208,6 @@ class JobFactory implements JobFactoryContract
     {
         $envelope = $job->asArray();
 
-        /** @var array<array-key, mixed> $payload */
-        $payload = $envelope[EnvelopeField::PAYLOAD];
-
         // Both maps are objects on the wire, and json_encode writes an empty
         // PHP array as `[]`. A strict consumer in another language rejects that
         // for a map, so each map is cast rather than left to the encoder. The
@@ -166,7 +215,7 @@ class JobFactory implements JobFactoryContract
         // an attribute's value list into an object and break its `str -> [str]`
         // shape.
         $envelope[EnvelopeField::ATTRIBUTES] = (object) $envelope[EnvelopeField::ATTRIBUTES];
-        $envelope[EnvelopeField::PAYLOAD]    = static::asObject($payload);
+        $envelope[EnvelopeField::PAYLOAD]    = static::renderPayload($job->getPayload(), isRoot: true);
 
         return ArrayFactory::toString($envelope);
     }
