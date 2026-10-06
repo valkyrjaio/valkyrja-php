@@ -38,7 +38,8 @@ Do not instantiate `Valkyrja` directly. Use an entry class:
   [Queue Entry Classes](#queue-entry-classes))
 - `Valkyrja\Application\Entry\Abstract\PullQueue` — the poll loop that a
   processor entry extends, such as
-  `Valkyrja\Application\Entry\Redis\RedisQueue`
+  `Valkyrja\Application\Entry\Redis\RedisQueue` and
+  `Valkyrja\Application\Entry\Amqp\AmqpQueue`
 - `Valkyrja\Application\Entry\PushQueue` — a job that a broker pushes over
   HTTP
 - Worker entry classes — persistent worker runtimes (see
@@ -245,9 +246,10 @@ full boot on every push, so use `WorkerQueue` instead.
 extends `Valkyrja\Application\Entry\Abstract\WorkerQueue`, which boots the
 application once and then gives each job a fresh child container. The class is
 abstract, because connecting, receiving, and settling are specific to one
-processor. An entry such as `Valkyrja\Application\Entry\Redis\RedisQueue`
-implements `connect`, `receive`, `disconnect`, and `settle`, and inherits the
-loop.
+processor. An entry such as `Valkyrja\Application\Entry\Redis\RedisQueue` or
+`Valkyrja\Application\Entry\Amqp\AmqpQueue` implements `connect`, `receive`,
+`disconnect`, and `settle`, and inherits the loop. The Queue component's
+`README.md` lists every entry the framework ships.
 
 ```php
 // app/bin/queue
