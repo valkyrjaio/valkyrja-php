@@ -126,6 +126,16 @@ processor. An entry such as `RedisQueue` implements `connect`, `receive`,
 `disconnect`, and `settle`, and inherits the loop. `PushQueue` is concrete,
 because the default envelope needs no processor-specific mapping.
 
+Redis owns no delivery acknowledgement, so `RedisQueue` keeps the ownership
+window itself: a receive moves the envelope onto an in-flight list in the same
+step that takes it off the ready list, and a settlement removes it from there
+last, so an interrupted settlement leaves a duplicate delivery rather than none.
+An envelope no factory can read is parked on an unreadable list instead of being
+discarded. Nothing reclaims the in-flight list of a worker that dies, so a
+deployment that stops a worker mid-job leaves its envelope there for an operator
+to re-enqueue. Every other processor has the broker return an unacknowledged
+delivery on its own.
+
 `Queue` is single-shot, so a host that pushes repeatedly pays a full boot per
 push. It settles nothing, because the signal that settles an outcome belongs to
 a processor. `WorkerQueue` boots the application once and then gives each job a
