@@ -199,6 +199,11 @@ final class SqsIntegrationTest extends TestCase
      * SQS allows one `PurgeQueue` per queue per minute, and this file empties
      * the queue twice per test, so a purge would answer
      * `PurgeQueueInProgress` for every test after the first.
+     *
+     * A short poll samples a subset of hosts, so one empty response is not
+     * proof the queue is empty. This stops on it anyway, because the drain's
+     * job is to leave no delivery the next test would read, and a long poll per
+     * round would cost more than it buys.
      */
     private function purge(): void
     {
