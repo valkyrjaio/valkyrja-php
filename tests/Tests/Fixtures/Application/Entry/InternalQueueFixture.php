@@ -18,6 +18,7 @@ use Valkyrja\Application\Data\QueueConfig;
 use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Application\Entry\Abstract\InternalQueue;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Queue\Middleware\SettlingResultLogMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Provider\QueueTestComponentProviderFixture;
 
 /**
@@ -43,6 +44,7 @@ final class InternalQueueFixture extends InternalQueue
         return new QueueConfig(
             dir: Directory::$basePath,
             providers: [new QueueTestComponentProviderFixture()],
+            settlingResultMiddleware: [SettlingResultLogMiddlewareFixture::class],
             resultSettledMiddleware: [ResultLogMiddlewareFixture::class],
         );
     }

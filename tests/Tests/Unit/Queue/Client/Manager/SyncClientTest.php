@@ -20,6 +20,7 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Queue\Middleware\SettlingResultLogMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Handler\JobOutcomeFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -32,6 +33,7 @@ final class SyncClientTest extends TestCase
         parent::setUp();
 
         ResultLogMiddlewareFixture::reset();
+        SettlingResultLogMiddlewareFixture::reset();
         InternalQueueFixture::reset();
     }
 
@@ -41,6 +43,7 @@ final class SyncClientTest extends TestCase
         JobOutcomeFixture::reset();
 
         ResultLogMiddlewareFixture::reset();
+        SettlingResultLogMiddlewareFixture::reset();
         InternalQueueFixture::reset();
 
         parent::tearDown();
@@ -101,6 +104,14 @@ final class SyncClientTest extends TestCase
         self::assertSame(
             [JobResult::RETRY, JobResult::RETRY, JobResult::DEAD_LETTER],
             ResultLogMiddlewareFixture::getResults($job->getId())
+        );
+
+        // The settling stage has the last word on the outcome, so it has to see
+        // the terminal one too. Capping after `settlingResult()` would leave a
+        // RETRY here while the assertion above still passed.
+        self::assertSame(
+            [JobResult::RETRY, JobResult::RETRY, JobResult::DEAD_LETTER],
+            SettlingResultLogMiddlewareFixture::getResults($job->getId())
         );
     }
 
