@@ -76,7 +76,7 @@ final class SqsQueueTest extends TestCase
         self::assertNull(SqsQueueFixture::receive());
     }
 
-    public function testReceiveLongPollsWithTheConfiguredWait(): void
+    public function testReceiveNamesTheQueueAndOneMessage(): void
     {
         SqsQueueFixture::receive();
 
@@ -84,9 +84,22 @@ final class SqsQueueTest extends TestCase
 
         self::assertSame(self::QUEUE_URL, $input['QueueUrl']);
         self::assertSame(1, $input['MaxNumberOfMessages']);
-        self::assertSame(2, $input['WaitTimeSeconds']);
         // The queue's own ownership window stands, so the receive names none
         self::assertArrayNotHasKey('VisibilityTimeout', $input);
+    }
+
+    public function testReceiveLongPollsWithTheWaitTheConfigSupplied(): void
+    {
+        // The wait the entry polls with is the one `connect()` read, so a test
+        // that asserts the fixture's own default pins nothing
+        SqsQueueFixture::connect($this->application(new QueueSqsClientConfig(
+            sqsQueueUrl: self::QUEUE_URL,
+            sqsWaitTimeSeconds: 7,
+        )));
+
+        SqsQueueFixture::receive();
+
+        self::assertSame(7, $this->sqs->getCalls('receiveMessage')[0]['WaitTimeSeconds']);
     }
 
     public function testAReceivedDeliveryIsReadBackAsAJob(): void
@@ -380,10 +393,10 @@ final class SqsQueueTest extends TestCase
     /**
      * Build an application whose container carries the SQS client config.
      */
-    protected function application(): ApplicationContract
+    protected function application(QueueSqsClientConfig|null $config = null): ApplicationContract
     {
         $container = self::createStub(ContainerContract::class);
-        $container->method('getSingleton')->willReturn(new QueueSqsClientConfig());
+        $container->method('getSingleton')->willReturn($config ?? new QueueSqsClientConfig());
 
         $app = self::createStub(ApplicationContract::class);
         $app->method('getContainer')->willReturn($container);

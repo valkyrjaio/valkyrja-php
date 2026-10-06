@@ -32,6 +32,7 @@ final class QueueSqsClientConfigTest extends TestCase
         self::assertNull($config->sqsAccessKeyId);
         self::assertNull($config->sqsAccessKeySecret);
         self::assertSame('https://sqs.us-east-1.amazonaws.com/000000000000/default', $config->sqsQueueUrl);
+        self::assertSame(20, $config->sqsWaitTimeSeconds);
     }
 
     public function testCustomValuesAreStored(): void
@@ -42,6 +43,7 @@ final class QueueSqsClientConfigTest extends TestCase
             sqsAccessKeyId: 'key',
             sqsAccessKeySecret: 'secret',
             sqsQueueUrl: 'http://sqs.test/000000000000/test',
+            sqsWaitTimeSeconds: 5,
         );
 
         self::assertSame('eu-west-1', $config->sqsRegion);
@@ -49,5 +51,6 @@ final class QueueSqsClientConfigTest extends TestCase
         self::assertSame('key', $config->sqsAccessKeyId);
         self::assertSame('secret', $config->sqsAccessKeySecret);
         self::assertSame('http://sqs.test/000000000000/test', $config->sqsQueueUrl);
+        self::assertSame(5, $config->sqsWaitTimeSeconds);
     }
 }
