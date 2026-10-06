@@ -73,4 +73,13 @@ interface PayloadContract
      * @return array<array-key, scalar|array<array-key, mixed>|null>
      */
     public function asArray(): array;
+
+    /**
+     * Whether this node came from a JSON array rather than a JSON object.
+     *
+     * `json_decode` with associative arrays turns both into a PHP array, so
+     * nothing can tell an empty map from an empty list once that has happened.
+     * The encoder asks this instead of guessing from the keys.
+     */
+    public function isList(): bool;
 }
