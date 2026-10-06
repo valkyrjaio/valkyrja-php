@@ -29,7 +29,6 @@ use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeExcept
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
 
-use function ctype_digit;
 use function is_int;
 use function is_string;
 use function sleep;
@@ -68,7 +67,7 @@ class DatabaseQueue extends PullQueue
      * A pull worker handles one job at a time, so a single slot is enough, and
      * it is cleared on settlement so a second settle cannot act twice.
      */
-    protected static int|null $current = null;
+    protected static int|string|null $current = null;
 
     /**
      * @inheritDoc
@@ -165,7 +164,7 @@ class DatabaseQueue extends PullQueue
      * bytes, and nothing ends that. A database carries no dead-letter store of
      * its own, so the row is dropped, the same as an unreadable Redis envelope.
      */
-    protected static function decode(string $envelope, int $id): JobContract|null
+    protected static function decode(string $envelope, int|string $id): JobContract|null
     {
         try {
             return new JobFactory()->fromJson($envelope);
@@ -227,7 +226,7 @@ class DatabaseQueue extends PullQueue
     /**
      * Find the next job whose hold has elapsed and that no worker holds.
      *
-     * @return array{0: int, 1: string}|null
+     * @return array{0: int|string, 1: string}|null
      */
     protected static function findEligible(): array|null
     {
@@ -266,11 +265,7 @@ class DatabaseQueue extends PullQueue
             return null;
         }
 
-        // A driver hands a BIGINT back as text on pgsql, and on mysql whenever
-        // it emulates prepares, so a numeric string is the expected shape. Any
-        // other string would cast to 0, and on mysql `WHERE id = 0` matches
-        // every row with a non-numeric key, so the delete would take them too.
-        if (! is_string($envelope) || (is_string($id) && ! ctype_digit($id))) {
+        if (! is_string($envelope)) {
             // A select takes nothing off the table, so a row this method cannot
             // read stays at the queue head and is handed back on every poll.
             // `decode()` settled the policy for a row the adapter cannot read:
@@ -282,7 +277,12 @@ class DatabaseQueue extends PullQueue
             return null;
         }
 
-        return [(int) $id, $envelope];
+        // The key goes back as it came. A driver hands a BIGINT back as text on
+        // pgsql, and on mysql whenever it emulates prepares, so casting would
+        // turn a key that is not all digits into 0 — and on mysql
+        // `WHERE id = 0` matches every row with a non-numeric key. A table the
+        // application owns may key on a UUID, and that job is runnable.
+        return [$id, $envelope];
     }
 
     /**
@@ -291,7 +291,7 @@ class DatabaseQueue extends PullQueue
      * The write is conditional, so two workers reading the same row cannot both
      * win: the second one updates nothing.
      */
-    protected static function claim(int $id): bool
+    protected static function claim(int|string $id): bool
     {
         $now   = Microtime::getMilliseconds();
         $table = static::$table;

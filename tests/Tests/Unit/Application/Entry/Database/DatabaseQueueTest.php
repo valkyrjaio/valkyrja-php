@@ -151,7 +151,9 @@ final class DatabaseQueueTest extends TestCase
         $job = DatabaseQueueFixture::receive();
 
         self::assertNotNull($job);
-        self::assertSame(self::ROW_ID, $this->manager->getStatements('UPDATE')[0]->bound['id']);
+        // Bound as it came back: the engine compares it to the key either way,
+        // and casting would turn a key that is not all digits into 0
+        self::assertSame((string) self::ROW_ID, $this->manager->getStatements('UPDATE')[0]->bound['id']);
     }
 
     public function testAStaleReservationBecomesEligibleAgain(): void
@@ -260,22 +262,25 @@ final class DatabaseQueueTest extends TestCase
         DatabaseQueueFixture::receive();
     }
 
-    public function testARowWithANonNumericKeyIsTakenOffTheTable(): void
+    public function testARowWithANonNumericKeyIsRunRatherThanDropped(): void
     {
-        // The cast would make it 0, and on mysql `WHERE id = 0` matches every
-        // row with a non-numeric key, so the delete would take them too
-        $this->manager->rows = [['id' => 'not-a-number', 'envelope' => '{}']];
+        // The envelope is intact, so the job is runnable. Only the entry's own
+        // assumption that the key is an integer fails, and casting it would
+        // make it 0 — which on mysql matches every row with such a key.
+        $this->manager->rows = [[
+            'id'       => 'b8c1f0de-0000-4000-8000-000000000000',
+            'envelope' => new JobFactory()->toJson(new JobFactory()->create(self::NAME)),
+        ]];
 
-        self::assertNull(DatabaseQueueFixture::receive());
+        $job = DatabaseQueueFixture::receive();
 
-        $deletes = $this->manager->getStatements('DELETE');
+        self::assertNotNull($job);
+        self::assertSame([], $this->manager->getStatements('DELETE'));
 
-        self::assertCount(1, $deletes);
-        // By the key the select returned, uncast, so a concurrent insert at the
-        // queue head cannot be the row that goes
-        self::assertStringContainsString('WHERE id = :id', $deletes[0]->query);
-        self::assertSame('not-a-number', $deletes[0]->bound['id']);
-        self::assertSame([], $this->manager->getStatements('UPDATE'));
+        // The claim addresses the row by the key the select returned, uncast
+        $claim = $this->manager->getStatements('UPDATE')[0];
+
+        self::assertSame('b8c1f0de-0000-4000-8000-000000000000', $claim->bound['id']);
     }
 
     public function testARowWithNoEnvelopeIsTakenOffTheTable(): void
@@ -292,7 +297,7 @@ final class DatabaseQueueTest extends TestCase
         self::assertSame(self::ROW_ID, $deletes[0]->bound['id']);
     }
 
-    public function testTheDiscardIsPortableSql(): void
+    public function testTheDeleteIsPortableSql(): void
     {
         // `ORDER BY` with `LIMIT` on a delete is a MySQL extension that
         // PostgreSQL rejects at prepare time, and the repo ships PgsqlManager
