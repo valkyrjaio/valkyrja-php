@@ -12,18 +12,21 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Unit\Queue\Message\Job\Factory;
 
+use DateTimeImmutable;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Queue\Message\Payload\Contract\PayloadContract;
 use Valkyrja\Queue\Message\Payload\Payload;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
+use function json_decode;
 use function json_encode;
 
 final class JobFactoryTest extends TestCase
@@ -357,6 +360,64 @@ final class JobFactoryTest extends TestCase
         $json = $this->factory->toJson($this->factory->fromJson('{"name":"X","payload":' . $payload . '}'));
 
         self::assertStringContainsString('"payload":' . $payload, $json);
+    }
+
+    public function testFromArrayIgnoresAnObjectThatIsNotADecodedJsonObject(): void
+    {
+        // Casting any object would turn its own properties into payload keys,
+        // and a private one gets a NUL-mangled key that would reach the wire
+        $job = $this->factory->fromArray(['name' => self::NAME, 'payload' => new DateTimeImmutable()]);
+
+        self::assertSame([], $job->getPayload()->asArray());
+    }
+
+    public function testAnEnvelopeWithNoPayloadFieldReadsAsAnEmptyPayload(): void
+    {
+        $job = $this->factory->fromJson('{"name":"SendWelcomeEmail"}');
+
+        self::assertSame([], $job->getPayload()->asArray());
+    }
+
+    public function testAnEnvelopeWhosePayloadIsAScalarReadsAsAnEmptyPayload(): void
+    {
+        $job = $this->factory->fromJson('{"name":"SendWelcomeEmail","payload":7}');
+
+        self::assertSame([], $job->getPayload()->asArray());
+    }
+
+    public function testReplacingAListNodeWithAMapEncodesAsAnObject(): void
+    {
+        // The flag describes the params, so replacing them has to recompute it
+        $payload = Payload::fromJsonValue(json_decode('{"items":[1,2]}', false));
+
+        $items = $payload->get('items');
+
+        self::assertInstanceOf(PayloadContract::class, $items);
+        self::assertTrue($items->isList());
+
+        $replaced = $items->with(['a' => 1]);
+
+        self::assertFalse($replaced->isList());
+    }
+
+    public function testAddingToAListNodeKeepsItAList(): void
+    {
+        $payload = Payload::fromJsonValue(json_decode('{"items":[1]}', false));
+
+        $items = $payload->get('items');
+
+        self::assertInstanceOf(PayloadContract::class, $items);
+        self::assertTrue($items->withAdded([1 => 2])->isList());
+    }
+
+    public function testFromJsonValueReadsAMapFromAPhpArray(): void
+    {
+        // `fromArray()` admits a map, so the list half of the flag is not the
+        // only side that can be reached
+        $payload = Payload::fromJsonValue(['a' => 1]);
+
+        self::assertFalse($payload->isList());
+        self::assertSame(['a' => 1], $payload->asArray());
     }
 
     public function testFromArrayAcceptsAnAlreadyBuiltPayload(): void
