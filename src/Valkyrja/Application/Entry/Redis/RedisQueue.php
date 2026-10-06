@@ -28,18 +28,49 @@ use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeExcept
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
 
-use function is_array;
 use function is_string;
 
 class RedisQueue extends PullQueue
 {
-    /** @var int<1, max> The blocking pop timeout, in seconds */
+    /** The key suffix of the list a received job sits on until it settles. */
+    public const string IN_FLIGHT_SUFFIX = ':inflight';
+
+    /** The key suffix of the list an envelope no factory can read is parked on. */
+    public const string UNREADABLE_SUFFIX = ':unreadable';
+
+    /**
+     * Promote every due delayed job, atomically and in a bounded batch.
+     *
+     * The removal gates the enqueue, so two workers polling at once cannot
+     * promote the same job twice, and running both inside one script means a
+     * worker that dies between them cannot leave the job on neither key. The
+     * limit bounds the walk, so a backlog cannot stall the poll loop.
+     */
+    protected const string PROMOTE_SCRIPT = <<<'LUA'
+        local due = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, ARGV[2])
+
+        for index = 1, #due do
+            if redis.call('ZREM', KEYS[1], due[index]) == 1 then
+                redis.call('RPUSH', KEYS[2], due[index])
+            end
+        end
+
+        return #due
+        LUA;
+
+    /** @var int<1, max> The blocking move timeout, in seconds */
     protected static int $timeout = 1;
+
+    /** @var int<1, max> The number of due delayed jobs one poll promotes */
+    protected static int $promoteLimit = 100;
 
     protected static ClientInterface|null $redis = null;
 
     /** @var non-empty-string */
     protected static string $queue = 'queues:default';
+
+    /** The envelope this worker holds on the in-flight list, if any. */
+    protected static string|null $current = null;
 
     /**
      * @inheritDoc
@@ -49,8 +80,9 @@ class RedisQueue extends PullQueue
     {
         $config = $app->getContainer()->getSingleton(QueueRedisClientConfigContract::class);
 
-        static::$queue = $config->redisQueue;
-        static::$redis = static::getRedis($config);
+        static::$queue   = $config->redisQueue;
+        static::$redis   = static::getRedis($config);
+        static::$current = null;
 
         static::getConnection()->connect();
     }
@@ -65,14 +97,29 @@ class RedisQueue extends PullQueue
 
         static::promoteDelayed($redis);
 
-        $popped = $redis->blpop([static::$queue], static::$timeout);
+        // A blocking move, so the envelope reaches the in-flight list in the
+        // same step that takes it off the ready list. A plain pop would leave a
+        // received job in this process's memory alone, where a crash, an OOM,
+        // or a deploy that does not wait the job out loses it with no record.
+        /** @var mixed $envelope */
+        $envelope = $redis->blmove(static::$queue, static::inFlight(), 'LEFT', 'RIGHT', static::$timeout);
 
-        // A blocking pop returns [key, value]; a timeout returns nothing
-        if (! is_array($popped) || ! isset($popped[1]) || ! is_string($popped[1])) {
+        // A move that timed out returns nothing
+        if (! is_string($envelope)) {
             return null;
         }
 
-        return static::decode($popped[1]);
+        $job = static::decode($envelope);
+
+        if ($job === null) {
+            static::park($redis, $envelope);
+
+            return null;
+        }
+
+        static::$current = $envelope;
+
+        return $job;
     }
 
     /**
@@ -83,7 +130,8 @@ class RedisQueue extends PullQueue
     {
         static::getConnection()->disconnect();
 
-        static::$redis = null;
+        static::$redis   = null;
+        static::$current = null;
     }
 
     /**
@@ -92,20 +140,41 @@ class RedisQueue extends PullQueue
     #[Override]
     public static function settle(JobContract $job, JobResult $result, ClientContract $client): void
     {
-        // A popped job is already off the list, so every terminal outcome needs
-        // nothing. Redis owns no retry loop, so the framework publishes again.
+        $envelope = static::$current;
+
+        static::$current = null;
+
+        // Redis owns no retry loop, so the framework publishes again
         if ($result === JobResult::RETRY) {
             $client->requeue($job);
         }
+
+        if ($envelope === null) {
+            return;
+        }
+
+        // The in-flight copy goes last, so a worker that dies mid-settlement
+        // leaves a duplicate delivery rather than no delivery at all
+        static::getConnection()->lrem(static::inFlight(), 1, $envelope);
+    }
+
+    /**
+     * The key of the list a received job sits on until it settles.
+     *
+     * @return non-empty-string
+     */
+    protected static function inFlight(): string
+    {
+        return static::$queue . self::IN_FLIGHT_SUFFIX;
     }
 
     /**
      * Read an envelope off the list, or nothing when it cannot be read.
      *
-     * The shape guards above tolerate every other way a pop goes wrong, so a
+     * The shape guard above tolerates every other way a move goes wrong, so a
      * body that is a string but not a readable envelope is tolerated the same
-     * way. The pop already removed it, so throwing would lose the job and take
-     * the worker down with it.
+     * way, and the caller parks it rather than throwing and taking the worker
+     * down with it.
      */
     protected static function decode(string $envelope): JobContract|null
     {
@@ -114,6 +183,19 @@ class RedisQueue extends PullQueue
         } catch (JsonException|QueueMessageInvalidEnvelopeException) {
             return null;
         }
+    }
+
+    /**
+     * Park an envelope no factory can read, so it leaves a record.
+     *
+     * A discard would retire the message while the worker kept reporting
+     * healthy. The push comes before the removal, so a worker that dies between
+     * them leaves the envelope on both keys rather than on neither.
+     */
+    protected static function park(ClientInterface $redis, string $envelope): void
+    {
+        $redis->rpush(static::$queue . self::UNREADABLE_SUFFIX, [$envelope]);
+        $redis->lrem(static::inFlight(), 1, $envelope);
     }
 
     /**
@@ -147,26 +229,13 @@ class RedisQueue extends PullQueue
      */
     protected static function promoteDelayed(ClientInterface $redis): void
     {
-        $delayedQueue = static::$queue . RedisClient::DELAYED_SUFFIX;
-
-        /** @var mixed $due */
-        $due = $redis->zrangebyscore($delayedQueue, '-inf', (string) Microtime::getMilliseconds());
-
-        if (! is_array($due)) {
-            return;
-        }
-
-        /** @var mixed $envelope */
-        foreach ($due as $envelope) {
-            if (! is_string($envelope)) {
-                continue;
-            }
-
-            // Only the worker that wins the removal may enqueue it, so a job
-            // cannot be promoted twice by two workers polling at once
-            if ($redis->zrem($delayedQueue, $envelope) > 0) {
-                $redis->rpush(static::$queue, [$envelope]);
-            }
-        }
+        $redis->eval(
+            self::PROMOTE_SCRIPT,
+            2,
+            static::$queue . RedisClient::DELAYED_SUFFIX,
+            static::$queue,
+            (string) Microtime::getMilliseconds(),
+            (string) static::$promoteLimit,
+        );
     }
 }

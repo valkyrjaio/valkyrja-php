@@ -36,6 +36,23 @@ final class RedisQueueFixture extends RedisQueue
         self::$redis     = $redis;
         self::$queue     = $queue;
         self::$timeout   = $timeout;
+        self::$current   = null;
+    }
+
+    /**
+     * The promotion script, so a test can assert the call carries it.
+     */
+    public static function promoteScript(): string
+    {
+        return self::PROMOTE_SCRIPT;
+    }
+
+    /**
+     * Pretend a receive left this envelope on the in-flight list.
+     */
+    public static function holding(string $envelope): void
+    {
+        self::$current = $envelope;
     }
 
     /**
@@ -47,6 +64,7 @@ final class RedisQueueFixture extends RedisQueue
         self::$redis     = null;
         self::$queue     = 'queues:default';
         self::$timeout   = 1;
+        self::$current   = null;
     }
 
     /**
