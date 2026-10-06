@@ -12,11 +12,14 @@ component, with three renamed concepts:
 
 ## Configuration
 
-`CliConfig` configures a CLI application. Two properties are CLI-specific:
+`CliConfig` configures a CLI application. One property is CLI-specific:
 
-- **`applicationName`** — the binary name shown in help and version output.
 - **`defaultCommandName`** — the command that runs when the input names no
   command. The default is `list`.
+
+`applicationName` is declared on the base config contract and every application
+config carries it. A CLI application reads it as the binary name shown in help
+and version output.
 
 ```php
 use Valkyrja\Application\Data\CliConfig;
