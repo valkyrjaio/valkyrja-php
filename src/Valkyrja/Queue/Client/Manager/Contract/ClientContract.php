@@ -30,7 +30,7 @@ interface ClientContract
     public function retry(JobContract $job, int $delayMs): void;
 
     /**
-     * Re-enqueue a job for its next attempt.
+     * Settle a retry for the job as dispatched.
      *
      * The framework calls this with the job as dispatched, and this derives the
      * hold from that job. The ramp applies only where the job sets it. A client
