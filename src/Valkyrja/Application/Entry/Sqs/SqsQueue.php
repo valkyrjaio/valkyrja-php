@@ -237,6 +237,11 @@ class SqsQueue extends PullQueue
     /**
      * Get the queue url that connect() read from the config.
      *
+     * `connect()` writes the url and the client together and every caller reads
+     * the client first, so the client guard is the one that answers an entry
+     * that never connected. This guard stays because the two are separate
+     * fields, and it keeps the return type free of a null a caller cannot get.
+     *
      * @throws QueueServerNotConnectedException
      *
      * @return non-empty-string
