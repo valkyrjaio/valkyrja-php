@@ -32,9 +32,10 @@ interface ClientContract
     /**
      * Re-enqueue a job for its next attempt.
      *
-     * This bumps the attempt count and reads the hold of the attempt that just
-     * failed off the job, which applies the ramp only when the job asks for it.
-     * A processor without native redelivery settles a retry by calling this.
+     * The framework calls this with the job as dispatched, and this derives the
+     * hold from that job. The ramp applies only where the job sets it. A client
+     * that owns redelivery increments the attempt count. A client whose
+     * processor counts the attempt hands that processor the retry signal.
      *
      * @param JobContract $job The job as dispatched, before any increment
      */
@@ -53,12 +54,15 @@ interface ClientContract
     /**
      * Drop the record, ending the unit of work it belongs to.
      *
-     * The framework calls this, never application code, and it calls it once the
-     * unit of work is over: for a buffering client once a drain has run every
-     * recorded job, and for every other client at the end of the request, the
-     * command, or the one job a worker just ran. A long-running worker holds one
-     * client for its whole life, so the record has to end with each job rather
-     * than with the process.
+     * The framework calls this, and application code never does. The call comes
+     * once the unit of work is over:
+     *
+     * - A buffering client is cleared once a drain has run every recorded job.
+     * - Every other client is cleared at the end of the request, the command,
+     *   or the one job a worker just ran.
+     *
+     * A long-running worker holds one client for its whole life, so the record
+     * has to end with each job rather than with the process.
      */
     public function clearPushed(): void;
 }
