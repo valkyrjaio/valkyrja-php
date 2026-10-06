@@ -197,6 +197,9 @@ class Payload implements PayloadContract
         $new = clone $this;
 
         $new->params = $params;
+        // The flag describes the params, so replacing them recomputes it rather
+        // than carrying the old node's shape onto the new one
+        $new->isList = $params !== [] && array_is_list($params);
 
         return $new;
     }
@@ -215,6 +218,8 @@ class Payload implements PayloadContract
         foreach ($params as $name => $param) {
             $new->params[$name] = $param;
         }
+
+        $new->isList = $new->params !== [] && array_is_list($new->params);
 
         return $new;
     }
