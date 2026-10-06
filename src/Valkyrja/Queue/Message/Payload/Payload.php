@@ -17,8 +17,10 @@ use Valkyrja\Queue\Message\Payload\Contract\PayloadContract;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
 
 use function array_filter;
+use function array_is_list;
 use function in_array;
 use function is_array;
+use function is_object;
 use function is_scalar;
 
 use const ARRAY_FILTER_USE_KEY;
@@ -28,14 +30,19 @@ class Payload implements PayloadContract
     /** @var array<array-key, scalar|PayloadContract|null> */
     protected array $params = [];
 
+    /** Whether this node came from a JSON array rather than a JSON object */
+    protected bool $isList = false;
+
     /**
      * @param array<array-key, scalar|PayloadContract|null> $params The params
+     * @param bool                                          $isList Whether the node is a list
      */
-    public function __construct(array $params = [])
+    public function __construct(array $params = [], bool $isList = false)
     {
         $this->validateParams($params);
 
         $this->params = $params;
+        $this->isList = $isList;
     }
 
     /**
@@ -66,7 +73,39 @@ class Payload implements PayloadContract
          *
          * @phpstan-ignore-next-line
          */
-        return new static($params);
+        return new static($params, $data !== [] && array_is_list($data));
+    }
+
+    /**
+     * Create from a value decoded without associative arrays.
+     *
+     * A JSON object arrives as an object and a JSON array as a list, so the two
+     * stay apart all the way to the encoder.
+     *
+     * @param object|array<array-key, mixed> $value The decoded value
+     */
+    public static function fromJsonValue(object|array $value): static
+    {
+        $params = [];
+
+        /** @var mixed $param */
+        foreach ((array) $value as $name => $param) {
+            if (is_object($param) || is_array($param)) {
+                $param = static::fromJsonValue($param);
+            }
+
+            static::validateParam($param);
+
+            /** @var array-key $name */
+            $params[$name] = $param;
+        }
+
+        /**
+         * @var array<array-key, scalar|PayloadContract|null> $params
+         *
+         * @phpstan-ignore-next-line
+         */
+        return new static($params, is_array($value) && array_is_list($value));
     }
 
     /**
@@ -178,6 +217,15 @@ class Payload implements PayloadContract
         }
 
         return $new;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function isList(): bool
+    {
+        return $this->isList;
     }
 
     /**
