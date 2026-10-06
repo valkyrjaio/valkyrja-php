@@ -26,12 +26,10 @@ use Valkyrja\Queue\Message\Throwable\Exception\Abstract\QueueMessageInvalidArgum
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
 use Valkyrja\Type\Array\Factory\ArrayFactory;
-use Valkyrja\Type\Array\Throwable\Exception\ArrayInvalidEncodedArrayException;
 
 use function is_array;
 use function is_bool;
 use function is_int;
-use function is_object;
 use function is_string;
 use function json_decode;
 
@@ -57,7 +55,10 @@ class JobFactory implements JobFactoryContract
             return $payload;
         }
 
-        if (is_object($payload)) {
+        // Only a decoded JSON object. Casting any other object would turn its
+        // own properties into payload keys, with the NUL-byte mangling PHP's
+        // array cast gives a private one, and those keys would reach the wire.
+        if ($payload instanceof stdClass) {
             return Payload::fromJsonValue($payload);
         }
 
@@ -170,29 +171,27 @@ class JobFactory implements JobFactoryContract
     #[Override]
     public function fromJson(string $json): JobContract
     {
-        try {
-            $data = ArrayFactory::fromString($json);
-        } catch (ArrayInvalidEncodedArrayException $exception) {
-            // Valid JSON that carries no object, such as `5` or `"text"`
-            throw new QueueMessageInvalidEnvelopeException(
-                'Job envelope must be a JSON object',
-                previous: $exception,
-            );
-        }
-
-        // The payload is read again without associative arrays, so a JSON object
-        // and a JSON array stay apart. The decode above turns both into a PHP
-        // array, and an empty map is then indistinguishable from an empty list.
-        /** @var object|array<array-key, mixed>|scalar|null $raw */
+        // Decoded without associative arrays, so a JSON object and a JSON array
+        // in the payload stay apart: with them, both become a PHP array and an
+        // empty map is indistinguishable from an empty list. One decode serves
+        // the whole envelope, because a body reaches here once per delivery.
+        /** @var mixed $raw */
         $raw = json_decode($json, false, 512, JSON_THROW_ON_ERROR);
 
-        if ($raw instanceof stdClass && isset($raw->{EnvelopeField::PAYLOAD})) {
-            /** @var mixed $payload */
-            $payload = $raw->{EnvelopeField::PAYLOAD};
+        if (! $raw instanceof stdClass) {
+            // Valid JSON that carries no object, such as `5` or `"text"`
+            throw new QueueMessageInvalidEnvelopeException('Job envelope must be a JSON object');
+        }
 
-            if (is_object($payload) || is_array($payload)) {
-                $data[EnvelopeField::PAYLOAD] = $payload;
-            }
+        $data = (array) $raw;
+
+        // Attributes are a map of lists, and the readers below take arrays. The
+        // payload is the one field whose object shape has to survive.
+        /** @var mixed $attributes */
+        $attributes = $data[EnvelopeField::ATTRIBUTES] ?? null;
+
+        if ($attributes instanceof stdClass) {
+            $data[EnvelopeField::ATTRIBUTES] = (array) $attributes;
         }
 
         return $this->fromArray($data);
