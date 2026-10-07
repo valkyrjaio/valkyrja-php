@@ -22,7 +22,7 @@ class QueueSqsClientConfig implements QueueSqsClientConfigContract
      * @param non-empty-string|null $sqsAccessKeyId     The access key id; null for the AWS credential chain
      * @param non-empty-string|null $sqsAccessKeySecret The access key secret; null for the AWS credential chain
      * @param non-empty-string      $sqsQueueUrl        The URL of the queue that jobs are sent to
-     * @param int<0, 20>            $sqsWaitTimeSeconds The long-poll wait; 20 is the longest and cheapest
+     * @param int<1, 20>            $sqsWaitTimeSeconds The long-poll wait; 20 is the longest and cheapest
      */
     public function __construct(
         public readonly string $sqsRegion = 'us-east-1',

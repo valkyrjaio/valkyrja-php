@@ -45,7 +45,7 @@ interface QueueSqsClientConfigContract
      * This is also how long a worker can overrun `maxSeconds`, because the loop
      * reads its bounds only between receives.
      *
-     * @var int<0, 20>
+     * @var int<1, 20>
      */
     public int $sqsWaitTimeSeconds {
         get;

@@ -317,14 +317,14 @@ itself.
 
 #### `QueueSqsClientConfigContract`
 
-| Property             | Default                                                      | Description                                                      |
-| :------------------- | :----------------------------------------------------------- | :--------------------------------------------------------------- |
-| `sqsRegion`          | `'us-east-1'`                                                | The AWS region                                                   |
-| `sqsEndpoint`        | `null`                                                       | The endpoint to send to; null for the AWS endpoint of the region |
-| `sqsAccessKeyId`     | `null`                                                       | The access key id; null for the AWS credential chain             |
-| `sqsAccessKeySecret` | `null`                                                       | The access key secret; null for the AWS credential chain         |
-| `sqsQueueUrl`        | `'https://sqs.us-east-1.amazonaws.com/000000000000/default'` | The URL of the queue that jobs are sent to                       |
-| `sqsWaitTimeSeconds` | `20`                                                         | The long-poll wait in seconds; 20 is the longest and cheapest    |
+| Property             | Default                                                      | Description                                                                 |
+| :------------------- | :----------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| `sqsRegion`          | `'us-east-1'`                                                | The AWS region                                                              |
+| `sqsEndpoint`        | `null`                                                       | The endpoint to send to; null for the AWS endpoint of the region            |
+| `sqsAccessKeyId`     | `null`                                                       | The access key id; null for the AWS credential chain                        |
+| `sqsAccessKeySecret` | `null`                                                       | The access key secret; null for the AWS credential chain                    |
+| `sqsQueueUrl`        | `'https://sqs.us-east-1.amazonaws.com/000000000000/default'` | The URL of the queue that jobs are sent to                                  |
+| `sqsWaitTimeSeconds` | `20`                                                         | The long-poll wait in seconds, from 1 to 20; 20 is the longest and cheapest |
 
 Warning: the long-poll wait is also how long a worker can overrun `maxSeconds`,
 because the loop reads its bounds only between receives. Lower it when a worker
