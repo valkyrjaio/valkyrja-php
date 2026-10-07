@@ -171,9 +171,12 @@ gives one request the deferred jobs of the request before it.
 ## The Database Table
 
 `DatabaseClient` and `DatabaseQueue` read and write one table. The application
-owns the table, so the application creates it:
+owns the table, so the application creates it. Every statement the adapter
+issues is portable across the shipped ORM managers, but the table definition is
+not, so this one is MySQL and a note below gives the columns that differ:
 
 ```sql
+-- MySQL
 CREATE TABLE queue_jobs (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     queue           VARCHAR(255)    NOT NULL,
@@ -183,6 +186,25 @@ CREATE TABLE queue_jobs (
     reserved_at_ms  BIGINT          NULL,
     INDEX queue_jobs_claim (queue, available_at_ms, priority)
 );
+```
+
+On PostgreSQL the same table reads `BIGSERIAL PRIMARY KEY` for `id`, `TEXT` for
+`envelope`, `BIGINT` for the two millisecond columns, and the index becomes its
+own statement, because `AUTO_INCREMENT`, `BIGINT UNSIGNED`, `LONGTEXT`, and an
+inline `INDEX` clause are each rejected:
+
+```sql
+-- PostgreSQL
+CREATE TABLE queue_jobs (
+    id              BIGSERIAL    PRIMARY KEY,
+    queue           VARCHAR(255) NOT NULL,
+    envelope        TEXT         NOT NULL,
+    priority        INT          NOT NULL DEFAULT 0,
+    available_at_ms BIGINT       NOT NULL,
+    reserved_at_ms  BIGINT       NULL
+);
+
+CREATE INDEX queue_jobs_claim ON queue_jobs (queue, available_at_ms, priority);
 ```
 
 The index narrows on `queue` by equality and then on `available_at_ms` by range.
@@ -206,6 +228,13 @@ particular order. The queue still drains.
 `DatabaseQueue` claims a row by stamping `reserved_at_ms`, which is what stops
 two workers taking the same job. A reservation older than the timeout counts as
 free, so a row that a crashed worker abandoned returns to the queue.
+
+A row whose `envelope` no factory can read is parked rather than deleted: the
+entry stamps `reserved_at_ms` with the last millisecond of the year 9999, which
+no staleness window reaches back to, so the row leaves the claim's reach and
+keeps its bytes. Select on that stamp to find what a worker could not read. A
+settled job is deleted as usual, so the table holds only live work and whatever
+was parked.
 
 ## Entry Points
 
