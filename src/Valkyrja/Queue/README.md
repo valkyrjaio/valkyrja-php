@@ -131,10 +131,20 @@ window itself: a receive moves the envelope onto an in-flight list in the same
 step that takes it off the ready list, and a settlement removes it from there
 last, so an interrupted settlement leaves a duplicate delivery rather than none.
 An envelope no factory can read is parked on an unreadable list instead of being
-discarded. Nothing reclaims the in-flight list of a worker that dies, so a
-deployment that stops a worker mid-job leaves its envelope there for an operator
-to re-enqueue. Every other processor has the broker return an unacknowledged
-delivery on its own.
+discarded. Every other processor has the broker return an unacknowledged delivery
+on its own.
+
+The in-flight list belongs to one worker slot, named by `redisWorkerName`. That
+slot reads its own list and no other, so a worker returns its held envelope to
+the ready list on the way out and takes back whatever a previous run of the same
+slot left behind on the way in. A graceful stop therefore leaves nothing in
+flight, and a worker killed mid-job redelivers when that slot restarts.
+
+Warning: give each worker its own `redisWorkerName` — a pod ordinal, a
+supervisor slot number. Two workers sharing a name share an in-flight list, and
+then a restart of one hands the other's running job back to the ready list as a
+second delivery. A slot that is retired rather than restarted leaves its list
+for an operator to re-enqueue, because nothing tracks whether a slot will return.
 
 `Queue` is single-shot, so a host that pushes repeatedly pays a full boot per
 push. It settles nothing, because the signal that settles an outcome belongs to
@@ -215,11 +225,12 @@ an application config that does not implement its contract.
 
 #### `QueueRedisClientConfigContract`
 
-| Property     | Default            | Description                       |
-| :----------- | :----------------- | :-------------------------------- |
-| `redisHost`  | `'127.0.0.1'`      | Redis host                        |
-| `redisPort`  | `6379`             | Redis port                        |
-| `redisQueue` | `'queues:default'` | The list key jobs are pushed onto |
+| Property          | Default            | Description                                                 |
+| :---------------- | :----------------- | :---------------------------------------------------------- |
+| `redisHost`       | `'127.0.0.1'`      | Redis host                                                  |
+| `redisPort`       | `6379`             | Redis port                                                  |
+| `redisQueue`      | `'queues:default'` | The list key jobs are pushed onto                           |
+| `redisWorkerName` | `'default'`        | Names this worker's slot, which owns its own in-flight list |
 
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
