@@ -40,6 +40,9 @@ final class SqsQueueTest extends TestCase
     /** @var non-empty-string */
     protected const string HANDLE = 'receipt-handle-1';
 
+    /** The instant every test in this class starts from. */
+    protected const float FROZEN_SECONDS = 1768564798.0;
+
     protected SqsFixture $sqs;
 
     /**
@@ -59,6 +62,8 @@ final class SqsQueueTest extends TestCase
     {
         parent::setUp();
 
+        Microtime::freeze(self::FROZEN_SECONDS);
+
         $this->sqs = new SqsFixture();
 
         SqsQueueFixture::inject($this->sqs, self::QUEUE_URL);
@@ -68,6 +73,8 @@ final class SqsQueueTest extends TestCase
     protected function tearDown(): void
     {
         SqsQueueFixture::reset();
+
+        Microtime::unfreeze();
 
         parent::tearDown();
     }
@@ -270,8 +277,6 @@ final class SqsQueueTest extends TestCase
 
     public function testARampLongerThanSqsAllowsIsClamped(): void
     {
-        Microtime::freeze(1768564798.0);
-
         $this->seed(new Job(name: self::NAME, retryDelayMs: 90_000_000));
 
         $job = SqsQueueFixture::receive();
@@ -286,14 +291,10 @@ final class SqsQueueTest extends TestCase
             SqsQueue::MAX_VISIBILITY_TIMEOUT,
             $this->sqs->getCalls('changeMessageVisibility')[0]['VisibilityTimeout']
         );
-
-        Microtime::unfreeze();
     }
 
     public function testTheCeilingShrinksByTheTimeTheJobAlreadyTook(): void
     {
-        Microtime::freeze(1768564798.0);
-
         $this->seed(new Job(name: self::NAME, retryDelayMs: 90_000_000));
 
         $job = SqsQueueFixture::receive();
@@ -302,7 +303,7 @@ final class SqsQueueTest extends TestCase
 
         // SQS measures the ceiling from the receive, so asking for the whole
         // twelve hours once any of it has passed is rejected
-        Microtime::freeze(1768564828.0);
+        Microtime::freeze(self::FROZEN_SECONDS + 30.0);
 
         SqsQueueFixture::settle($job, JobResult::RETRY, new InMemoryClient());
 
@@ -310,8 +311,6 @@ final class SqsQueueTest extends TestCase
             SqsQueue::MAX_VISIBILITY_TIMEOUT - 30,
             $this->sqs->getCalls('changeMessageVisibility')[0]['VisibilityTimeout']
         );
-
-        Microtime::unfreeze();
     }
 
     public function testReceivingWithoutAConnectionFails(): void
