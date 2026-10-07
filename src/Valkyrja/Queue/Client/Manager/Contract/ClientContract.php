@@ -32,11 +32,12 @@ interface ClientContract
     /**
      * Settle a retry for the job as dispatched.
      *
-     * The framework calls this with the job as dispatched, and this derives the
-     * hold from that job. The ramp applies only where the job sets it. A client
-     * that owns redelivery increments the attempt count and stamps the
-     * modification time. A client whose processor counts the attempt hands that
-     * processor the retry signal, and authors neither field.
+     * The framework calls this with the job as dispatched. A client that owns
+     * redelivery derives the hold from that job, applies the ramp where the job
+     * sets it, increments the attempt count, and stamps the modification time.
+     * A client whose processor owns redelivery hands that processor the retry
+     * signal and authors neither field, and the processor's own backoff times
+     * the next delivery.
      *
      * @param JobContract $job The job as dispatched, before any increment
      */
