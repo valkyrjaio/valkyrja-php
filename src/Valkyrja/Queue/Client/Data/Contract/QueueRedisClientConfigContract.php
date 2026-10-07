@@ -27,4 +27,9 @@ interface QueueRedisClientConfigContract
     public string $redisQueue {
         get;
     }
+
+    /** @var non-empty-string */
+    public string $redisWorkerName {
+        get;
+    }
 }
