@@ -267,7 +267,7 @@ class DatabaseQueue extends PullQueue
         $envelope = $row['envelope'] ?? null;
 
         // Without a key there is nothing to name the row by, and an unqualified
-        // delete would take whichever row is at the head instead. The row
+        // update would park whichever row is at the head instead. The row
         // therefore stays, and the queue stalls on it. The documented DDL makes
         // `id` the primary key, so this needs a table that allows it to be null.
         if (! is_int($id) && ! is_string($id)) {
@@ -321,15 +321,17 @@ class DatabaseQueue extends PullQueue
     /**
      * Hold a row out of the claim's reach without taking it off the table.
      *
-     * A reservation this far ahead never goes stale, so no staleness window
-     * reaches back to it and no later poll reads the row again.
+     * Both stamps move. The reservation this far ahead never goes stale, so no
+     * staleness window reaches back to it; the availability stamp moving with it
+     * is what takes the row out of the range the claim index narrows to, so a
+     * parked row stops joining the sort that every later poll pays for.
      */
     protected static function park(int|string $id): void
     {
         $table = static::$table;
 
         $statement = static::getConnection()->prepare(
-            "UPDATE $table SET reserved_at_ms = :parked WHERE id = :id"
+            "UPDATE $table SET reserved_at_ms = :parked, available_at_ms = :parked WHERE id = :id"
         );
 
         $statement->bindValue(new Value('parked', self::PARKED_AT_MS));

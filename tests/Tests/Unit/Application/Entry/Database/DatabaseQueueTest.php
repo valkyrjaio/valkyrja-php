@@ -360,6 +360,20 @@ final class DatabaseQueueTest extends TestCase
         );
     }
 
+    public function testAParkedRowLeavesTheIndexRangeTheClaimNarrowsTo(): void
+    {
+        // The claim index carries available_at_ms and not reserved_at_ms, so a
+        // row parked on the reservation alone would join every later poll's sort
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => '{not json']];
+
+        DatabaseQueueFixture::receive();
+
+        $park = $this->parkStatement();
+
+        self::assertStringContainsString('available_at_ms = :parked', $park->query);
+        self::assertStringContainsString('reserved_at_ms = :parked', $park->query);
+    }
+
     public function testARowThatCarriesNoObjectIsParked(): void
     {
         $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => '5']];
