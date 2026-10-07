@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace Valkyrja\Application\Entry\Sqs;
 
+use AsyncAws\Core\Exception\Http\HttpException;
+use AsyncAws\Core\Exception\Http\NetworkException;
 use AsyncAws\Sqs\Enum\MessageSystemAttributeName;
 use AsyncAws\Sqs\SqsClient;
 use AsyncAws\Sqs\ValueObject\Message;
@@ -141,10 +143,19 @@ class SqsQueue extends PullQueue
     public static function disconnect(): void
     {
         // Anything still in flight was not completed, so release it rather than
-        // letting it wait out the whole visibility timeout
-        static::releaseCurrent();
+        // letting it wait out the whole visibility timeout. The release is best
+        // effort: `PullQueue::loop()` calls this from a `finally`, so a throw
+        // here would replace whatever ended the loop and skip the teardown
+        // below, and SQS redelivers on its own once the window lapses.
+        try {
+            static::releaseCurrent();
+        } catch (HttpException|NetworkException) {
+            // The window lapsing is the fallback, and it always applies
+        }
 
-        static::$sqs = null;
+        static::$sqs        = null;
+        static::$current    = null;
+        static::$receivedAt = 0.0;
     }
 
     /**
