@@ -40,7 +40,7 @@ class SqsQueue extends PullQueue
     public const int MAX_VISIBILITY_TIMEOUT = 43_200;
 
     /**
-     * The long-poll wait; 0 polls without blocking.
+     * The long-poll wait; 20 is the longest and cheapest.
      *
      * Twenty is the longest SQS accepts and the cheapest: a one-second wait
      * bills roughly 86,400 `ReceiveMessage` calls a day on an idle queue.

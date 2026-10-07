@@ -40,7 +40,7 @@ interface QueueSqsClientConfigContract
     }
 
     /**
-     * The long-poll wait, in seconds; 0 polls without blocking.
+     * The long-poll wait, in seconds; 20 is the longest and cheapest.
      *
      * This is also how long a worker can overrun `maxSeconds`, because the loop
      * reads its bounds only between receives.
