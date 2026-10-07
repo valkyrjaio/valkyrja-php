@@ -143,6 +143,14 @@ orders by it only when the broker gave the queue a priority bound. The framework
 declares no bound, so a default setup delivers in publish order and carries the
 priority without effect.
 
+Warning: `AmqpQueue` rejects a body no factory can read without requeueing it,
+so the broker decides where it goes. A queue with a dead-letter exchange keeps
+it, and a queue without one drops it. The framework declares no such exchange,
+because the queue argument that names one belongs to the broker owner, so a
+deployment that must keep an unreadable body declares the policy itself. This is
+the discard that `RedisQueue`'s unreadable list avoids, and AMQP's own
+redelivery is why the entry answers the broker rather than parking the bytes.
+
 Warning: RabbitMQ carries no redelivery backoff, and `AmqpQueue` answers a retry
 with a nack that requeues at once. A job on that broker retries with no hold at
 all, as fast as the worker can run it, and `retry_delay_ms` and
