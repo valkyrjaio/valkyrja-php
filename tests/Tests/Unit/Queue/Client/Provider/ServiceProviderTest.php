@@ -19,16 +19,19 @@ use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
 use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
 use Valkyrja\Queue\Client\Data\QueueAmqpClientConfig;
+use Valkyrja\Queue\Client\Data\QueueBeanstalkdClientConfig;
 use Valkyrja\Queue\Client\Data\QueueClientConfig;
 use Valkyrja\Queue\Client\Data\QueueRedisClientConfig;
 use Valkyrja\Queue\Client\Data\QueueSqsClientConfig;
 use Valkyrja\Queue\Client\Manager\AmqpClient;
+use Valkyrja\Queue\Client\Manager\BeanstalkdClient;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Manager\DeferredClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
@@ -81,6 +84,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(AmqpClient::class, $publishers);
         self::assertArrayHasKey(QueueSqsClientConfigContract::class, $publishers);
         self::assertArrayHasKey(SqsClient::class, $publishers);
+        self::assertArrayHasKey(QueueBeanstalkdClientConfigContract::class, $publishers);
+        self::assertArrayHasKey(BeanstalkdClient::class, $publishers);
     }
 
     public function testPublishConfig(): void
@@ -321,6 +326,38 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $this->publish(SqsClient::class);
 
         self::assertInstanceOf(SqsClient::class, $this->container->getSingleton(SqsClient::class));
+    }
+
+    public function testPublishBeanstalkdConfig(): void
+    {
+        $this->publish(QueueBeanstalkdClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueBeanstalkdClientConfigContract::class);
+
+        self::assertSame('127.0.0.1', $config->beanstalkdHost);
+        self::assertSame(60, $config->beanstalkdTimeToRelease);
+    }
+
+    public function testPublishBeanstalkdConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(QueueBeanstalkdClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueBeanstalkdClientConfigContract::class);
+
+        self::assertSame('beanstalkd.test', $config->beanstalkdHost);
+        self::assertSame(90, $config->beanstalkdTimeToRelease);
+    }
+
+    public function testPublishBeanstalkdClientDoesNotConnect(): void
+    {
+        $this->container->setSingleton(QueueBeanstalkdClientConfigContract::class, new QueueBeanstalkdClientConfig());
+
+        // Nothing listens on the default port, so an eager connection would throw here
+        $this->publish(BeanstalkdClient::class);
+
+        self::assertInstanceOf(BeanstalkdClient::class, $this->container->getSingleton(BeanstalkdClient::class));
     }
 
     /**
