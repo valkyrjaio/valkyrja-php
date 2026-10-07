@@ -46,9 +46,12 @@ class Cli extends App
         /** @var non-empty-string[] $args */
         $args = $_SERVER['argv'] ?? [];
 
+        /** @var non-empty-string $applicationName */
+        $applicationName = $config->applicationName;
+
         $input = InputFactory::fromGlobals(
             args: $args,
-            applicationName: $config->applicationName,
+            applicationName: $applicationName,
             commandName: $config->defaultCommandName,
         );
 

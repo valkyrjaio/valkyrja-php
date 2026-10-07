@@ -62,6 +62,7 @@ Every constructor argument, with its default and what it does:
 | `key`                      | `'some_secret_app_key'`                    | The application secret — always override this                                                                                      |
 | `dataPath`                 | `'App/Provider/Data'`                      | Names the location of generated data classes; the framework does not read this property                                            |
 | `dataNamespace`            | `'App\\Provider\\Data'`                    | Names the namespace of generated data classes; the framework does not read this property                                           |
+| `applicationName`          | `'valkyrja'`                               | The application's name; only a CLI application reads it, as the binary name in help and version output                             |
 | `providers`                | `[new HttpApplicationComponentProvider()]` | The `ComponentProviderContract` instances to boot                                                                                  |
 | `callbacks`                | `[]`                                       | Callables the application runs at boot, each `callable(ApplicationContract): void`                                                 |
 | seven `*Middleware` arrays | `[]`, except the two stages with built-ins | The global pipeline, one array per stage — the defaults are in [registering middleware globally](#registering-middleware-globally) |
