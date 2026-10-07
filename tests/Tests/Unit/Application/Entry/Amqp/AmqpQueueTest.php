@@ -26,6 +26,7 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Tests\Fixtures\Application\Entry\AmqpQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\AmqpChannelFixture;
+use Valkyrja\Tests\Fixtures\Queue\Client\AmqpConnectionFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function json_encode;
@@ -37,12 +38,16 @@ final class AmqpQueueTest extends TestCase
 
     protected AmqpChannelFixture $channel;
 
+    protected AmqpConnectionFixture $connection;
+
     #[Override]
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->channel = new AmqpChannelFixture();
+        // The connection owns the channel, so the entry's channel reports it
+        $this->connection = new AmqpConnectionFixture();
+        $this->channel    = $this->connection->recordingChannel;
 
         AmqpQueueFixture::inject($this->channel, self::QUEUE, timeout: 0);
     }
@@ -191,6 +196,16 @@ final class AmqpQueueTest extends TestCase
 
         self::assertSame([], $this->channel->getCalls('basic_nack'));
         self::assertTrue($this->channel->closed);
+    }
+
+    public function testDisconnectClosesTheConnectionAndNotOnlyTheChannel(): void
+    {
+        AmqpQueueFixture::disconnect();
+
+        // Closing the channel alone leaves the socket open, so a process that
+        // runs the loop twice would hold a second broker connection
+        self::assertTrue($this->channel->closed);
+        self::assertTrue($this->connection->closed);
     }
 
     public function testAnEmptyPollYieldsForTheConfiguredTimeout(): void
