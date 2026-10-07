@@ -61,15 +61,18 @@ class RedisQueue extends PullQueue
     /**
      * Return every envelope this worker's slot still holds to the ready list.
      *
-     * The move is onto the head, so a reclaimed job is redelivered before the
-     * backlog behind it. The slot's list is read by this worker alone, so a
-     * reclaim cannot take an envelope a live worker is running.
+     * The move is onto the tail. A reclaimed job keeps its attempt count,
+     * because nothing here rewrites the envelope, so a job that kills its
+     * worker every time comes back every time; at the head it would hold up
+     * everything behind it, and at the tail the rest of the queue still drains.
+     * The slot's list is read by this worker alone, so a reclaim cannot take an
+     * envelope a live worker is running.
      */
     protected const string RECLAIM_SCRIPT = <<<'LUA'
         local moved = 0
 
         for _ = 1, tonumber(ARGV[1]) do
-            if not redis.call('LMOVE', KEYS[1], KEYS[2], 'LEFT', 'LEFT') then
+            if not redis.call('LMOVE', KEYS[1], KEYS[2], 'LEFT', 'RIGHT') then
                 break
             end
 
