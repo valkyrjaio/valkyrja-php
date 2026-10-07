@@ -31,7 +31,6 @@ final class AmqpConnectionFixture extends AbstractConnection
     public function __construct(
         public AmqpChannelFixture $recordingChannel = new AmqpChannelFixture(),
     ) {
-        $this->recordingChannel->reportConnection($this);
     }
 
     /**

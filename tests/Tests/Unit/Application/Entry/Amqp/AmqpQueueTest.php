@@ -38,16 +38,12 @@ final class AmqpQueueTest extends TestCase
 
     protected AmqpChannelFixture $channel;
 
-    protected AmqpConnectionFixture $connection;
-
     #[Override]
     protected function setUp(): void
     {
         parent::setUp();
 
-        // The connection owns the channel, so the entry's channel reports it
-        $this->connection = new AmqpConnectionFixture();
-        $this->channel    = $this->connection->recordingChannel;
+        $this->channel = new AmqpChannelFixture();
 
         AmqpQueueFixture::inject($this->channel, self::QUEUE, timeout: 0);
     }
@@ -198,14 +194,29 @@ final class AmqpQueueTest extends TestCase
         self::assertTrue($this->channel->closed);
     }
 
-    public function testDisconnectClosesTheConnectionAndNotOnlyTheChannel(): void
+    public function testDisconnectClosesAConnectionTheEntryOpened(): void
     {
+        $connection = new AmqpConnectionFixture();
+
+        AmqpQueueFixture::opened($connection);
         AmqpQueueFixture::disconnect();
 
         // Closing the channel alone leaves the socket open, so a process that
         // runs the loop twice would hold a second broker connection
         self::assertTrue($this->channel->closed);
-        self::assertTrue($this->connection->closed);
+        self::assertTrue($connection->closed);
+    }
+
+    public function testDisconnectLeavesAConnectionTheCallerOwns(): void
+    {
+        // A caller that handed over a channel still needs the connection under
+        // it, so the entry closes only what it opened
+        $connection = new AmqpConnectionFixture();
+
+        AmqpQueueFixture::disconnect();
+
+        self::assertTrue($this->channel->closed);
+        self::assertFalse($connection->closed);
     }
 
     public function testAnEmptyPollYieldsForTheConfiguredTimeout(): void

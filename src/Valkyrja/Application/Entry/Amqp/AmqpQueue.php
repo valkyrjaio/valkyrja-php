@@ -15,6 +15,7 @@ namespace Valkyrja\Application\Entry\Amqp;
 use JsonException;
 use Override;
 use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
@@ -46,6 +47,14 @@ class AmqpQueue extends PullQueue
     protected static int $timeout = 1;
 
     protected static AMQPChannel|null $channel = null;
+
+    /**
+     * The connection this entry opened, if it opened one.
+     *
+     * A caller that supplies its own channel owns the connection under it, and
+     * this entry closes only what it opened itself.
+     */
+    protected static AbstractConnection|null $connection = null;
 
     /** @var non-empty-string */
     protected static string $queue = 'queues.default';
@@ -115,18 +124,17 @@ class AmqpQueue extends PullQueue
         // than letting it wait out the broker's own timeout
         static::releaseCurrent();
 
-        $channel = static::getConnection();
+        static::getConnection()->close();
 
         // `close()` on a channel sends `channel.close` and leaves the socket
         // open, so a process that runs the loop twice would hold a second
-        // broker connection. The connection is what owns the socket.
-        $connection = $channel->getConnection();
+        // broker connection. The connection is what owns the socket, and this
+        // closes only the one this entry opened: a caller that handed over a
+        // channel still needs the connection under it.
+        static::$connection?->close();
 
-        $channel->close();
-
-        $connection?->close();
-
-        static::$channel = null;
+        static::$channel    = null;
+        static::$connection = null;
     }
 
     /**
@@ -250,13 +258,15 @@ class AmqpQueue extends PullQueue
      */
     protected static function getChannel(QueueAmqpClientConfigContract $config): AMQPChannel
     {
-        return new AMQPStreamConnection(
+        static::$connection = new AMQPStreamConnection(
             $config->amqpHost,
             $config->amqpPort,
             $config->amqpUser,
             $config->amqpPassword,
             $config->amqpVhost,
-        )->channel();
+        );
+
+        return static::$connection->channel();
     }
 
     /**

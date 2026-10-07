@@ -14,6 +14,7 @@ namespace Valkyrja\Tests\Fixtures\Application\Entry;
 
 use Override;
 use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AbstractConnection;
 use Valkyrja\Application\Entry\Amqp\AmqpQueue;
 use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
 
@@ -45,16 +46,25 @@ final class AmqpQueueFixture extends AmqpQueue
     }
 
     /**
+     * Pretend connect() opened this connection itself.
+     */
+    public static function opened(AbstractConnection $connection): void
+    {
+        self::$connection = $connection;
+    }
+
+    /**
      * Drop the channel and the overrides, so no test leaks into the next.
      */
     public static function reset(): void
     {
-        self::$injected  = null;
-        self::$channel   = null;
-        self::$current   = null;
-        self::$queue     = 'queues.default';
-        self::$timeout   = 1;
-        self::$waits     = 0;
+        self::$injected   = null;
+        self::$channel    = null;
+        self::$connection = null;
+        self::$current    = null;
+        self::$queue      = 'queues.default';
+        self::$timeout    = 1;
+        self::$waits      = 0;
     }
 
     /**
