@@ -24,6 +24,7 @@ use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
+use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Fixtures\Application\Entry\SqsQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\SqsFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -269,6 +270,8 @@ final class SqsQueueTest extends TestCase
 
     public function testARampLongerThanSqsAllowsIsClamped(): void
     {
+        Microtime::freeze(1768564798.0);
+
         $this->seed(new Job(name: self::NAME, retryDelayMs: 90_000_000));
 
         $job = SqsQueueFixture::receive();
@@ -277,10 +280,38 @@ final class SqsQueueTest extends TestCase
 
         SqsQueueFixture::settle($job, JobResult::RETRY, new InMemoryClient());
 
+        // The ceiling is twelve hours from the receive, so a frozen clock leaves
+        // the whole of it available
         self::assertSame(
             SqsQueue::MAX_VISIBILITY_TIMEOUT,
             $this->sqs->getCalls('changeMessageVisibility')[0]['VisibilityTimeout']
         );
+
+        Microtime::unfreeze();
+    }
+
+    public function testTheCeilingShrinksByTheTimeTheJobAlreadyTook(): void
+    {
+        Microtime::freeze(1768564798.0);
+
+        $this->seed(new Job(name: self::NAME, retryDelayMs: 90_000_000));
+
+        $job = SqsQueueFixture::receive();
+
+        self::assertNotNull($job);
+
+        // SQS measures the ceiling from the receive, so asking for the whole
+        // twelve hours once any of it has passed is rejected
+        Microtime::freeze(1768564828.0);
+
+        SqsQueueFixture::settle($job, JobResult::RETRY, new InMemoryClient());
+
+        self::assertSame(
+            SqsQueue::MAX_VISIBILITY_TIMEOUT - 30,
+            $this->sqs->getCalls('changeMessageVisibility')[0]['VisibilityTimeout']
+        );
+
+        Microtime::unfreeze();
     }
 
     public function testReceivingWithoutAConnectionFails(): void
