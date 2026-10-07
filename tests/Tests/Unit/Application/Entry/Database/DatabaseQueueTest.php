@@ -120,13 +120,18 @@ final class DatabaseQueueTest extends TestCase
 
     public function testARowWithNoEnvelopeIsNeverClaimed(): void
     {
-        // A row the adapter cannot read is not one it may claim. It is dropped
-        // rather than skipped, which testARowWithNoEnvelopeIsTakenOffTheTable
-        // pins; this one pins that no worker ever owns it.
+        // A row the adapter cannot read is not one it may claim. It is parked
+        // rather than skipped, which testARowWithNoEnvelopeIsParked pins; this
+        // one pins that no worker ever owns it.
         $this->manager->rows = [['id' => self::ROW_ID]];
 
         self::assertNull(DatabaseQueueFixture::receive());
-        self::assertSame([], $this->manager->getStatements('UPDATE'));
+
+        $updates = $this->manager->getStatements('UPDATE');
+
+        // The park alone, never a claim
+        self::assertCount(1, $updates);
+        self::assertArrayHasKey('parked', $updates[0]->bound);
     }
 
     public function testARowWithNoIdIsSkipped(): void
@@ -283,7 +288,7 @@ final class DatabaseQueueTest extends TestCase
         self::assertSame('b8c1f0de-0000-4000-8000-000000000000', $claim->bound['id']);
     }
 
-    public function testARowWithNoEnvelopeIsTakenOffTheTable(): void
+    public function testARowWithNoEnvelopeIsParked(): void
     {
         // A select takes nothing off the table, so leaving it would hand the
         // same row back on every poll and stall the whole queue
@@ -291,45 +296,46 @@ final class DatabaseQueueTest extends TestCase
 
         self::assertNull(DatabaseQueueFixture::receive());
 
-        $deletes = $this->manager->getStatements('DELETE');
-
-        self::assertCount(1, $deletes);
-        self::assertSame(self::ROW_ID, $deletes[0]->bound['id']);
+        // Parked, not deleted: the bytes are the only record of the job
+        self::assertSame([], $this->manager->getStatements('DELETE'));
+        self::assertSame(self::ROW_ID, $this->parkStatement()->bound['id']);
     }
 
-    public function testTheDeleteIsPortableSql(): void
+    public function testTheParkIsPortableSql(): void
     {
-        // `ORDER BY` with `LIMIT` on a delete is a MySQL extension that
-        // PostgreSQL rejects at prepare time, and the repo ships PgsqlManager
+        // `ORDER BY` with `LIMIT` is a MySQL extension that PostgreSQL rejects
+        // at prepare time, and the repo ships PgsqlManager
         $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => null]];
 
         DatabaseQueueFixture::receive();
 
-        $query = $this->manager->getStatements('DELETE')[0]->query;
+        $query = $this->parkStatement()->query;
 
         self::assertStringNotContainsString('ORDER BY', $query);
         self::assertStringNotContainsString('LIMIT', $query);
     }
 
-    public function testAnEmptyTableDeletesNothing(): void
+    public function testAnEmptyTableTouchesNothing(): void
     {
         // The unreadable-row guard must not fire on an idle poll, or a job
-        // pushed between the select and the delete would go unread
+        // pushed between the select and the park would go unread
         self::assertNull(DatabaseQueueFixture::receive());
         self::assertSame([], $this->manager->getStatements('DELETE'));
+        self::assertSame([], $this->manager->getStatements('UPDATE'));
     }
 
-    public function testARowWithNoKeyDeletesNothing(): void
+    public function testARowWithNoKeyTouchesNothing(): void
     {
         // Without a key there is nothing to identify the row by, so an
-        // unqualified delete would be the only option and would take a job
+        // unqualified write would be the only option and would take a job
         $this->manager->rows = [['envelope' => '{}']];
 
         self::assertNull(DatabaseQueueFixture::receive());
         self::assertSame([], $this->manager->getStatements('DELETE'));
+        self::assertSame([], $this->manager->getStatements('UPDATE'));
     }
 
-    public function testAnUnreadableRowIsTakenOffTheTable(): void
+    public function testAnUnreadableRowIsParkedOutOfTheClaimsReach(): void
     {
         // Nothing settles a row the factory cannot read, so the claim would
         // lapse and the next worker would read the same bytes
@@ -337,30 +343,42 @@ final class DatabaseQueueTest extends TestCase
 
         self::assertNull(DatabaseQueueFixture::receive());
 
-        $deletes = $this->manager->getStatements('DELETE');
-
-        self::assertCount(1, $deletes);
-        self::assertSame(self::ROW_ID, $deletes[0]->bound['id']);
+        self::assertSame([], $this->manager->getStatements('DELETE'));
+        self::assertSame(
+            DatabaseQueue::PARKED_AT_MS,
+            $this->parkStatement()->bound['parked']
+        );
     }
 
-    public function testARowThatCarriesNoObjectIsTakenOffTheTable(): void
+    public function testAParkedRowIsNeverEligibleAgain(): void
+    {
+        // The claim reads a reservation as free once it is older than the
+        // window, so the stamp has to sit beyond every window a worker computes
+        self::assertGreaterThan(
+            Microtime::getMilliseconds() + DatabaseQueue::DEFAULT_RESERVATION_TIMEOUT_MS,
+            DatabaseQueue::PARKED_AT_MS
+        );
+    }
+
+    public function testARowThatCarriesNoObjectIsParked(): void
     {
         $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => '5']];
 
         self::assertNull(DatabaseQueueFixture::receive());
-        self::assertCount(1, $this->manager->getStatements('DELETE'));
+        self::assertSame([], $this->manager->getStatements('DELETE'));
+        self::assertSame(self::ROW_ID, $this->parkStatement()->bound['id']);
     }
 
-    public function testAnUnreadableRowLeavesNothingReserved(): void
+    public function testAParkedRowLeavesNothingReserved(): void
     {
         $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => '{not json']];
 
         DatabaseQueueFixture::receive();
         DatabaseQueueFixture::disconnect();
 
-        // One UPDATE only: the claim. The delete already answered the row, so a
-        // release would hand back a row that no longer exists.
-        self::assertCount(1, $this->manager->getStatements('UPDATE'));
+        // The claim and the park. A release would undo the park and hand the
+        // unreadable row straight back to the next poll.
+        self::assertCount(2, $this->manager->getStatements('UPDATE'));
     }
 
     #[DataProvider('terminalProvider')]
@@ -483,5 +501,19 @@ final class DatabaseQueueTest extends TestCase
         $this->seed(new JobFactory()->create(self::NAME));
 
         DatabaseQueueFixture::receive();
+    }
+
+    /**
+     * The one update that parked a row, told apart from the claim by its bind.
+     */
+    protected function parkStatement(): object
+    {
+        foreach ($this->manager->getStatements('UPDATE') as $statement) {
+            if (isset($statement->bound['parked'])) {
+                return $statement;
+            }
+        }
+
+        self::fail('No row was parked.');
     }
 }

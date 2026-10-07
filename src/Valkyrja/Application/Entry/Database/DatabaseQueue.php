@@ -47,6 +47,14 @@ class DatabaseQueue extends PullQueue
      */
     public const int DEFAULT_RESERVATION_TIMEOUT_MS = 300_000;
 
+    /**
+     * The reservation stamp a parked row carries.
+     *
+     * The last millisecond of the year 9999, so no staleness window a worker
+     * computes reaches back to it and a parked row is never claimed again.
+     */
+    public const int PARKED_AT_MS = 253_402_300_799_000;
+
     /** @var int<1, max> The age at which a claim is abandoned */
     protected static int $reservationTimeoutMs = self::DEFAULT_RESERVATION_TIMEOUT_MS;
 
@@ -157,19 +165,20 @@ class DatabaseQueue extends PullQueue
     }
 
     /**
-     * Read the envelope, and take a row the factory cannot read off the table.
+     * Read the envelope, and park a row the factory cannot read.
      *
      * An unreadable row never reaches the handler, so nothing settles it. The
      * claim lapses after the reservation timeout, the next worker reads the same
-     * bytes, and nothing ends that. A database carries no dead-letter store of
-     * its own, so the row is dropped, the same as an unreadable Redis envelope.
+     * bytes, and nothing ends that. Parking ends it without destroying the
+     * bytes, which are the only record of the job, the same way `RedisQueue`
+     * holds an unreadable envelope on a list of its own.
      */
     protected static function decode(string $envelope, int|string $id): JobContract|null
     {
         try {
             return new JobFactory()->fromJson($envelope);
         } catch (JsonException|QueueMessageInvalidEnvelopeException) {
-            static::delete($id);
+            static::park($id);
 
             return null;
         }
@@ -269,10 +278,10 @@ class DatabaseQueue extends PullQueue
             // A select takes nothing off the table, so a row this method cannot
             // read stays at the queue head and is handed back on every poll.
             // `decode()` settled the policy for a row the adapter cannot read:
-            // drop it, because nothing else ends the loop. The key the select
-            // returned is exact here, so the delete names it rather than
+            // park it, because nothing else ends the loop. The key the select
+            // returned is exact here, so the update names it rather than
             // repeating the predicate and taking whichever row is at the head.
-            static::delete($id);
+            static::park($id);
 
             return null;
         }
@@ -307,6 +316,25 @@ class DatabaseQueue extends PullQueue
         $statement->execute();
 
         return $statement->getRowCount() > 0;
+    }
+
+    /**
+     * Hold a row out of the claim's reach without taking it off the table.
+     *
+     * A reservation this far ahead never goes stale, so no staleness window
+     * reaches back to it and no later poll reads the row again.
+     */
+    protected static function park(int|string $id): void
+    {
+        $table = static::$table;
+
+        $statement = static::getConnection()->prepare(
+            "UPDATE $table SET reserved_at_ms = :parked WHERE id = :id"
+        );
+
+        $statement->bindValue(new Value('parked', self::PARKED_AT_MS));
+        $statement->bindValue(new Value('id', $id));
+        $statement->execute();
     }
 
     /**
