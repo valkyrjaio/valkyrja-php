@@ -1,0 +1,533 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the Valkyrja Framework package.
+ *
+ * Copyright (c) 2016-present Melech Mizrachi
+ *
+ * Released under the MIT License. See LICENSE.md for details.
+ */
+
+namespace Valkyrja\Tests\Unit\Application\Entry\Database;
+
+use Override;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Valkyrja\Application\Entry\Database\DatabaseQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Orm\Manager\Contract\ManagerContract;
+use Valkyrja\Queue\Client\Data\QueueDatabaseClientConfig;
+use Valkyrja\Queue\Client\Manager\InMemoryClient;
+use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Factory\JobFactory;
+use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
+use Valkyrja\Support\Time\Microtime;
+use Valkyrja\Tests\Fixtures\Application\Entry\DatabaseQueueFixture;
+use Valkyrja\Tests\Fixtures\Queue\Client\DatabaseManagerFixture;
+use Valkyrja\Tests\Fixtures\Queue\Client\RecordingClientFixture;
+use Valkyrja\Tests\Unit\Abstract\TestCase;
+
+final class DatabaseQueueTest extends TestCase
+{
+    /** @var non-empty-string */
+    protected const string NAME = 'SendWelcomeEmail';
+
+    /** @var non-empty-string */
+    protected const string QUEUE = 'default';
+
+    /** @var int<0, max> */
+    protected const int FROZEN_MS = 1768564798000;
+
+    protected const int ROW_ID = 12;
+
+    protected DatabaseManagerFixture $manager;
+
+    /**
+     * @return array<string, array{JobResult}>
+     */
+    public static function terminalProvider(): array
+    {
+        return [
+            'ack'         => [JobResult::ACK],
+            'fail'        => [JobResult::FAIL],
+            'dead letter' => [JobResult::DEAD_LETTER],
+        ];
+    }
+
+    #[Override]
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Microtime::freeze(1768564798.0);
+
+        $this->manager = new DatabaseManagerFixture();
+
+        DatabaseQueueFixture::inject($this->manager, self::QUEUE);
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        DatabaseQueueFixture::reset();
+
+        Microtime::unfreeze();
+
+        parent::tearDown();
+    }
+
+    public function testConnectReadsTheQueueAndTableFromTheConfig(): void
+    {
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturn(
+            new QueueDatabaseClientConfig(databaseQueue: 'emails', databaseTable: 'jobs_test')
+        );
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        DatabaseQueueFixture::connect($app);
+        DatabaseQueueFixture::receive();
+
+        $select = $this->manager->getStatements('SELECT')[0];
+
+        // A table that differs from the injected default, so the assertion
+        // fails if connect() stops reading the table from the config
+        self::assertStringContainsString('FROM jobs_test', $select->query);
+        self::assertSame('emails', $select->bound['queue']);
+    }
+
+    public function testAnEmptyTableYieldsNothing(): void
+    {
+        self::assertNull(DatabaseQueueFixture::receive());
+    }
+
+    public function testTheSelectSkipsHeldAndReservedRows(): void
+    {
+        DatabaseQueueFixture::receive();
+
+        $select = $this->manager->getStatements('SELECT')[0];
+
+        self::assertStringContainsString('reserved_at_ms IS NULL', $select->query);
+        self::assertStringContainsString('available_at_ms <= :now', $select->query);
+        self::assertStringContainsString('ORDER BY priority DESC, id ASC', $select->query);
+        self::assertSame(self::QUEUE, $select->bound['queue']);
+        self::assertSame(self::FROZEN_MS, $select->bound['now']);
+    }
+
+    public function testARowWithNoEnvelopeIsNeverClaimed(): void
+    {
+        // A row the adapter cannot read is not one it may claim. It is parked
+        // rather than skipped, which testARowWithNoEnvelopeIsParked pins; this
+        // one pins that no worker ever owns it.
+        $this->manager->rows = [['id' => self::ROW_ID]];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+
+        $updates = $this->manager->getStatements('UPDATE');
+
+        // The park alone, never a claim
+        self::assertCount(1, $updates);
+        self::assertArrayHasKey('parked', $updates[0]->bound);
+    }
+
+    public function testARowWithNoIdIsSkipped(): void
+    {
+        $this->manager->rows = [['envelope' => new JobFactory()->toJson(new JobFactory()->create(self::NAME))]];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertSame([], $this->manager->getStatements('UPDATE'));
+    }
+
+    public function testAStringIdIsReadBackAsAJob(): void
+    {
+        // PDO returns a BIGINT as a string on pgsql, and on mysql whenever the
+        // driver emulates prepares, so the id arrives as text rather than an int
+        $this->manager->rows = [
+            [
+                'id'       => (string) self::ROW_ID,
+                'envelope' => new JobFactory()->toJson(new JobFactory()->create(self::NAME)),
+            ],
+        ];
+
+        $job = DatabaseQueueFixture::receive();
+
+        self::assertNotNull($job);
+        // Bound as it came back: the engine compares it to the key either way,
+        // and casting would turn a key that is not all digits into 0
+        self::assertSame((string) self::ROW_ID, $this->manager->getStatements('UPDATE')[0]->bound['id']);
+    }
+
+    public function testAStaleReservationBecomesEligibleAgain(): void
+    {
+        // A worker that dies between the claim and the settle leaves the row
+        // reserved. Without the staleness window no worker could ever take it.
+        DatabaseQueueFixture::receive();
+
+        $select = $this->manager->getStatements('SELECT')[0];
+
+        self::assertStringContainsString('reserved_at_ms IS NULL OR reserved_at_ms <= :stale', $select->query);
+        self::assertSame(
+            self::FROZEN_MS - DatabaseQueue::DEFAULT_RESERVATION_TIMEOUT_MS,
+            $select->bound['stale']
+        );
+    }
+
+    public function testAClaimCanTakeAStaleReservation(): void
+    {
+        $this->seed(new JobFactory()->create(self::NAME));
+
+        DatabaseQueueFixture::receive();
+
+        $update = $this->manager->getStatements('UPDATE')[0];
+
+        // The claim must accept the same window the select offered, or a stale
+        // row would be selected forever and never actually taken
+        self::assertStringContainsString('reserved_at_ms IS NULL OR reserved_at_ms <= :stale', $update->query);
+        self::assertSame(
+            self::FROZEN_MS - DatabaseQueue::DEFAULT_RESERVATION_TIMEOUT_MS,
+            $update->bound['stale']
+        );
+    }
+
+    public function testAnEligibleRowIsReadBackAsAJob(): void
+    {
+        $this->seed(new JobFactory()->create(self::NAME, ['user_id' => 42]));
+
+        $job = DatabaseQueueFixture::receive();
+
+        self::assertNotNull($job);
+        self::assertSame(self::NAME, $job->getName());
+        self::assertSame(['user_id' => 42], $job->getPayload()->getAll());
+    }
+
+    public function testClaimingMarksTheRowReserved(): void
+    {
+        $this->seed(new JobFactory()->create(self::NAME));
+
+        DatabaseQueueFixture::receive();
+
+        $update = $this->manager->getStatements('UPDATE')[0];
+
+        self::assertStringContainsString('SET reserved_at_ms = :now', $update->query);
+        self::assertStringContainsString('reserved_at_ms IS NULL', $update->query);
+        self::assertSame(self::ROW_ID, $update->bound['id']);
+        self::assertSame(self::FROZEN_MS, $update->bound['now']);
+    }
+
+    public function testARowAnotherWorkerClaimedFirstIsNotHandedOut(): void
+    {
+        $this->seed(new JobFactory()->create(self::NAME));
+        // One row count per statement: the select reads its row, then the
+        // conditional update matches nothing, so the race was lost
+        $this->manager->rowCounts = [1, 0];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+    }
+
+    public function testALostRaceAsksAgainWithoutPausing(): void
+    {
+        // A lost race is the one empty result that proves work exists, so
+        // pausing would cut throughput exactly when the backlog is deepest
+        $this->seed(new JobFactory()->create(self::NAME));
+        $this->manager->rowCounts = [1, 0];
+
+        DatabaseQueueFixture::receive();
+
+        self::assertSame(0, DatabaseQueueFixture::$waits);
+    }
+
+    public function testAnEmptyTableYieldsForTheConfiguredInterval(): void
+    {
+        // A polling consumer must yield, or the entry's loop bounds and
+        // graceful shutdown would never get a chance to run
+        DatabaseQueueFixture::inject($this->manager, pollInterval: 1);
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertSame(1, DatabaseQueueFixture::$waits);
+    }
+
+    public function testAZeroIntervalDoesNotYield(): void
+    {
+        DatabaseQueueFixture::inject($this->manager, pollInterval: 0);
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertSame(0, DatabaseQueueFixture::$waits);
+    }
+
+    public function testReceivingWithoutAConnectionFails(): void
+    {
+        DatabaseQueueFixture::reset();
+
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        DatabaseQueueFixture::receive();
+    }
+
+    public function testARowWithANonNumericKeyIsRunRatherThanDropped(): void
+    {
+        // The envelope is intact, so the job is runnable. Only the entry's own
+        // assumption that the key is an integer fails, and casting it would
+        // make it 0 — which on mysql matches every row with such a key.
+        $this->manager->rows = [[
+            'id'       => 'b8c1f0de-0000-4000-8000-000000000000',
+            'envelope' => new JobFactory()->toJson(new JobFactory()->create(self::NAME)),
+        ]];
+
+        $job = DatabaseQueueFixture::receive();
+
+        self::assertNotNull($job);
+        self::assertSame([], $this->manager->getStatements('DELETE'));
+
+        // The claim addresses the row by the key the select returned, uncast
+        $claim = $this->manager->getStatements('UPDATE')[0];
+
+        self::assertSame('b8c1f0de-0000-4000-8000-000000000000', $claim->bound['id']);
+    }
+
+    public function testARowWithNoEnvelopeIsParked(): void
+    {
+        // A select takes nothing off the table, so leaving it would hand the
+        // same row back on every poll and stall the whole queue
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => null]];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+
+        // Parked, not deleted: the bytes are the only record of the job
+        self::assertSame([], $this->manager->getStatements('DELETE'));
+        self::assertSame(self::ROW_ID, $this->parkStatement()->bound['id']);
+    }
+
+    public function testTheParkIsPortableSql(): void
+    {
+        // `ORDER BY` with `LIMIT` is a MySQL extension that PostgreSQL rejects
+        // at prepare time, and the repo ships PgsqlManager
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => null]];
+
+        DatabaseQueueFixture::receive();
+
+        $query = $this->parkStatement()->query;
+
+        self::assertStringNotContainsString('ORDER BY', $query);
+        self::assertStringNotContainsString('LIMIT', $query);
+    }
+
+    public function testAnEmptyTableTouchesNothing(): void
+    {
+        // The unreadable-row guard must not fire on an idle poll, or a job
+        // pushed between the select and the park would go unread
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertSame([], $this->manager->getStatements('DELETE'));
+        self::assertSame([], $this->manager->getStatements('UPDATE'));
+    }
+
+    public function testARowWithNoKeyTouchesNothing(): void
+    {
+        // Without a key there is nothing to identify the row by, so an
+        // unqualified write would be the only option and would take a job
+        $this->manager->rows = [['envelope' => '{}']];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertSame([], $this->manager->getStatements('DELETE'));
+        self::assertSame([], $this->manager->getStatements('UPDATE'));
+    }
+
+    public function testAnUnreadableRowIsParkedOutOfTheClaimsReach(): void
+    {
+        // Nothing settles a row the factory cannot read, so the claim would
+        // lapse and the next worker would read the same bytes
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => '{not json']];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+
+        self::assertSame([], $this->manager->getStatements('DELETE'));
+        self::assertSame(
+            DatabaseQueue::PARKED_AT_MS,
+            $this->parkStatement()->bound['parked']
+        );
+    }
+
+    public function testAParkedRowIsNeverEligibleAgain(): void
+    {
+        // The claim reads a reservation as free once it is older than the
+        // window, so the stamp has to sit beyond every window a worker computes
+        self::assertGreaterThan(
+            Microtime::getMilliseconds() + DatabaseQueue::DEFAULT_RESERVATION_TIMEOUT_MS,
+            DatabaseQueue::PARKED_AT_MS
+        );
+    }
+
+    public function testAParkedRowLeavesTheIndexRangeTheClaimNarrowsTo(): void
+    {
+        // The claim index carries available_at_ms and not reserved_at_ms, so a
+        // row parked on the reservation alone would join every later poll's sort
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => '{not json']];
+
+        DatabaseQueueFixture::receive();
+
+        $park = $this->parkStatement();
+
+        self::assertStringContainsString('available_at_ms = :parked', $park->query);
+        self::assertStringContainsString('reserved_at_ms = :parked', $park->query);
+    }
+
+    public function testARowThatCarriesNoObjectIsParked(): void
+    {
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => '5']];
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertSame([], $this->manager->getStatements('DELETE'));
+        self::assertSame(self::ROW_ID, $this->parkStatement()->bound['id']);
+    }
+
+    public function testAParkedRowLeavesNothingReserved(): void
+    {
+        $this->manager->rows = [['id' => self::ROW_ID, 'envelope' => '{not json']];
+
+        DatabaseQueueFixture::receive();
+        DatabaseQueueFixture::disconnect();
+
+        // The claim and the park. A release would undo the park and hand the
+        // unreadable row straight back to the next poll.
+        self::assertCount(2, $this->manager->getStatements('UPDATE'));
+    }
+
+    #[DataProvider('terminalProvider')]
+    public function testATerminalOutcomeTakesTheRowOffTheTable(JobResult $result): void
+    {
+        $this->reserved();
+
+        DatabaseQueueFixture::settle(new JobFactory()->create(self::NAME), $result, new InMemoryClient());
+
+        $deletes = $this->manager->getStatements('DELETE');
+
+        self::assertCount(1, $deletes);
+        self::assertSame(self::ROW_ID, $deletes[0]->bound['id']);
+    }
+
+    public function testARetryTakesTheRowOffAndHandsBackAnIncrementedJob(): void
+    {
+        $this->reserved();
+        $client = new InMemoryClient();
+
+        DatabaseQueueFixture::settle(new Job(name: self::NAME, attempts: 2), JobResult::RETRY, $client);
+
+        // The spent row goes; the retry arrives as a fresh one
+        self::assertCount(1, $this->manager->getStatements('DELETE'));
+        self::assertSame(3, $client->getPushed()[0]->getAttempts());
+    }
+
+    public function testTheRetryHoldStaysFrameworkOwned(): void
+    {
+        // Unlike AMQP or SQS, a database has no backoff of its own, so the
+        // ramp applies here exactly as it does for Redis
+        $this->reserved();
+        $client = new RecordingClientFixture();
+
+        DatabaseQueueFixture::settle(
+            new Job(name: self::NAME, attempts: 2, retryDelayMs: 1000, retryDelayMultiplyByAttempt: true),
+            JobResult::RETRY,
+            $client
+        );
+
+        self::assertSame([2000], $client->delays);
+    }
+
+    public function testSettlingWithNothingReservedDoesNothing(): void
+    {
+        DatabaseQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+
+        self::assertSame([], $this->manager->getStatements('DELETE'));
+    }
+
+    public function testARowIsSettledOnlyOnce(): void
+    {
+        $this->reserved();
+
+        DatabaseQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+        DatabaseQueueFixture::settle(new JobFactory()->create(self::NAME), JobResult::ACK, new InMemoryClient());
+
+        self::assertCount(1, $this->manager->getStatements('DELETE'));
+    }
+
+    public function testDisconnectHandsAReservedRowBack(): void
+    {
+        $this->reserved();
+
+        // A worker shutting down mid-job must not leave a row no other worker
+        // will ever claim
+        DatabaseQueueFixture::disconnect();
+
+        $updates = $this->manager->getStatements('UPDATE');
+
+        self::assertCount(2, $updates);
+        self::assertStringContainsString('SET reserved_at_ms = NULL', $updates[1]->query);
+        self::assertSame(self::ROW_ID, $updates[1]->bound['id']);
+    }
+
+    public function testDisconnectWithNothingReservedHandsBackNothing(): void
+    {
+        DatabaseQueueFixture::disconnect();
+
+        self::assertSame([], $this->manager->getStatements('UPDATE'));
+    }
+
+    public function testConnectResolvesTheManagerFromTheContainer(): void
+    {
+        // The seam opens no connection; it is a container lookup that a stub
+        // satisfies, so it carries no coverage exemption. Resetting drops the
+        // injected manager, which is what sends the fixture to the real seam.
+        DatabaseQueueFixture::reset();
+
+        $manager = new DatabaseManagerFixture();
+
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturnCallback(
+            static fn (string $id): object => $id === ManagerContract::class
+                ? $manager
+                : new QueueDatabaseClientConfig()
+        );
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        DatabaseQueueFixture::connect($app);
+
+        self::assertNull(DatabaseQueueFixture::receive());
+        self::assertCount(1, $manager->getStatements('SELECT'));
+    }
+
+    protected function seed(Job $job): void
+    {
+        $this->manager->rows = [
+            [
+                'id'       => self::ROW_ID,
+                'envelope' => new JobFactory()->toJson($job),
+            ],
+        ];
+    }
+
+    protected function reserved(): void
+    {
+        $this->seed(new JobFactory()->create(self::NAME));
+
+        DatabaseQueueFixture::receive();
+    }
+
+    /**
+     * The one update that parked a row, told apart from the claim by its bind.
+     */
+    protected function parkStatement(): object
+    {
+        foreach ($this->manager->getStatements('UPDATE') as $statement) {
+            if (isset($statement->bound['parked'])) {
+                return $statement;
+            }
+        }
+
+        self::fail('No row was parked.');
+    }
+}
