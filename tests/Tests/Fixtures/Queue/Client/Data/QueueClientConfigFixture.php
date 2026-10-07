@@ -33,6 +33,7 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param class-string<InternalQueue>  $deferredEntry
      * @param non-empty-string             $redisHost
      * @param non-empty-string             $redisQueue
+     * @param non-empty-string             $redisWorkerName
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -41,6 +42,7 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public string $redisHost = 'redis.test',
         public int $redisPort = 6380,
         public string $redisQueue = 'queues:test',
+        public string $redisWorkerName = 'worker.test',
     ) {
         parent::__construct(
             applicationName: 'host',

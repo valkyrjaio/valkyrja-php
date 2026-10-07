@@ -30,13 +30,15 @@ final class RedisWorkerConfigFixture extends QueueConfig implements QueueClientC
     public string $defaultQueueClient = RedisClient::class;
 
     /**
-     * @param non-empty-string $redisHost  The host of the server under test
-     * @param non-empty-string $redisQueue The list key jobs are published to
+     * @param non-empty-string $redisHost       The host of the server under test
+     * @param non-empty-string $redisQueue      The list key jobs are published to
+     * @param non-empty-string $redisWorkerName The name of this worker's slot
      */
     public function __construct(
         public string $redisHost = '127.0.0.1',
         public int $redisPort = 6379,
         public string $redisQueue = 'valkyrja:tests:queue',
+        public string $redisWorkerName = 'default',
     ) {
         parent::__construct(
             dir: Directory::$basePath,
