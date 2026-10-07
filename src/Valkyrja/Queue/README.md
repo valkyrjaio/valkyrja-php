@@ -230,11 +230,16 @@ two workers taking the same job. A reservation older than the timeout counts as
 free, so a row that a crashed worker abandoned returns to the queue.
 
 A row whose `envelope` no factory can read is parked rather than deleted: the
-entry stamps `reserved_at_ms` with the last millisecond of the year 9999, which
-no staleness window reaches back to, so the row leaves the claim's reach and
-keeps its bytes. Select on that stamp to find what a worker could not read. A
-settled job is deleted as usual, so the table holds only live work and whatever
-was parked.
+entry stamps both `reserved_at_ms` and `available_at_ms` with the last
+millisecond of the year 9999. No staleness window reaches back to that
+reservation, and the availability stamp takes the row out of the range the claim
+index narrows to, so a parked row costs no later poll anything and keeps its
+bytes. Select on that stamp to find what a worker could not read. A settled job
+is deleted as usual, so the table holds only live work and whatever was parked.
+
+Nothing drains the parked rows. A deploy that changes the envelope shape parks
+every row it cannot read, in one pass, so treat a growing parked count as the
+signal it is — and delete them once you have read them.
 
 ## Entry Points
 
