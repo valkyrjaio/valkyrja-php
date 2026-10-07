@@ -1,0 +1,45 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the Valkyrja Framework package.
+ *
+ * Copyright (c) 2016-present Melech Mizrachi
+ *
+ * Released under the MIT License. See LICENSE.md for details.
+ */
+
+namespace Valkyrja\Tests\Fixtures\Queue\Middleware\Trait;
+
+/**
+ * Trait MiddlewareCounter.
+ */
+trait MiddlewareCounterTrait
+{
+    protected static int $counter = 0;
+
+    /**
+     * Get the counter.
+     */
+    public static function getCounter(): int
+    {
+        return static::$counter;
+    }
+
+    /**
+     * Reset the counter.
+     */
+    public static function resetCounter(): void
+    {
+        static::$counter = 0;
+    }
+
+    /**
+     * Update the internal counter.
+     */
+    protected function updateCounter(): void
+    {
+        static::$counter++;
+    }
+}
