@@ -251,15 +251,25 @@ loop.
 
 ```php
 // app/bin/queue
-use Valkyrja\Application\Data\QueueConfig;
+use App\Queue\WorkerConfig;
 use Valkyrja\Application\Entry\Redis\RedisQueue;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-RedisQueue::run(new QueueConfig(
+// The config implements QueueRedisClientConfigContract and names this worker's
+// own slot, which is what keeps one worker's in-flight list to itself
+RedisQueue::run(new WorkerConfig(
     dir: __DIR__ . '/..',
+    redisWorkerName: (string) ($_SERVER['WORKER_NAME'] ?? 'worker.1'),
 ));
 ```
+
+Warning: every process started from that script needs its own
+`redisWorkerName` — a pod ordinal, a supervisor slot number. A plain
+`QueueConfig` implements no Redis config contract, so the framework falls back
+to one default name, and a fleet sharing a name hands one worker's running job
+back to the queue when another restarts. The Queue component's `README.md` has
+the shape of the config and the full rule.
 
 `PushQueue` answers a broker that delivers a job over HTTP. It maps the inbound
 request onto a job, runs it, and returns the outcome as the response status.
