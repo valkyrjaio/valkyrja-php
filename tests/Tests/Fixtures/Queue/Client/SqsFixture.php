@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Fixtures\Queue\Client;
 
+use AsyncAws\Core\Exception\Http\NetworkException;
 use AsyncAws\Core\Result;
 use AsyncAws\Core\Test\ResultMockFactory;
 use AsyncAws\Sqs\Result\ReceiveMessageResult;
@@ -33,6 +34,9 @@ final class SqsFixture extends SqsClient
 
     /** @var Message[] The deliveries the next receive returns */
     public array $next = [];
+
+    /** Whether the next visibility change answers with a network error */
+    public bool $failVisibility = false;
 
     /**
      * @noinspection PhpMissingParentConstructorInspection
@@ -103,6 +107,10 @@ final class SqsFixture extends SqsClient
     public function changeMessageVisibility($input): Result
     {
         $this->calls[] = ['changeMessageVisibility', $input];
+
+        if ($this->failVisibility) {
+            throw new NetworkException('The endpoint could not be reached.');
+        }
 
         return ResultMockFactory::create(Result::class);
     }

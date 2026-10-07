@@ -397,6 +397,23 @@ final class SqsQueueTest extends TestCase
         self::assertSame(0, $calls[0]['VisibilityTimeout']);
     }
 
+    public function testDisconnectSurvivesAReleaseTheEndpointRefuses(): void
+    {
+        $this->seed(new JobFactory()->create(self::NAME));
+
+        self::assertNotNull(SqsQueueFixture::receive());
+
+        $this->sqs->failVisibility = true;
+
+        // `PullQueue::loop()` calls disconnect() from a `finally`, so a throw
+        // here would replace whatever ended the loop and skip the teardown
+        SqsQueueFixture::disconnect();
+
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        SqsQueueFixture::receive();
+    }
+
     public function testDisconnectWithNothingInFlightReleasesNothing(): void
     {
         SqsQueueFixture::connect($this->application());
