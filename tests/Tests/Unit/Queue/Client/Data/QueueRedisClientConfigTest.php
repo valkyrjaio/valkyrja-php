@@ -30,6 +30,7 @@ final class QueueRedisClientConfigTest extends TestCase
         self::assertSame('127.0.0.1', $config->redisHost);
         self::assertSame(6379, $config->redisPort);
         self::assertSame('queues:default', $config->redisQueue);
+        self::assertSame('default', $config->redisWorkerName);
     }
 
     public function testCustomValuesAreStored(): void
@@ -38,10 +39,12 @@ final class QueueRedisClientConfigTest extends TestCase
             redisHost: 'redis.test',
             redisPort: 6380,
             redisQueue: 'queues:test',
+            redisWorkerName: 'worker.3',
         );
 
         self::assertSame('redis.test', $config->redisHost);
         self::assertSame(6380, $config->redisPort);
         self::assertSame('queues:test', $config->redisQueue);
+        self::assertSame('worker.3', $config->redisWorkerName);
     }
 }

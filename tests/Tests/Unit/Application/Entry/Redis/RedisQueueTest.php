@@ -277,9 +277,13 @@ final class RedisQueueTest extends TestCase
     public function testConnectReclaimsTheSlotsOwnHeldEnvelopes(): void
     {
         RedisQueueFixture::reset();
-        RedisQueueFixture::inject($this->redis, self::QUEUE, 1, 'worker.2');
+        RedisQueueFixture::inject($this->redis, self::QUEUE);
 
-        RedisQueueFixture::connect($this->application());
+        // A slot the config names, not the default, so a hardcoded name fails
+        RedisQueueFixture::connect($this->application(new QueueRedisClientConfig(
+            redisQueue: self::QUEUE,
+            redisWorkerName: 'worker.2',
+        )));
 
         // The reclaim names this slot's key alone, so it cannot take an
         // envelope a live worker on another slot is running
@@ -287,7 +291,7 @@ final class RedisQueueTest extends TestCase
             [[
                 RedisQueueFixture::reclaimScript(),
                 2,
-                self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX . ':default',
+                self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX . ':worker.2',
                 self::QUEUE,
                 '1000',
             ]],
@@ -307,10 +311,10 @@ final class RedisQueueTest extends TestCase
         );
     }
 
-    protected function application(): ApplicationContract
+    protected function application(QueueRedisClientConfig|null $config = null): ApplicationContract
     {
         $container = self::createStub(ContainerContract::class);
-        $container->method('getSingleton')->willReturn(new QueueRedisClientConfig());
+        $container->method('getSingleton')->willReturn($config ?? new QueueRedisClientConfig());
 
         $app = self::createStub(ApplicationContract::class);
         $app->method('getContainer')->willReturn($container);
