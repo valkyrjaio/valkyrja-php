@@ -198,7 +198,7 @@ final class SqsIntegrationTest extends TestCase
      *
      * SQS allows one `PurgeQueue` per queue per minute, and this file empties
      * the queue twice per test, so a purge would answer
-     * `PurgeQueueInProgress` for every test after the first.
+     * `PurgeQueueInProgress` forevery test after the first.
      *
      * A short poll samples a subset of hosts, so one empty response is not
      * proof the queue is empty. This stops on it anyway, because the drain's
@@ -234,7 +234,7 @@ final class SqsIntegrationTest extends TestCase
             }
 
             // A delivery with no handle cannot be deleted, so reading again
-            // would return it for ever
+            // would return it forever
             if ($deleted === 0) {
                 return;
             }
