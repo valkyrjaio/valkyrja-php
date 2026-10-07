@@ -115,7 +115,16 @@ class AmqpQueue extends PullQueue
         // than letting it wait out the broker's own timeout
         static::releaseCurrent();
 
-        static::getConnection()->close();
+        $channel = static::getConnection();
+
+        // `close()` on a channel sends `channel.close` and leaves the socket
+        // open, so a process that runs the loop twice would hold a second
+        // broker connection. The connection is what owns the socket.
+        $connection = $channel->getConnection();
+
+        $channel->close();
+
+        $connection?->close();
 
         static::$channel = null;
     }

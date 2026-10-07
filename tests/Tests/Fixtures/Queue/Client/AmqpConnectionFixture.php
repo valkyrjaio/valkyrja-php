@@ -23,12 +23,24 @@ final class AmqpConnectionFixture extends AbstractConnection
 {
     public int $channelCount = 0;
 
+    public bool $closed = false;
+
     /**
      * @noinspection PhpMissingParentConstructorInspection
      */
     public function __construct(
         public AmqpChannelFixture $recordingChannel = new AmqpChannelFixture(),
     ) {
+        $this->recordingChannel->reportConnection($this);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function close($reply_code = 0, $reply_text = '', $method_sig = [0, 0]): void
+    {
+        $this->closed = true;
     }
 
     /**
