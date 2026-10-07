@@ -19,6 +19,7 @@ use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDatabaseClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueuePubSubClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
@@ -29,7 +30,7 @@ use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 /**
  * An application config that implements every queue client config contract.
  */
-final class QueueClientConfigFixture extends Config implements QueueClientConfigContract, QueueSyncClientConfigContract, QueueDeferredClientConfigContract, QueueRedisClientConfigContract, QueueAmqpClientConfigContract, QueueSqsClientConfigContract, QueueBeanstalkdClientConfigContract, QueueDatabaseClientConfigContract
+final class QueueClientConfigFixture extends Config implements QueueClientConfigContract, QueueSyncClientConfigContract, QueueDeferredClientConfigContract, QueueRedisClientConfigContract, QueueAmqpClientConfigContract, QueueSqsClientConfigContract, QueueBeanstalkdClientConfigContract, QueueDatabaseClientConfigContract, QueuePubSubClientConfigContract
 {
     /**
      * @param class-string<ClientContract> $defaultQueueClient
@@ -53,6 +54,8 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param int<0, max>                  $beanstalkdTimeToRelease
      * @param non-empty-string             $databaseQueue
      * @param non-empty-string             $databaseTable
+     * @param non-empty-string             $pubSubProjectId
+     * @param non-empty-string             $pubSubTopic
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -81,6 +84,8 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public int $beanstalkdTimeToRelease = 90,
         public string $databaseQueue = 'jobs',
         public string $databaseTable = 'jobs_test',
+        public string $pubSubProjectId = 'valkyrja-tests',
+        public string $pubSubTopic = 'jobs',
     ) {
         parent::__construct(
             applicationName: 'host',
