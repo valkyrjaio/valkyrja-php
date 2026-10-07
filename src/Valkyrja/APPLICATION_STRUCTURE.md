@@ -266,9 +266,9 @@ abstract class Controller extends ValkyrjaController
 ### `app/src/App/Http/Provider/ComponentProvider.php`
 
 The single wiring point that tells the framework which application-level
-providers to register for each concern: container services, events, HTTP routes,
-and CLI routes. Also declares the `publish()` callback that selects between
-debug and production boot modes.
+providers to register for each concern: dependency components, container
+services, events, CLI routes, HTTP routes, and queue routes. Also declares the
+`publish()` callback that selects between debug and production boot modes.
 
 ```php
 <?php
@@ -284,7 +284,13 @@ use Valkyrja\Container\Provider\ServiceProvider as ContainerServiceProvider;
 final class ComponentProvider implements ComponentProviderContract
 {
     #[Override]
-    public static function getContainerProviders(ApplicationContract $app): array
+    public function getComponentProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
+
+    #[Override]
+    public function getContainerProviders(ApplicationContract $app): array
     {
         return [
             DataProvider::class,
@@ -293,23 +299,29 @@ final class ComponentProvider implements ComponentProviderContract
     }
 
     #[Override]
-    public static function getEventProviders(ApplicationContract $app): array
+    public function getEventProviders(ApplicationContract $app): array
     {
         return [];
     }
 
     #[Override]
-    public static function getCliProviders(ApplicationContract $app): array
+    public function getCliProviders(ApplicationContract $app): array
     {
         return [];
     }
 
     #[Override]
-    public static function getHttpProviders(ApplicationContract $app): array
+    public function getHttpProviders(ApplicationContract $app): array
     {
         return [
             RouteProvider::class,
         ];
+    }
+
+    #[Override]
+    public function getQueueProviders(ApplicationContract $app): array
+    {
+        return [];
     }
 
     public static function publish(ApplicationContract $app): void
