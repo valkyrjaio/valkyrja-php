@@ -79,6 +79,30 @@ own signal. Redis and a database have no native retry, so their entry calls
 hold comes from the job that was dispatched, read before the increment, so the
 ramp is keyed to the attempt that just failed.
 
+A broker that redelivers a job itself owns the retry counter instead. A retry is
+signaled by the consumer — a nack, a shortened visibility timeout, a release —
+and never by publishing the job again. Publishing again would duplicate the
+message, because the original delivery is still unacknowledged. The broker owns
+its own backoff, so the framework's ramp does not apply. The entry of such a
+broker answers it directly from `settle`, and never calls
+`ClientContract::requeue()`.
+
+Warning: the count such a broker reports has to reach the ceiling, or nothing
+dead-letters. A classic AMQP queue reports only that a delivery is a
+redelivery, not which one, so `AmqpQueue` cannot count past the second attempt.
+A quorum queue reports every attempt, so use one when the ceiling has to hold.
+Set the vhost's `default_queue_type` to `quorum` to get it. The framework
+declares the queue with no `x-queue-type`, so a queue the operator declared as
+quorum answers `PRECONDITION_FAILED` on the next declare and the worker cannot
+start; the vhost default carries no such argument and so cannot collide. The
+same holds for `x-max-priority`, `x-message-ttl`, and `x-dead-letter-exchange`
+set as queue arguments.
+
+A dead-letter exchange alone does not end a retry chain: a classic queue
+dead-letters on a nack that does not requeue, on a message TTL, or on a length
+overflow, and a retry answers with a nack that does requeue. A `max_attempts` of
+2 also holds, because the second attempt is the one a classic queue can report.
+
 ## Clients
 
 | Client           | Broker | Redelivery |
@@ -87,6 +111,7 @@ ramp is keyed to the attempt that just failed.
 | `DeferredClient` | none   | framework  |
 | `InMemoryClient` | none   | framework  |
 | `RedisClient`    | Redis  | framework  |
+| `AmqpClient`     | AMQP   | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -107,6 +132,30 @@ from the terminate stage of its host. Nothing in the framework calls `drain()`,
 so a buffer that nobody drains never runs. It is not durable, and it needs a
 host runtime that can keep working after the response.
 
+`AmqpClient` publishes without a hold. AMQP carries no per-message delay, and
+giving it one needs a delay queue and a dead-letter exchange that the broker
+owner declares rather than the client. A job pushed with `delay_ms` is therefore
+consumable as soon as it lands. Every other broker client applies the hold at
+enqueue.
+
+`AmqpClient` carries the job's priority onto the message, and a classic queue
+orders by it only when the broker gave the queue a priority bound. The framework
+declares no bound, so a default setup delivers in publish order and carries the
+priority without effect.
+
+Warning: `AmqpQueue` rejects a body no factory can read without requeueing it,
+so the broker decides where it goes. A queue with a dead-letter exchange keeps
+it, and a queue without one drops it. The framework declares no such exchange,
+because the queue argument that names one belongs to the broker owner, so a
+deployment that must keep an unreadable body declares the policy itself. This is
+the discard that `RedisQueue`'s unreadable list avoids, and AMQP's own
+redelivery is why the entry answers the broker rather than parking the bytes.
+
+Warning: RabbitMQ carries no redelivery backoff, and `AmqpQueue` answers a retry
+with a nack that requeues at once. A job on that broker retries with no hold at
+all, as fast as the worker can run it, and `retry_delay_ms` and
+`retry_delay_multiply_by_attempt` do nothing for this adapter.
+
 Warning: a client scopes `getPushed` to one request, one command, or one job. A
 client that keeps a process-global record leaks in a long-running server, and it
 gives one request the deferred jobs of the request before it.
@@ -118,6 +167,7 @@ gives one request the deferred jobs of the request before it.
 | `Queue`         | one job, then exits                                   |
 | `PullQueue`     | the poll loop that a processor entry extends          |
 | `RedisQueue`    | a worker that takes jobs from a redis list            |
+| `AmqpQueue`     | a worker that consumes an AMQP queue                  |
 | `PushQueue`     | one job that a broker delivers over HTTP              |
 | `InternalQueue` | each job that `SyncClient` or `DeferredClient` pushes |
 
@@ -239,6 +289,26 @@ an application config that does not implement its contract.
 | `redisQueue`      | `'queues:default'` | The list key jobs are pushed onto                           |
 | `redisWorkerName` | `'default'`        | Names this worker's slot, which owns its own in-flight list |
 
+#### `QueueAmqpClientConfigContract`
+
+| Property       | Default            | Description                                            |
+| :------------- | :----------------- | :----------------------------------------------------- |
+| `amqpHost`     | `'127.0.0.1'`      | AMQP host                                              |
+| `amqpPort`     | `5672`             | AMQP port                                              |
+| `amqpUser`     | `'guest'`          | The user to connect as                                 |
+| `amqpPassword` | `'guest'`          | The password of the user                               |
+| `amqpVhost`    | `'/'`              | The virtual host to connect to                         |
+| `amqpQueue`    | `'queues.default'` | The queue jobs are published to                        |
+| `amqpExchange` | `''`               | The exchange to publish through; empty for the default |
+
+Warning: the worker declares the queue when it connects, and nothing declares
+an exchange or binds one to it. A producer that starts before any worker
+publishes to a queue the broker does not hold yet, and the broker discards the
+message while `push()` still returns. Call `AmqpClient::declareQueue()` first in
+that case. A non-empty `amqpExchange` with no binding for the queue's name has
+the same effect, so an application that sets it declares and binds the exchange
+itself.
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
@@ -292,6 +362,7 @@ names.
 
 A broker adapter needs its own package, and the framework does not require one:
 
-| Adapter | Package         |
-| ------- | --------------- |
-| Redis   | `predis/predis` |
+| Adapter | Package                   |
+| ------- | ------------------------- |
+| Redis   | `predis/predis`           |
+| AMQP    | `php-amqplib/php-amqplib` |

@@ -18,12 +18,15 @@ use Predis\ClientInterface;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Application\Data\Contract\ConfigContract;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
+use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
+use Valkyrja\Queue\Client\Data\QueueAmqpClientConfig;
 use Valkyrja\Queue\Client\Data\QueueClientConfig;
 use Valkyrja\Queue\Client\Data\QueueRedisClientConfig;
+use Valkyrja\Queue\Client\Manager\AmqpClient;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Manager\DeferredClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
@@ -66,11 +69,13 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(QueueSyncClientConfigContract::class, $publishers);
         self::assertArrayHasKey(QueueDeferredClientConfigContract::class, $publishers);
         self::assertArrayHasKey(QueueRedisClientConfigContract::class, $publishers);
+        self::assertArrayHasKey(QueueAmqpClientConfigContract::class, $publishers);
         self::assertArrayHasKey(ClientContract::class, $publishers);
         self::assertArrayHasKey(SyncClient::class, $publishers);
         self::assertArrayHasKey(DeferredClient::class, $publishers);
         self::assertArrayHasKey(InMemoryClient::class, $publishers);
         self::assertArrayHasKey(RedisClient::class, $publishers);
+        self::assertArrayHasKey(AmqpClient::class, $publishers);
     }
 
     public function testPublishConfig(): void
@@ -159,6 +164,30 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertSame('queues:test', $config->redisQueue);
     }
 
+    public function testPublishAmqpConfig(): void
+    {
+        $this->publish(QueueAmqpClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueAmqpClientConfigContract::class);
+
+        self::assertSame('127.0.0.1', $config->amqpHost);
+        self::assertSame(5672, $config->amqpPort);
+        self::assertSame('queues.default', $config->amqpQueue);
+    }
+
+    public function testPublishAmqpConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(QueueAmqpClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueAmqpClientConfigContract::class);
+
+        self::assertSame('amqp.test', $config->amqpHost);
+        self::assertSame(5673, $config->amqpPort);
+        self::assertSame('queues.test', $config->amqpQueue);
+    }
+
     /**
      * @throws Exception
      */
@@ -237,6 +266,16 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $this->publish(RedisClient::class);
 
         self::assertInstanceOf(RedisClient::class, $this->container->getSingleton(RedisClient::class));
+    }
+
+    public function testPublishAmqpClientDoesNotConnect(): void
+    {
+        $this->container->setSingleton(QueueAmqpClientConfigContract::class, new QueueAmqpClientConfig());
+
+        // Nothing listens on the default port, so an eager connection would throw here
+        $this->publish(AmqpClient::class);
+
+        self::assertInstanceOf(AmqpClient::class, $this->container->getSingleton(AmqpClient::class));
     }
 
     /**
