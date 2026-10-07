@@ -42,6 +42,11 @@ interface JobFactoryContract
      * not send is defaulted, so the contract can gain fields over time without
      * breaking older producers.
      *
+     * The `payload` field takes any of three shapes: a `PayloadContract` the
+     * caller already built, which is used as it stands; an object decoded from
+     * JSON without associative arrays; or a plain array. Any other object is
+     * ignored, because casting one would put its own properties on the wire.
+     *
      * @param array<array-key, mixed> $data The decoded envelope
      *
      * @throws QueueMessageInvalidEnvelopeException
