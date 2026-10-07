@@ -40,17 +40,6 @@ final class AmqpChannelFixture extends AMQPChannel
     }
 
     /**
-     * Report this connection as the channel's own.
-     *
-     * The connection fixture calls this, rather than the channel building one,
-     * because the connection already holds the channel.
-     */
-    public function reportConnection(AmqpConnectionFixture $connection): void
-    {
-        $this->connection = $connection;
-    }
-
-    /**
      * Get the arguments of every call to a channel method.
      *
      * @return array<int, array<int, mixed>>
