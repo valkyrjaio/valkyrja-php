@@ -28,7 +28,7 @@ final class SqsQueueFixture extends SqsQueue
      * Point the entry at a client, as though connect() had built it.
      *
      * @param non-empty-string $queueUrl        The queue jobs are consumed from
-     * @param int<0, 20>       $waitTimeSeconds The long-poll wait
+     * @param int<1, 20>       $waitTimeSeconds The long-poll wait
      */
     public static function inject(
         SqsClient $sqs,
@@ -49,6 +49,7 @@ final class SqsQueueFixture extends SqsQueue
         self::$injected            = null;
         self::$sqs                 = null;
         self::$current             = null;
+        self::$receivedAt          = 0.0;
         self::$queueUrl            = null;
         self::$waitTimeSeconds     = 20;
     }
