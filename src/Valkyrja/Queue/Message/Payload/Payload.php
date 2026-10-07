@@ -30,7 +30,7 @@ class Payload implements PayloadContract
     /** @var array<array-key, scalar|PayloadContract|null> */
     protected array $params = [];
 
-    /** Whether this node came from a JSON array rather than a JSON object */
+    /** Whether this node encodes as a JSON array rather than a JSON object */
     protected bool $isList = false;
 
     /**
