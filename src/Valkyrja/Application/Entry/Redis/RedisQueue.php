@@ -58,11 +58,38 @@ class RedisQueue extends PullQueue
         return #due
         LUA;
 
+    /**
+     * Return every envelope this worker's slot still holds to the ready list.
+     *
+     * The move is onto the head, so a reclaimed job is redelivered before the
+     * backlog behind it. The slot's list is read by this worker alone, so a
+     * reclaim cannot take an envelope a live worker is running.
+     */
+    protected const string RECLAIM_SCRIPT = <<<'LUA'
+        local moved = 0
+
+        for _ = 1, tonumber(ARGV[1]) do
+            if not redis.call('LMOVE', KEYS[1], KEYS[2], 'LEFT', 'LEFT') then
+                break
+            end
+
+            moved = moved + 1
+        end
+
+        return moved
+        LUA;
+
     /** @var int<1, max> The blocking move timeout, in seconds */
     protected static int $timeout = 1;
 
     /** @var int<1, max> The number of due delayed jobs one poll promotes */
     protected static int $promoteLimit = 100;
+
+    /** @var int<1, max> The number of held envelopes one reclaim returns */
+    protected static int $reclaimLimit = 1000;
+
+    /** @var non-empty-string The name of this worker's slot */
+    protected static string $workerName = 'default';
 
     protected static ClientInterface|null $redis = null;
 
@@ -80,11 +107,19 @@ class RedisQueue extends PullQueue
     {
         $config = $app->getContainer()->getSingleton(QueueRedisClientConfigContract::class);
 
-        static::$queue   = $config->redisQueue;
-        static::$redis   = static::getRedis($config);
-        static::$current = null;
+        static::$queue      = $config->redisQueue;
+        static::$workerName = $config->redisWorkerName;
+        static::$redis      = static::getRedis($config);
+        static::$current    = null;
 
-        static::getConnection()->connect();
+        $redis = static::getConnection();
+
+        $redis->connect();
+
+        // A worker that died mid-job left its envelope on this slot's list, so
+        // the slot takes its own work back on the way in. Only a slot that
+        // never returns needs a hand, which `Queue/README.md` states.
+        static::reclaim($redis);
     }
 
     /**
@@ -128,7 +163,13 @@ class RedisQueue extends PullQueue
     #[Override]
     public static function disconnect(): void
     {
-        static::getConnection()->disconnect();
+        $redis = static::getConnection();
+
+        // The loop is done with the slot, so anything still held goes back on
+        // the ready list rather than waiting for the next start of this slot
+        static::reclaim($redis);
+
+        $redis->disconnect();
 
         static::$redis   = null;
         static::$current = null;
@@ -165,7 +206,23 @@ class RedisQueue extends PullQueue
      */
     protected static function inFlight(): string
     {
-        return static::$queue . self::IN_FLIGHT_SUFFIX;
+        // One key per worker slot, so a reclaim returns only this worker's own
+        // held envelope and never one a live worker is running
+        return static::$queue . self::IN_FLIGHT_SUFFIX . ':' . static::$workerName;
+    }
+
+    /**
+     * Return every envelope this slot holds to the ready list.
+     */
+    protected static function reclaim(ClientInterface $redis): void
+    {
+        $redis->eval(
+            self::RECLAIM_SCRIPT,
+            2,
+            static::inFlight(),
+            static::$queue,
+            (string) static::$reclaimLimit,
+        );
     }
 
     /**

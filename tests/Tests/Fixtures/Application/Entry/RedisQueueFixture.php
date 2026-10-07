@@ -27,16 +27,22 @@ final class RedisQueueFixture extends RedisQueue
     /**
      * Point the entry at a connection, as though connect() had established it.
      *
-     * @param non-empty-string $queue   The list key jobs are popped from
-     * @param int<1, max>      $timeout The blocking pop timeout, in seconds
+     * @param non-empty-string $queue      The list key jobs are popped from
+     * @param int<1, max>      $timeout    The blocking pop timeout, in seconds
+     * @param non-empty-string $workerName The name of this worker's slot
      */
-    public static function inject(ClientInterface $redis, string $queue = 'queues:default', int $timeout = 1): void
-    {
-        self::$injected  = $redis;
-        self::$redis     = $redis;
-        self::$queue     = $queue;
-        self::$timeout   = $timeout;
-        self::$current   = null;
+    public static function inject(
+        ClientInterface $redis,
+        string $queue = 'queues:default',
+        int $timeout = 1,
+        string $workerName = 'default',
+    ): void {
+        self::$injected   = $redis;
+        self::$redis      = $redis;
+        self::$queue      = $queue;
+        self::$timeout    = $timeout;
+        self::$workerName = $workerName;
+        self::$current    = null;
     }
 
     /**
@@ -45,6 +51,14 @@ final class RedisQueueFixture extends RedisQueue
     public static function promoteScript(): string
     {
         return self::PROMOTE_SCRIPT;
+    }
+
+    /**
+     * The reclaim script, so a test can assert the call carries it.
+     */
+    public static function reclaimScript(): string
+    {
+        return self::RECLAIM_SCRIPT;
     }
 
     /**
@@ -60,11 +74,12 @@ final class RedisQueueFixture extends RedisQueue
      */
     public static function reset(): void
     {
-        self::$injected  = null;
-        self::$redis     = null;
-        self::$queue     = 'queues:default';
-        self::$timeout   = 1;
-        self::$current   = null;
+        self::$injected   = null;
+        self::$redis      = null;
+        self::$queue      = 'queues:default';
+        self::$timeout    = 1;
+        self::$workerName = 'default';
+        self::$current    = null;
     }
 
     /**
