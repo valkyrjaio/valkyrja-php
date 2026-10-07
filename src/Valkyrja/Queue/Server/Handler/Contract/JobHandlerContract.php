@@ -33,7 +33,7 @@ interface JobHandlerContract
     public function resultSettled(JobContract $job, JobResult $result): void;
 
     /**
-     * Handle a job and run the pre-settlement stage, returning what the adapter must settle.
+     * Handle a job and run `settlingResult`, returning what the adapter settles.
      */
     public function run(JobContract $job): JobResult;
 }
