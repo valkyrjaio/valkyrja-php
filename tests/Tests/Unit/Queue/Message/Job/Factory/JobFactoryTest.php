@@ -424,6 +424,38 @@ final class JobFactoryTest extends TestCase
         self::assertStringContainsString('"payload":{"meta":{}}', $this->factory->toJson($job));
     }
 
+    public function testAppendingToAListNodeKeepsItAnArray(): void
+    {
+        // The append decides whether the node re-encodes as a JSON array or as
+        // an object with numeric string keys
+        $node = Payload::fromJsonValue(json_decode('[1]', false));
+
+        $job = new Job(name: self::NAME, payload: new Payload(['ids' => $node->withAdded([1 => 2])]));
+
+        self::assertStringContainsString('"payload":{"ids":[1,2]}', $this->factory->toJson($job));
+    }
+
+    public function testAppendingAStringKeyToAListNodeMakesItAnObject(): void
+    {
+        $node = Payload::fromJsonValue(json_decode('[1]', false));
+
+        $job = new Job(name: self::NAME, payload: new Payload(['ids' => $node->withAdded(['named' => 2])]));
+
+        self::assertStringContainsString('"payload":{"ids":{"0":1,"named":2}}', $this->factory->toJson($job));
+    }
+
+    public function testFromArrayKeepsAnObjectOutOfANestedPayloadList(): void
+    {
+        // A `fromArray()` caller can hand over any object, and array-casting one
+        // would put its own properties on the wire, NUL-mangled where private
+        $this->expectException(QueueMessageInvalidEnvelopeException::class);
+
+        $this->factory->fromArray([
+            EnvelopeField::NAME    => self::NAME,
+            EnvelopeField::PAYLOAD => [new DateTimeImmutable()],
+        ]);
+    }
+
     public function testAddingNothingToAnEmptyListNodeKeepsItAnArray(): void
     {
         $node = Payload::fromJsonValue(json_decode('[]', false));

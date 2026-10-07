@@ -27,7 +27,6 @@ use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeExcept
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
 use Valkyrja\Type\Array\Factory\ArrayFactory;
 
-use function array_is_list;
 use function is_array;
 use function is_bool;
 use function is_int;
@@ -63,17 +62,7 @@ class JobFactory implements JobFactoryContract
             return Payload::fromJsonValue($payload);
         }
 
-        if (is_array($payload)) {
-            // A top-level JSON array reaches here as a PHP list whose elements
-            // are still objects, because the decode kept the two shapes apart,
-            // and only `fromJsonValue()` converts them. An empty array stays a
-            // map, because a caller of `fromArray()` cannot say which it was.
-            return $payload !== [] && array_is_list($payload)
-                ? Payload::fromJsonValue($payload)
-                : Payload::fromArray($payload);
-        }
-
-        return Payload::fromArray([]);
+        return Payload::fromArray(is_array($payload) ? $payload : []);
     }
 
     /**
@@ -203,6 +192,17 @@ class JobFactory implements JobFactoryContract
 
         if ($attributes instanceof stdClass) {
             $data[EnvelopeField::ATTRIBUTES] = (array) $attributes;
+        }
+
+        // A top-level JSON array payload arrives as a PHP list whose elements
+        // are still objects. Only this method knows the value came from the
+        // decode, so the conversion happens here; `readPayload()` is shared
+        // with `fromArray()`, whose caller can hand over any object at all.
+        /** @var mixed $payload */
+        $payload = $data[EnvelopeField::PAYLOAD] ?? null;
+
+        if (is_array($payload)) {
+            $data[EnvelopeField::PAYLOAD] = Payload::fromJsonValue($payload);
         }
 
         return $this->fromArray($data);
