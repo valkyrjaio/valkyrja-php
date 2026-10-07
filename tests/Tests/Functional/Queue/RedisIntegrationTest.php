@@ -16,6 +16,8 @@ use Override;
 use Predis\Client;
 use Valkyrja\Application\Data\Contract\QueueConfigContract;
 use Valkyrja\Application\Entry\Redis\RedisQueue;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Client\Manager\RedisClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -236,11 +238,11 @@ final class RedisIntegrationTest extends TestCase
         // The move took it off the ready list and put it on the in-flight list
         // in one step, so a crash here leaves the job on a key
         self::assertSame(0, (int) $this->redis->llen(self::QUEUE));
-        self::assertSame(1, (int) $this->redis->llen(self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX));
+        self::assertSame(1, (int) $this->redis->llen(self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX . ':default'));
 
         RedisQueueFixture::settle($received, JobResult::ACK, $this->client());
 
-        self::assertSame(0, (int) $this->redis->llen(self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX));
+        self::assertSame(0, (int) $this->redis->llen(self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX . ':default'));
     }
 
     public function testAWorkerRunLeavesNothingInFlight(): void
@@ -252,7 +254,24 @@ final class RedisIntegrationTest extends TestCase
             maxJobs: 1,
         );
 
-        self::assertSame(0, (int) $this->redis->llen(self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX));
+        self::assertSame(0, (int) $this->redis->llen(self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX . ':default'));
+    }
+
+    public function testASlotTakesItsOwnHeldEnvelopeBackOnConnect(): void
+    {
+        $this->client()->push(new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK));
+
+        self::assertNotNull(RedisQueueFixture::receive());
+        self::assertSame(1, (int) $this->redis->llen(self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX . ':default'));
+
+        // A worker killed here never settled, so the next start of this slot
+        // takes the envelope back rather than leaving it for a human
+        RedisQueueFixture::reset();
+        RedisQueueFixture::inject($this->redis, self::QUEUE);
+        RedisQueueFixture::connect($this->application());
+
+        self::assertSame(0, (int) $this->redis->llen(self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX . ':default'));
+        self::assertSame(1, (int) $this->redis->llen(self::QUEUE));
     }
 
     public function testAnUnreadableEnvelopeIsParkedRatherThanDiscarded(): void
@@ -264,7 +283,7 @@ final class RedisIntegrationTest extends TestCase
         // A discard would retire the message while the worker kept reporting
         // healthy, so it lands where an operator can find it
         self::assertSame(1, (int) $this->redis->llen(self::QUEUE . RedisQueue::UNREADABLE_SUFFIX));
-        self::assertSame(0, (int) $this->redis->llen(self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX));
+        self::assertSame(0, (int) $this->redis->llen(self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX . ':default'));
     }
 
     private function client(): RedisClient
@@ -281,12 +300,23 @@ final class RedisIntegrationTest extends TestCase
         );
     }
 
+    private function application(): ApplicationContract
+    {
+        $container = self::createStub(ContainerContract::class);
+        $container->method('getSingleton')->willReturn($this->config());
+
+        $app = self::createStub(ApplicationContract::class);
+        $app->method('getContainer')->willReturn($container);
+
+        return $app;
+    }
+
     private function flush(): void
     {
         $this->redis->del([
             self::QUEUE,
             self::QUEUE . RedisClient::DELAYED_SUFFIX,
-            self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX,
+            self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX . ':default',
             self::QUEUE . RedisQueue::UNREADABLE_SUFFIX,
         ]);
     }
