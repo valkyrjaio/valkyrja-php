@@ -186,4 +186,12 @@ final class PayloadTest extends TestCase
         self::assertTrue(new Payload([], isList: true)->withAdded([])->isList());
         self::assertFalse(new Payload()->withAdded([])->isList());
     }
+
+    public function testWithAddedRecomputesTheListFlagInBothDirections(): void
+    {
+        $list = new Payload([1, 2], isList: true);
+
+        self::assertTrue($list->withAdded([2 => 3])->isList());
+        self::assertFalse($list->withAdded(['named' => 3])->isList());
+    }
 }
