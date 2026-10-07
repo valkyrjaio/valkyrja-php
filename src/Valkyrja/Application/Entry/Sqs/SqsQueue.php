@@ -27,6 +27,7 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
+use Valkyrja\Support\Time\Microtime;
 
 use function ceil;
 use function max;
@@ -44,9 +45,12 @@ class SqsQueue extends PullQueue
      * Twenty is the longest SQS accepts and the cheapest: a one-second wait
      * bills roughly 86,400 `ReceiveMessage` calls a day on an idle queue.
      *
-     * @var int<0, 20>
+     * @var int<1, 20>
      */
     protected static int $waitTimeSeconds = 20;
+
+    /** When the delivery in flight was received, as a unix timestamp */
+    protected static float $receivedAt = 0.0;
 
     protected static SqsClient|null $sqs = null;
 
@@ -124,7 +128,8 @@ class SqsQueue extends PullQueue
             return null;
         }
 
-        static::$current = $handle;
+        static::$current    = $handle;
+        static::$receivedAt = Microtime::get();
 
         return static::withNormalizedAttempts($job, $message);
     }
@@ -168,10 +173,7 @@ class SqsQueue extends PullQueue
         // A dead letter is terminal here as well. SQS moves a message to the
         // dead-letter queue through the redrive policy, on the receive count,
         // so the framework deleting it is what stops the chain.
-        static::getConnection()->deleteMessage([
-            'QueueUrl'      => static::getQueueUrl(),
-            'ReceiptHandle' => $handle,
-        ]);
+        static::delete($handle);
     }
 
     /**
@@ -197,10 +199,21 @@ class SqsQueue extends PullQueue
      */
     protected static function retire(string $handle): void
     {
+        static::delete($handle);
+    }
+
+    /**
+     * Take a delivery off the queue for good.
+     *
+     * The request is lazy, so an answer nobody resolves is an error nobody
+     * sees, and a delete that failed would let the delivery run a second time.
+     */
+    protected static function delete(string $handle): void
+    {
         static::getConnection()->deleteMessage([
             'QueueUrl'      => static::getQueueUrl(),
             'ReceiptHandle' => $handle,
-        ]);
+        ])->resolve();
     }
 
     /**
@@ -293,7 +306,23 @@ class SqsQueue extends PullQueue
             return 0;
         }
 
-        return max(1, min((int) ceil($milliseconds / 1000), self::MAX_VISIBILITY_TIMEOUT));
+        return max(1, min((int) ceil($milliseconds / 1000), static::getVisibilityCeiling()));
+    }
+
+    /**
+     * The longest hold this delivery can still be given.
+     *
+     * SQS measures the ceiling from the receive and not from the call, so
+     * asking for the whole twelve hours once any of it has passed is rejected.
+     *
+     * @return int<1, 43200>
+     */
+    protected static function getVisibilityCeiling(): int
+    {
+        $elapsed = (int) ceil(Microtime::get() - static::$receivedAt);
+
+        /** @var int<1, 43200> the subtraction cannot exceed the constant */
+        return max(1, self::MAX_VISIBILITY_TIMEOUT - max(0, $elapsed));
     }
 
     /**
@@ -303,10 +332,13 @@ class SqsQueue extends PullQueue
      */
     protected static function changeVisibility(string $handle, int $timeout): void
     {
+        // The request is lazy, so an answer nobody resolves is an error nobody
+        // sees, and a hold that never took leaves the retry on the queue's own
+        // window instead of the one the job asked for
         static::getConnection()->changeMessageVisibility([
             'QueueUrl'          => static::getQueueUrl(),
             'ReceiptHandle'     => $handle,
             'VisibilityTimeout' => $timeout,
-        ]);
+        ])->resolve();
     }
 }

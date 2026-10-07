@@ -84,11 +84,14 @@ class SqsClient extends Client
     #[Override]
     protected function publish(JobContract $job): void
     {
+        // The request is lazy, so an answer nobody resolves is an error nobody
+        // sees: a rejected send would lose the job while this returns and
+        // `getPushed()` records it as sent
         $this->sqs->sendMessage([
             'QueueUrl'     => $this->queueUrl,
             'MessageBody'  => $this->factory->toJson($job),
             'DelaySeconds' => $this->getDelaySeconds($job->getDelayMs()),
-        ]);
+        ])->resolve();
     }
 
     /**
