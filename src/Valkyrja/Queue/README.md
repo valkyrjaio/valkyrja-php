@@ -54,8 +54,8 @@ that stage and runs it in order.
 those stages. An entry calls `run`, which returns the outcome, and calls
 `resultSettled` last. Settling the outcome with the processor is the entry's
 own work, and it belongs between the two calls. `run` is `handle` plus
-`settlingResult`, and an entry calls those two separately when it has to act
-between them.
+`settlingResult`. An entry calls those two methods separately when it has to
+act between them, as the entry that caps an exhausted retry does.
 
 `JobReceived`, `SettlingResult`, and `ResultSettled` always run. The other four
 are conditional. A `JobReceived` middleware that returns an outcome
@@ -77,9 +77,9 @@ marker has an abstract `*InvalidArgumentException` and `*RuntimeException`
 pair. A concrete exception extends one of its own sub-component's pair, so a
 caller can catch one sub-component or the whole component.
 `QueueNonRetryableThrowable` narrows `QueueThrowable` as well, so
-`catch (QueueThrowable)` catches it too, but it is cross-cutting rather than a
-sub-component marker: it marks a throwable the pipeline must not retry,
-whichever sub-component raises it.
+`catch (QueueThrowable)` catches a throwable that carries it. That marker is
+cross-cutting rather than per sub-component. It marks a throwable the pipeline
+must not retry, whatever raises it.
 
 ## Routing
 
