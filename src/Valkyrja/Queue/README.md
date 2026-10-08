@@ -50,11 +50,17 @@ Each stage has a matching handler contract in
 `Valkyrja\Queue\Middleware\Handler\Contract`, which holds the middleware of
 that stage and runs it in order.
 
+`Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract` runs a job through
+those stages. Its `handle` returns the outcome, `settlingResult` runs the stage
+before an entry settles that outcome, and `resultSettled` runs the stage after.
+An entry calls the three in that order, so the settlement sits between the last
+two stages.
+
 `JobReceived`, `SettlingResult`, and `ResultSettled` always run. The other four
 are conditional. A `JobReceived` middleware that returns an outcome
 short-circuits the pipeline, and the router never runs. The router otherwise
-chooses `RouteMatched` or `RouteNotMatched`. `RouteDispatched` runs once the handler
-returns, and `ThrowableCaught` runs when any earlier stage throws.
+chooses `RouteMatched` or `RouteNotMatched`. `RouteDispatched` runs once the
+handler returns, and `ThrowableCaught` runs when any earlier stage throws.
 
 The outcome is one of four `JobResult` cases: `ACK`, `RETRY`, `FAIL`, or
 `DEAD_LETTER`. A `ThrowableCaught` middleware dead-letters a throwable that
@@ -64,9 +70,9 @@ than retrying it.
 ## Throwables
 
 `Valkyrja\Queue\Throwable\Contract\QueueThrowable` marks every throwable the
-component raises, and each sub-component narrows it: `QueueMessageThrowable`,
-`QueueMiddlewareThrowable`, and `QueueRoutingThrowable`. Each marker has an
-abstract `*InvalidArgumentException` and `*RuntimeException` pair. A concrete
+component raises, and each sub-component narrows it with its own
+`Queue<SubComponent>Throwable` marker. Each marker has an abstract
+`*InvalidArgumentException` and `*RuntimeException` pair. A concrete
 exception extends one of its own sub-component's pair, so a caller can catch one
 sub-component or the whole component.
 
