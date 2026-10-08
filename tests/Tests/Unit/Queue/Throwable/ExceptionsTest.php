@@ -19,6 +19,8 @@ use Valkyrja\Queue\Throwable\Exception\Abstract\QueueInvalidArgumentException;
 use Valkyrja\Queue\Throwable\Exception\Abstract\QueueRuntimeException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 use Valkyrja\Throwable\Contract\ValkyrjaThrowable;
+use Valkyrja\Throwable\Exception\Abstract\ValkyrjaInvalidArgumentException;
+use Valkyrja\Throwable\Exception\Abstract\ValkyrjaRuntimeException;
 
 final class ExceptionsTest extends TestCase
 {
@@ -36,10 +38,12 @@ final class ExceptionsTest extends TestCase
     public function testInvalidArgumentException(): void
     {
         self::isA(QueueThrowable::class, QueueInvalidArgumentException::class);
+        self::isA(ValkyrjaInvalidArgumentException::class, QueueInvalidArgumentException::class);
     }
 
     public function testRuntimeException(): void
     {
         self::isA(QueueThrowable::class, QueueRuntimeException::class);
+        self::isA(ValkyrjaRuntimeException::class, QueueRuntimeException::class);
     }
 }
