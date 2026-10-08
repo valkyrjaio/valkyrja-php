@@ -531,6 +531,10 @@ final class ChildContainerTest extends TestCase
         self::assertFalse($this->parent->isPublished(ProvidedFixture::class));
     }
 
+    // -----------------------------------------------------------------------
+    // Alias chains and cycles
+    // -----------------------------------------------------------------------
+
     public function testGetAliasedReusesAParentTargetTheParentAlreadyPublished(): void
     {
         $this->parent->register(new PublishingProviderFixture());
@@ -855,6 +859,8 @@ final class ChildContainerTest extends TestCase
         $this->parent->bindAlias('firstAlias', SingletonFixture::class);
         $this->parent->bindAlias('secondAlias', SingletonFixture::class);
         $child = $this->createChild();
+        // This class hands a parent factory to the parent, which guards no target, so the
+        // factory has to sit on the child for the guard to see the chain
         $child->bindSingleton(
             SingletonFixture::class,
             static function (ContainerContract $container) use (&$runs): object {

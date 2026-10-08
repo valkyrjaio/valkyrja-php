@@ -261,8 +261,10 @@ final class NativeChildContainerTest extends TestCase
 
         // This class runs the parent's callable itself, so the registration lands in the
         // child and one object answers both reads
-        self::assertSame($registered, $this->child->getSingleton(SingletonFixture::class));
-        self::assertSame($registered, $this->child->getSingleton(SingletonFixture::class));
+        $fromChild = $this->child->getSingleton(SingletonFixture::class);
+
+        self::assertSame($registered, $fromChild);
+        self::assertSame($fromChild, $this->child->getSingleton(SingletonFixture::class));
         self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
     }
 
@@ -531,6 +533,10 @@ final class NativeChildContainerTest extends TestCase
         // Publishing in child must not pollute parent
         self::assertFalse($this->parent->isPublished(ProvidedFixture::class));
     }
+
+    // -----------------------------------------------------------------------
+    // Alias chains and cycles
+    // -----------------------------------------------------------------------
 
     public function testGetAliasedReusesAParentTargetTheParentAlreadyPublished(): void
     {
