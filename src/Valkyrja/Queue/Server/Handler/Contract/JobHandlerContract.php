@@ -23,17 +23,17 @@ interface JobHandlerContract
     public function handle(JobContract $job): JobResult;
 
     /**
-     * Run the always-run stage before the adapter settles the outcome.
+     * Run the always-run stage before the entry settles the outcome.
      */
     public function settlingResult(JobContract $job, JobResult $result): JobResult;
 
     /**
-     * Run the always-run stage after the adapter has settled the outcome.
+     * Run the always-run stage after the entry has settled the outcome.
      */
     public function resultSettled(JobContract $job, JobResult $result): void;
 
     /**
-     * Handle a job and run `settlingResult`, returning what the adapter settles.
+     * Handle a job and run `settlingResult` to get what the entry settles.
      */
     public function run(JobContract $job): JobResult;
 }

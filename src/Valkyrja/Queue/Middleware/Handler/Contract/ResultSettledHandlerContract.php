@@ -22,7 +22,7 @@ use Valkyrja\Queue\Middleware\Contract\ResultSettledMiddlewareContract;
 interface ResultSettledHandlerContract extends HandlerContract
 {
     /**
-     * Middleware handler ran after the adapter has settled the outcome.
+     * Middleware handler ran after the entry has settled the outcome.
      */
     public function resultSettled(JobContract $job, JobResult $result): void;
 }
