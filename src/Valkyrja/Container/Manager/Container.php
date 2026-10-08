@@ -88,8 +88,7 @@ class Container implements ContainerContract
     #[Override]
     public function setFromData(ContainerData $data): void
     {
-        // Only the incoming aliases start a walk, and each walk reads the container past
-        // the map it is given. Nothing is installed before the walks end.
+        // Nothing is installed before the walks end.
         $this->validateAliasMapIsNotCyclic(
             $data->aliases,
             fn (string $id): string|null => $this->getAliasedId($id),
@@ -423,11 +422,8 @@ class Container implements ContainerContract
             $seen    = [$alias => true];
             $current = $alias;
 
-            // Past the supplied aliases, the walk reads what the container answers
-            // already, so it follows a chain the supplied map only reaches into.
             while (($aliasedId = $aliases[$current] ?? $installed($current)) !== null) {
-                // The chain returns to the alias this walk started from, so the map the
-                // caller supplied is what closes it. Name the edge that took it there.
+                // Name the edge that took the walk back to its start.
                 if ($aliasedId === $alias) {
                     throw new ContainerCyclicAliasException($current, $aliasedId);
                 }

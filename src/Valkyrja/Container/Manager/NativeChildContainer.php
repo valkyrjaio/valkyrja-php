@@ -135,8 +135,7 @@ class NativeChildContainer extends Container
             return null;
         }
 
-        // The child holds the same registration. One request must not hold one copy
-        // for the alias and another for the target.
+        // One request must not hold one copy for the alias and another for the target.
         if ($this->resolvesInChild($target)) {
             return $this->getTargetOnce($id, $target, $arguments);
         }
@@ -236,8 +235,7 @@ class NativeChildContainer extends Container
             return false;
         }
 
-        // This class copies no map, so the parent's marker is the child's as well. One read
-        // carries what the portable child needs two for.
+        // This class copies no map, so the parent's marker is the child's as well.
         return $this->parent->isSingletonBinding($target);
     }
 

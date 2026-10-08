@@ -149,8 +149,7 @@ class ChildContainer extends Container
             return null;
         }
 
-        // The child holds the same registration. One request must not hold one copy
-        // for the alias and another for the target.
+        // One request must not hold one copy for the alias and another for the target.
         if ($this->resolvesInChild($target)) {
             return $this->getTargetOnce($id, $target, $arguments);
         }
@@ -202,8 +201,7 @@ class ChildContainer extends Container
      */
     private function resolvesInChild(string $target): bool
     {
-        // The parent publishes before it reads any map, so this test comes first. The
-        // parent's state and the child's callback each decide one half.
+        // The parent publishes before it reads any map, so this test comes first.
         if ($this->parent->isDeferred($target)
             && ! $this->parent->isPublished($target)
             && $this->isDeferred($target)
@@ -215,7 +213,6 @@ class ChildContainer extends Container
             return false;
         }
 
-        // Both containers answer here, and each marker decides one half.
         return $this->parent->isSingletonBinding($target) && $this->isSingletonBinding($target);
     }
 
