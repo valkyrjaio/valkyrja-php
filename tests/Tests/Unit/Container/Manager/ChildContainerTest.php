@@ -229,6 +229,28 @@ final class ChildContainerTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    public function testGetSingletonLeavesTheTwoContainersHoldingDifferentObjects(): void
+    {
+        $registered = new SingletonFixture();
+        $this->parent->bindSingleton(
+            SingletonFixture::class,
+            static function (ContainerContract $container) use ($registered): object {
+                $container->setSingleton(SingletonFixture::class, $registered);
+
+                return new SingletonFixture();
+            }
+        );
+        $child = $this->createChild();
+
+        $fromChild = $child->getSingleton(SingletonFixture::class);
+
+        // The parent ran the factory, so the registration stayed in the parent and the
+        // child cached what the factory returned
+        self::assertSame($registered, $this->parent->getSingleton(SingletonFixture::class));
+        self::assertNotSame($registered, $fromChild);
+        self::assertSame($fromChild, $child->getSingleton(SingletonFixture::class));
+    }
+
     // getService — parent delegation and child-local
     // -----------------------------------------------------------------------
 
@@ -654,27 +676,6 @@ final class ChildContainerTest extends TestCase
         self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
     }
 
-    public function testGetSingletonLeavesTheTwoContainersHoldingDifferentObjects(): void
-    {
-        $registered = new SingletonFixture();
-        $this->parent->bindSingleton(
-            SingletonFixture::class,
-            static function (ContainerContract $container) use ($registered): object {
-                $container->setSingleton(SingletonFixture::class, $registered);
-
-                return new SingletonFixture();
-            }
-        );
-        $child = $this->createChild();
-
-        $fromChild = $child->getSingleton(SingletonFixture::class);
-
-        // The parent ran the factory, so the registration stayed in the parent and the
-        // child cached what the factory returned
-        self::assertSame($registered, $this->parent->getSingleton(SingletonFixture::class));
-        self::assertNotSame($registered, $fromChild);
-    }
-
     public function testGetAliasedAnswersFromTheParentWhenBothHoldAnInstance(): void
     {
         $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
@@ -845,6 +846,34 @@ final class ChildContainerTest extends TestCase
 
         // The factory registered the target, so the alias answers rather than throwing
         self::assertInstanceOf(SingletonFixture::class, $child->getAliased('cyclicAlias'));
+    }
+
+    public function testGetAliasedHoldsTheTargetOnceForTwoAliasesOntoIt(): void
+    {
+        $runs = 0;
+        $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
+        $this->parent->bindAlias('firstAlias', SingletonFixture::class);
+        $this->parent->bindAlias('secondAlias', SingletonFixture::class);
+        $child = $this->createChild();
+        $child->bindSingleton(
+            SingletonFixture::class,
+            static function (ContainerContract $container) use (&$runs): object {
+                $runs++;
+                $container->getAliased('secondAlias');
+
+                return new SingletonFixture();
+            }
+        );
+
+        try {
+            $child->getAliased('firstAlias');
+            self::fail('The chain returns to the target, so the lookup throws.');
+        } catch (ContainerCyclicAliasException) {
+        }
+
+        // The marker holds the target, not the alias, so the second alias returns to a
+        // target already in flight and the factory runs once
+        self::assertSame(1, $runs);
     }
 
     public function testGetAliasedThrowsForAChainAFactoryCloses(): void

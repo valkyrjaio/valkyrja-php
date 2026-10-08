@@ -248,6 +248,24 @@ final class NativeChildContainerTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    public function testGetSingletonLeavesOneObjectForTheTwoContainers(): void
+    {
+        $registered = new SingletonFixture();
+        $this->parent->bindSingleton(
+            SingletonFixture::class,
+            static function (ContainerContract $container) use ($registered): object {
+                $container->setSingleton(SingletonFixture::class, $registered);
+
+                return new SingletonFixture();
+            }
+        );
+
+        // This class runs the parent's callable itself, so the registration lands in the
+        // child and one object answers both reads
+        self::assertSame($registered, $this->child->getSingleton(SingletonFixture::class));
+        self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
+    }
+
     // getService — parent fallback
     // -----------------------------------------------------------------------
 
@@ -613,6 +631,26 @@ final class NativeChildContainerTest extends TestCase
         $this->expectException(ContainerCyclicAliasException::class);
 
         $this->child->setFromData(new ContainerData(aliases: ['second' => 'first']));
+    }
+
+    public function testGetAliasedWalksASecondChainWhenAPublisherRegistersNothing(): void
+    {
+        $this->parent->setFromData(new ContainerData(
+            callbacks: [ProvidedFixture::class => static function (ContainerContract $container): void {
+            }],
+        ));
+        $this->parent->bindAlias('outer', ProvidedFixture::class);
+        $this->parent->bindAlias(ProvidedFixture::class, SingletonFixture::class);
+        $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
+
+        // The publisher leaves its own id unresolved, so this one lookup runs a second
+        // walk and holds a second target in flight
+        self::assertInstanceOf(SingletonFixture::class, $this->child->getAliased('outer'));
+
+        // Both walks resolved in the child, so the frozen parent kept neither result
+        self::assertTrue($this->child->isPublished(ProvidedFixture::class));
+        self::assertFalse($this->parent->isPublished(ProvidedFixture::class));
+        self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
     }
 
     public function testGetAliasedAnswersFromTheParentWhenBothHoldAnInstance(): void
