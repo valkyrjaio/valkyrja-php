@@ -101,3 +101,7 @@ gathering them again.
 `Valkyrja\Application\Data\Contract\QueueConfigContract` is the application
 config a queue consumer boots from. It adds the middleware of each of the
 seven stages to the properties every application config carries.
+
+`Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract` names the
+default client. An application that pushes jobs implements it, which is a
+separate thing from the config a consumer boots from.

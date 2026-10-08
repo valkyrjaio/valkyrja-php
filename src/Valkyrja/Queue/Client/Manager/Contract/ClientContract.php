@@ -41,8 +41,9 @@ interface ClientContract
      * - the attempt count, incremented
      * - the modification time, stamped
      *
-     * A client whose processor owns redelivery authors none of them. It hands
-     * over the retry signal, and the processor's own backoff sets the hold.
+     * A client whose processor owns redelivery authors none of the three. That
+     * client hands the processor the retry signal. The processor then times the
+     * next delivery from its own backoff.
      *
      * @param JobContract $job The job as dispatched, before any increment
      */
