@@ -897,17 +897,17 @@ What the child reports differs by implementation. `ChildContainer` answers from
 the maps its snapshot copied. `NativeChildContainer` copies none, so it answers
 from the parent's maps.
 
-Warning: that exception also decides which binding the alias reaches. Give the
-parent a singleton it never builds. Give the child the marker for that id, from
+That exception also decides which binding the alias reaches. Give the parent a
+singleton it never builds. Give the child the marker for that id, from
 its snapshot or from its own `bindSingleton()`, and a factory of its own. The
 alias then reaches the factory of the **child**. A child that holds the marker
 and no factory reaches the parent's factory instead.
 
-Warning: outside that exception, a **parent-declared** alias hands the call to
-the parent in both implementations, so a parent-bound factory receives the
-parent. A `bind()` service is outside it, whether the parent built one or not.
-This is the one path where `NativeChildContainer` gives the parent for a lookup
-it could have answered itself.
+Outside that exception, a **parent-declared** alias hands the call to the parent
+in both implementations, so a parent-bound factory receives the parent. A
+`bind()` service is outside it, whether the parent built one or not. This is the
+one path where `NativeChildContainer` gives the parent for a lookup it could
+have answered itself.
 
 Warning: on that path the parent reads none of the child's maps. An instance the
 child holds for the target does not answer the alias. The parent answers from
@@ -1015,17 +1015,18 @@ run at registration, and a container installs no map before its walk ends, so a
 caller that catches the exception keeps the container it had. A container that
 writes an alias after a child reads through it is outside registration. The last
 two checks see one walk and one return, so a chain that reaches neither is
-unchecked. It has one of four outcomes:
+unchecked. It has one of three outcomes:
 
 - It resolves through the first hop the parent would answer.
 - It ends with a missing reference, when no hop answers. `NativeChildContainer`
   reports that for a parent which is itself a child.
-- It does not end, when a factory or a publish callback runs in a container that
-  carries no such check. A plain `Container` carries none. A child gives the
-  lookup to the parent for a target the child does not resolve itself.
-  `ChildContainer` also gives the parent a factory the child does not hold.
-- It does not end, when an alias the child declares closes a chain through a
-  factory or a publish callback the child runs. No check sits on that path.
+- It does not end, in either of two cases:
+  - A factory or a publish callback runs in a container that carries no such
+    check. A plain `Container` carries none. A child gives the lookup to the
+    parent for a target the child does not resolve itself. `ChildContainer`
+    also gives the parent a factory the child does not hold.
+  - An alias the child declares closes a chain through a factory or a publish
+    callback the child runs. No check sits on that path.
 
 All three implement `Valkyrja\Container\Throwable\Contract\ContainerThrowable`,
 so one catch covers everything the container throws:
