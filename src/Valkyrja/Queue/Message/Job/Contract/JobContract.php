@@ -160,7 +160,7 @@ interface JobContract
      * that self-bounds through the max attempts ceiling; otherwise it is fixed,
      * with no ramp and no jitter.
      *
-     * The count used is *this* job's, so a re-queue adapter reads it from the
+     * The count used is *this* job's, so a re-queue entry reads it from the
      * dispatched job that just failed, never from the incremented copy it is
      * about to enqueue — reading the copy would make every hold one step too
      * long. With a delay of 1000 ms the holds are 1000, 2000, 3000 for

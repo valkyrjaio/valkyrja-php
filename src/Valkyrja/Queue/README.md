@@ -50,11 +50,18 @@ Each stage has a matching handler contract in
 `Valkyrja\Queue\Middleware\Handler\Contract`, which holds the middleware of
 that stage and runs it in order.
 
+`Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract` runs a job through
+those stages. An entry calls `run`, which returns the outcome, and calls
+`resultSettled` last. Settling the outcome with the processor is the entry's
+own work, and it belongs between the two calls. `run` is `handle` plus
+`settlingResult`. An entry calls `handle` and `settlingResult` separately when
+it has to change the outcome between them.
+
 `JobReceived`, `SettlingResult`, and `ResultSettled` always run. The other four
 are conditional. A `JobReceived` middleware that returns an outcome
 short-circuits the pipeline, and the router never runs. The router otherwise
-chooses `RouteMatched` or `RouteNotMatched`. `RouteDispatched` runs once the handler
-returns, and `ThrowableCaught` runs when any earlier stage throws.
+chooses `RouteMatched` or `RouteNotMatched`. `RouteDispatched` runs once the
+handler returns, and `ThrowableCaught` runs when any earlier stage throws.
 
 The outcome is one of four `JobResult` cases: `ACK`, `RETRY`, `FAIL`, or
 `DEAD_LETTER`. A `ThrowableCaught` middleware dead-letters a throwable that
@@ -64,11 +71,15 @@ than retrying it.
 ## Throwables
 
 `Valkyrja\Queue\Throwable\Contract\QueueThrowable` marks every throwable the
-component raises, and each sub-component narrows it: `QueueMessageThrowable`,
-`QueueMiddlewareThrowable`, and `QueueRoutingThrowable`. Each marker has an
-abstract `*InvalidArgumentException` and `*RuntimeException` pair. A concrete
-exception extends one of its own sub-component's pair, so a caller can catch one
-sub-component or the whole component.
+component raises, and each sub-component narrows it with its own marker, as
+`QueueMessageThrowable` and `QueueServerThrowable` do. Each sub-component
+marker has an abstract `*InvalidArgumentException` and `*RuntimeException`
+pair. A concrete exception extends one of its own sub-component's pair, so a
+caller can catch one sub-component or the whole component.
+`QueueNonRetryableThrowable` narrows `QueueThrowable` as well, so
+`catch (QueueThrowable)` catches a throwable that carries it. That marker is
+cross-cutting rather than per sub-component. It marks a throwable the pipeline
+must not retry, whatever raises it.
 
 ## Routing
 

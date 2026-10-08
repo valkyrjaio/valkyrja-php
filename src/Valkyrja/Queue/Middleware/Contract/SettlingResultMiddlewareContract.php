@@ -19,7 +19,7 @@ use Valkyrja\Queue\Middleware\Handler\Contract\SettlingResultHandlerContract;
 interface SettlingResultMiddlewareContract
 {
     /**
-     * Middleware handler for before the adapter settles the outcome with the processor.
+     * Middleware handler for before the entry settles the outcome with the processor.
      */
     public function settlingResult(
         JobContract $job,
