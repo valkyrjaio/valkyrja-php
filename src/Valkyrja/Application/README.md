@@ -844,10 +844,10 @@ Two `ChildContainer` implementations exist in `Valkyrja\Container\Manager`:
   lower construction cost. It requires a concrete `Container` parent and takes
   no `ContainerData`. It answers a direct lookup from the parent's maps rather
   than delegating, so a factory bound on the parent receives the child here, and
-  the parent under `ChildContainer`. A parent-declared alias is the exception,
-  because both hand that call to the parent. The child resolves a target the
-  parent has not resolved, when it holds that registration too. Choose the
-  behavior your services need, not the construction cost alone.
+  the parent under `ChildContainer`. Both hand a parent-declared alias to the
+  parent. The exception is a target the parent has not resolved, which the child
+  resolves when it holds that registration too. Choose the behavior your
+  services need, not the construction cost alone.
 
 To swap the implementation, override `getChildContainer()` in your concrete
 worker subclass.
