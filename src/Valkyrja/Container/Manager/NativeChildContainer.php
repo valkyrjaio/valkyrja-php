@@ -199,6 +199,8 @@ class NativeChildContainer extends Container
         $current = $id;
         $target  = null;
 
+        // Every write to a container's own alias map validates first, so the parent's map
+        // holds no cycle and this walk needs no bound.
         while (($aliasedId = $this->parent->aliases[$current] ?? null) !== null) {
             $target  = $aliasedId;
             $current = $aliasedId;
