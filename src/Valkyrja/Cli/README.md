@@ -57,7 +57,7 @@ Every constructor argument, with its default and what it does:
 | `key`                    | `'some_secret_app_key'`                           | The application secret — always override this                                      |
 | `dataPath`               | `'App/Provider/Data'`                             | Names the location of generated data classes; the framework does not read this     |
 | `dataNamespace`          | `'App\\Provider\\Data'`                           | Names the namespace of generated data classes; the framework does not read this    |
-| `applicationName`        | `'valkyrja'`                                      | The application's name, stamped into the provenance of a queued job                |
+| `applicationName`        | `'valkyrja'`                                      | The binary name shown in help and version output                                   |
 | `defaultCommandName`     | `'list'`                                          | The command that runs when the input names no command                              |
 | `providers`              | `[new CliWithHttpApplicationComponentProvider()]` | The `ComponentProviderContract` instances to boot                                  |
 | `callbacks`              | `[]`                                              | Callables the application runs at boot, each `callable(ApplicationContract): void` |
