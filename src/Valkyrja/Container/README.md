@@ -879,9 +879,8 @@ an alias. When the parent holds a resolved instance and the child holds none, a
 direct child lookup reuses the parent's instance.
 
 The parent answers the target as it would for any caller, with one exception.
-The child resolves a target the parent would answer for the first time, when the
-child holds that registration too. Letting the parent do it would leave the
-request with one copy for the alias and another for the target. Three cases:
+Letting the parent resolve a target the child also holds would leave the request
+with one copy for the alias and another for the target. Three cases:
 
 - **A singleton the parent registered and never built** — the child resolves it
   when the child reports that binding.
@@ -946,8 +945,8 @@ parent. The exception path above follows the same rule, and the child's own
 factory runs when the child declares one for that id. A singleton the child
 builds on that path caches in the child. A publisher decides what it registers,
 so a publisher that binds a `bind()` factory caches nothing. A deferred target
-is the one case both give the child, because the publish callback runs in the
-container that publishes it.
+is the one case both give the child, when the child reports that callback. The
+publish callback runs in the container that publishes it.
 
 The two answer `isDeferred()` and `isSingletonBinding()` about **themselves**
 differently, because they hold different state. `ChildContainer` copies the

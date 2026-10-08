@@ -848,8 +848,8 @@ Two `ChildContainer` implementations exist in `Valkyrja\Container\Manager`:
   the parent under `ChildContainer`. Both hand a parent-declared alias to the
   parent. The exception is a singleton the parent never built, or a publisher
   it has not run. The child resolves such a target when it holds that
-  registration too.
-  Choose the behavior your services need, not the construction cost alone.
+  registration too. Choose the behavior your services need, not the construction
+  cost alone.
 
 To swap the implementation, override `getChildContainer()` in your concrete
 worker subclass.
