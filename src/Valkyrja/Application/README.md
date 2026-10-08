@@ -830,9 +830,10 @@ child reuses that one instance. Under `ChildContainer` a child delegates any
 other id to the parent, and the parent answers it as it would for any caller.
 `NativeChildContainer` reads the parent's maps and resolves in the child
 instead. A parent-declared alias goes to the parent under both. The exception is
-a target the parent would resolve for the first time, which the child resolves
-when it holds that registration too. The base implementation resolves the route
-collection, so an override calls `parent::bootstrapParentServices($app)` first.
+a singleton the parent never built, or a publisher it has not run. The child
+resolves such a target when it holds that registration too. The base
+implementation resolves the route collection, so an override calls
+`parent::bootstrapParentServices($app)` first.
 
 ### Swapping the Child Container
 
@@ -843,11 +844,12 @@ Two `ChildContainer` implementations exist in `Valkyrja\Container\Manager`:
 - `NativeChildContainer` reads the parent's protected fields directly for a
   lower construction cost. It requires a concrete `Container` parent and takes
   no `ContainerData`. It answers a direct lookup from the parent's maps rather
-  than delegating, so a factory bound on the parent receives the child here, and
+  than delegating. A factory bound on the parent receives the child here, and
   the parent under `ChildContainer`. Both hand a parent-declared alias to the
-  parent. The exception is a target the parent has not resolved, which the child
-  resolves when it holds that registration too. Choose the behavior your
-  services need, not the construction cost alone.
+  parent. The exception is a singleton the parent never built, or a publisher
+  it has not run. The child resolves such a target when it holds that
+  registration too.
+  Choose the behavior your services need, not the construction cost alone.
 
 To swap the implementation, override `getChildContainer()` in your concrete
 worker subclass.
