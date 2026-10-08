@@ -51,10 +51,11 @@ Each stage has a matching handler contract in
 that stage and runs it in order.
 
 `Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract` runs a job through
-those stages. Its `handle` returns the outcome, `settlingResult` runs the stage
-before an entry settles that outcome, and `resultSettled` runs the stage after.
-An entry calls the three in that order, so the settlement sits between the last
-two stages.
+those stages. An entry calls `run` to get the outcome, settles it with its
+processor when it has one to settle with, and then calls `resultSettled`. The
+settlement therefore sits between the last two stages. `run` is `handle` plus
+`settlingResult`, and an entry calls those two separately when it has to act
+between them.
 
 `JobReceived`, `SettlingResult`, and `ResultSettled` always run. The other four
 are conditional. A `JobReceived` middleware that returns an outcome
@@ -70,11 +71,13 @@ than retrying it.
 ## Throwables
 
 `Valkyrja\Queue\Throwable\Contract\QueueThrowable` marks every throwable the
-component raises, and each sub-component narrows it with its own
-`Queue<SubComponent>Throwable` marker. Each marker has an abstract
-`*InvalidArgumentException` and `*RuntimeException` pair. A concrete
+component raises, and each sub-component narrows it with its own marker, as
+`QueueMessageThrowable` and `QueueServerThrowable` do. Each marker has an
+abstract `*InvalidArgumentException` and `*RuntimeException` pair. A concrete
 exception extends one of its own sub-component's pair, so a caller can catch one
-sub-component or the whole component.
+sub-component or the whole component. `QueueNonRetryableThrowable` sits beside
+`QueueThrowable` and is not a sub-component marker: it marks a throwable the
+pipeline must not retry, whichever sub-component raises it.
 
 ## Routing
 
