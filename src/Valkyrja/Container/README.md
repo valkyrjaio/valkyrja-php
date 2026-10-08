@@ -898,10 +898,10 @@ the maps its snapshot copied. `NativeChildContainer` copies none, so it answers
 from the parent's maps.
 
 That exception also decides which binding the alias reaches. Give the parent a
-singleton it never builds. Give the child the marker for that id, from
-its snapshot or from its own `bindSingleton()`, and a factory of its own. The
-alias then reaches the factory of the **child**. A child that holds the marker
-and no factory reaches the parent's factory instead.
+singleton it never builds. Give the child the marker for that id, from its
+snapshot or from its own `bindSingleton()`, and a factory of its own. The alias
+then reaches the factory of the **child**. A child that holds the marker and no
+factory reaches the parent's factory instead.
 
 Outside that exception, a **parent-declared** alias hands the call to the parent
 in both implementations, so a parent-bound factory receives the parent. A
