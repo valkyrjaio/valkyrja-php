@@ -20,9 +20,6 @@ interface JobReceivedMiddlewareContract
 {
     /**
      * Middleware handler for a job received.
-     *
-     * Returning a result short-circuits the pipeline, settling the job without
-     * ever reaching the router.
      */
     public function jobReceived(JobContract $job, JobReceivedHandlerContract $handler): JobContract|JobResult;
 }

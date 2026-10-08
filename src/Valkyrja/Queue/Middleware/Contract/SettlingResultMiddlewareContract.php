@@ -19,13 +19,7 @@ use Valkyrja\Queue\Middleware\Handler\Contract\SettlingResultHandlerContract;
 interface SettlingResultMiddlewareContract
 {
     /**
-     * Middleware handler ran before the adapter settles the outcome with the processor.
-     *
-     * This stage runs on every job, error paths included, and is the last
-     * chance to change the outcome the adapter will act on.
-     *
-     * The attempt ceiling applies to the outcome this stage returns. A
-     * middleware that returns a retry on the final attempt gets a dead-letter.
+     * Middleware handler for before the processor settles the outcome.
      */
     public function settlingResult(
         JobContract $job,

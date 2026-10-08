@@ -19,10 +19,7 @@ use Valkyrja\Queue\Middleware\Handler\Contract\ResultSettledHandlerContract;
 interface ResultSettledMiddlewareContract
 {
     /**
-     * Middleware handler ran after the adapter has settled the outcome.
-     *
-     * The settlement has already happened, so this stage is for metrics,
-     * events, and cleanup — it cannot change the outcome.
+     * Middleware handler for after the processor has settled the outcome.
      */
     public function resultSettled(
         JobContract $job,
