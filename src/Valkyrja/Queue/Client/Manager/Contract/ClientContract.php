@@ -32,12 +32,16 @@ interface ClientContract
     /**
      * Settle a retry for the job as dispatched.
      *
-     * The entry of a processor with no retry of its own calls this with the
-     * job as dispatched, and the client authors all three:
+     * A processor with no retry of its own settles a retry through this method,
+     * with the job as dispatched. The client authors two fields on every such
+     * processor:
      *
-     * - the hold, derived from the dispatched job, ramped where the job says so
      * - the attempt count, incremented
      * - the modification time, stamped
+     *
+     * A client that can hold a job derives the hold from the dispatched job as
+     * well, ramped where that job says so. An in-process client has nowhere to
+     * hold one, so it publishes the retry without a hold.
      *
      * A processor that owns redelivery never reaches this method. The entry of
      * such a processor answers the retry from its own settlement instead.
@@ -49,8 +53,8 @@ interface ClientContract
     /**
      * Get the stamped jobs handed to this client during this unit of work.
      *
-     * A redelivery is recorded as well, so a job appears once for each time it
-     * was handed to this client.
+     * The framework hands a redelivery to the client as well, so a job appears
+     * once for each time the framework hands that job over.
      *
      * @return JobContract[]
      */
@@ -60,8 +64,8 @@ interface ClientContract
      * Drop the record, ending the unit of work it belongs to.
      *
      * A pull worker calls this before each job, so one job is its unit of work.
-     * Every other host calls it at the end of whatever its own unit of work is,
-     * because nothing else bounds the record.
+     * Every other host has to call it at the end of whatever its own unit of
+     * work is, because nothing else bounds the record.
      *
      * A host holds one client for its whole life, so the record has to end with
      * the unit of work rather than with the process.

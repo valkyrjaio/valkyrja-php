@@ -87,12 +87,14 @@ must not retry, whatever raises it.
 surface. `push` enqueues a fresh job. `getPushed` returns the jobs handed to
 the client during one unit of work, and `clearPushed` ends that unit of work.
 
-`requeue` and `retry` settle a retry. The entry of a processor with no retry of
-its own calls `requeue` with the job as dispatched. The client then increments
-the attempt, stamps the modification time, and derives the hold from that job.
-`retry` is the lower seam `requeue` calls, and it takes the already incremented
-copy with the hold supplied. A processor that owns redelivery reaches neither,
-because its entry answers the retry from its own settlement.
+`requeue` and `retry` settle a retry. A processor with no retry of its own
+settles through `requeue`, with the job as dispatched. The client then
+increments the attempt and stamps the modification time. A client with
+somewhere to hold a job derives the hold from that job too. `retry` is the
+lower seam `requeue` calls, and it takes the already incremented copy with the
+hold supplied. The framework reaches neither on a processor that owns
+redelivery, because that processor's entry answers the retry from its own
+settlement.
 
 ## Routing
 
