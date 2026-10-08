@@ -128,4 +128,16 @@ final class CliTest extends TestCase
         self::assertCount(2, $input->getArguments());
         self::assertCount(4, $input->getOptions());
     }
+
+    public function testGetInputWithoutServerArgv(): void
+    {
+        // A process started without argv registered, such as a non-CLI SAPI,
+        // reaches the fallback rather than reading a missing global
+        unset($_SERVER['argv']);
+
+        $input = CliFixture::getInputExposed(new CliConfig());
+
+        self::assertSame('valkyrja', $input->getCaller());
+        self::assertSame([], $input->getArguments());
+    }
 }

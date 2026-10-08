@@ -30,6 +30,12 @@
   registration, arguments and options, the six-stage middleware pipeline, and
   built-in commands
 
+### Queue
+
+- [Queue Routing & Middleware](Queue/README.md) — Job contracts, route
+  providers, the seven-stage middleware pipeline, the throwable hierarchy, and
+  the queue application config
+
 ### Events
 
 - [Event Dispatching](Event/README.md) — PSR-14 event dispatcher, listeners, and
