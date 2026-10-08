@@ -138,6 +138,17 @@ final class NativeChildContainerTest extends TestCase
         self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
     }
 
+    public function testIsSingletonBindingReadsTheChildThenTheParent(): void
+    {
+        $this->child->bindSingleton(ServiceFixture::class, [ServiceFixture::class, 'make']);
+        // A snapshot copies the parent's bindings, so only a later one reaches the fallback
+        $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
+
+        self::assertTrue($this->child->isSingletonBinding(ServiceFixture::class));
+        self::assertTrue($this->child->isSingletonBinding(SingletonFixture::class));
+        self::assertFalse($this->child->isSingletonBinding('unknown'));
+    }
+
     // -----------------------------------------------------------------------
     // has (registered via provider) / isPublished
     // -----------------------------------------------------------------------
@@ -558,17 +569,6 @@ final class NativeChildContainerTest extends TestCase
 
         self::assertInstanceOf(ServiceFixture::class, $this->child->getAliased('outer'));
         self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
-    }
-
-    public function testIsSingletonBindingReadsTheChildThenTheParent(): void
-    {
-        $this->child->bindSingleton(ServiceFixture::class, [ServiceFixture::class, 'make']);
-        // A snapshot copies the parent's bindings, so only a later one reaches the fallback
-        $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
-
-        self::assertTrue($this->child->isSingletonBinding(ServiceFixture::class));
-        self::assertTrue($this->child->isSingletonBinding(SingletonFixture::class));
-        self::assertFalse($this->child->isSingletonBinding('unknown'));
     }
 
     public function testGetAliasedStopsAtADeferredHopInTheChain(): void
