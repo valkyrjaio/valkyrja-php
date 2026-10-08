@@ -33,8 +33,8 @@
 ### Queue
 
 - [Queue Routing & Middleware](Queue/README.md) — Job contracts, route
-  providers, the seven-stage middleware pipeline, and the client and entry
-  contracts
+  providers, the seven-stage middleware pipeline, the throwable hierarchy, and
+  the queue application config
 
 ### Events
 
