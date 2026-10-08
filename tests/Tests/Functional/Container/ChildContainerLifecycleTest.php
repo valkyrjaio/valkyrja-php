@@ -28,7 +28,6 @@ final class ChildContainerLifecycleTest extends TestCase
     {
         $parent = $this->app->getContainer();
 
-        // Boot. Everything a worker registers before the request loop begins.
         $parent->register(new PublishingProviderFixture());
         $parent->bindSingleton('shared', [SingletonFixture::class, 'make']);
         $parent->bindSingleton('unbuilt', [SingletonFixture::class, 'make']);
@@ -36,7 +35,6 @@ final class ChildContainerLifecycleTest extends TestCase
         $parent->bindAlias('sharedAlias', 'shared');
         $shared = $parent->getSingleton('shared');
 
-        // One snapshot, taken once, read by every request.
         $data          = $parent->getData();
         $registrations = $parent->getData();
 
@@ -47,42 +45,34 @@ final class ChildContainerLifecycleTest extends TestCase
         for ($request = 0; $request < 3; $request++) {
             $child = new ChildContainer($parent, $data);
 
-            // A fresh child carries nothing the last request registered
             self::assertFalse($child->isSingletonInstance('request'));
 
             $child->setSingleton('request', $scoped[$request] = new SingletonFixture());
 
-            // The parent built this one before the loop, so every request shares it
             self::assertSame($shared, $child->getSingleton('shared'));
             self::assertSame($shared, $child->getAliased('sharedAlias'));
 
-            // The parent never built this one, so the request builds its own
             $unbuilt[$request] = $child->getSingleton('unbuilt');
             self::assertSame($unbuilt[$request], $child->getSingleton('unbuilt'));
 
-            // The child holds the publish callback, so it publishes into itself
             $provided[$request] = $child->get(ProvidedFixture::class);
 
-            // A bound factory runs for each call, and caches nowhere
             self::assertNotSame($child->get('fresh'), $child->get('fresh'));
 
             self::assertSame($scoped[$request], $child->getSingleton('request'));
         }
 
-        // Nothing a request registered reaches the parent
         self::assertFalse($parent->has('request'));
         self::assertFalse($parent->isSingletonInstance('unbuilt'));
         self::assertFalse($parent->isSingletonInstance('fresh'));
         self::assertFalse($parent->isPublished(ProvidedFixture::class));
         self::assertFalse($parent->isSingletonInstance(ProvidedFixture::class));
 
-        // Nothing one request built reaches another
         self::assertNotSame($unbuilt[0], $unbuilt[1]);
         self::assertNotSame($unbuilt[1], $unbuilt[2]);
         self::assertNotSame($provided[0], $provided[1]);
         self::assertNotSame($provided[1], $provided[2]);
 
-        // The parent still holds the registrations it booted with
         $current = $parent->getData();
 
         self::assertSame($registrations->aliases, $current->aliases);

@@ -322,14 +322,12 @@ final class NativeChildContainerTest extends TestCase
         self::assertTrue($this->child->isSingletonInstance('Unresolved'));
         self::assertFalse($this->parent->isSingletonInstance('Unresolved'));
 
-        // The alias reaches the same copy, so the request holds one instance of it
         self::assertSame($this->child->get('Unresolved'), $this->child->get('UnresolvedAlias'));
         self::assertFalse($this->parent->isSingletonInstance('Unresolved'));
     }
 
     public function testAChainOntoAnUnbuiltParentSingletonResolvesInTheChild(): void
     {
-        // outer → middle → the singleton, none of it built in the parent
         $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
         $this->parent->bindAlias('middle', SingletonFixture::class);
         $this->parent->bindAlias('outer', 'middle');
@@ -346,7 +344,6 @@ final class NativeChildContainerTest extends TestCase
         $this->parent->register(new PublishingProviderFixture());
         $this->parent->bindAlias('providedAlias', ProvidedFixture::class);
 
-        // The child holds the same callback, so it publishes into itself
         $fromId    = $this->child->get(ProvidedFixture::class);
         $fromAlias = $this->child->get('providedAlias');
 
@@ -549,7 +546,6 @@ final class NativeChildContainerTest extends TestCase
     {
         $this->parent->register(new PublishingProviderFixture());
         $this->parent->bindAlias('providedAlias', ProvidedFixture::class);
-        // The parent publishes at boot, so the request reuses what it holds
         $shared = $this->parent->get(ProvidedFixture::class);
 
         self::assertSame($shared, $this->child->getAliased('providedAlias'));
@@ -575,7 +571,6 @@ final class NativeChildContainerTest extends TestCase
         $this->parent->bindAlias(ProvidedFixture::class, ServiceFixture::class);
         $this->parent->bind(ServiceFixture::class, [ServiceFixture::class, 'make']);
 
-        // The child holds the same callback, so it publishes into itself
         $fromId = $this->child->get(ProvidedFixture::class);
 
         self::assertSame($fromId, $this->child->getAliased('outer'));
@@ -623,7 +618,6 @@ final class NativeChildContainerTest extends TestCase
         $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
 
         self::assertInstanceOf(SingletonFixture::class, $this->child->getAliased('outer'));
-        // The walk reaches the unbuilt singleton, so the child builds it
         self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
     }
 
@@ -655,7 +649,6 @@ final class NativeChildContainerTest extends TestCase
             $this->child->getAliased('firstAlias');
             self::fail('The chain returns to the target, so the lookup throws.');
         } catch (ContainerCyclicAliasException $exception) {
-            // The alias that closed the chain names the pair, not the outer one
             self::assertSame(
                 'Alias `secondAlias` cannot reach `' . SingletonFixture::class
                     . '`, because the chain from `' . SingletonFixture::class
@@ -683,7 +676,6 @@ final class NativeChildContainerTest extends TestCase
         // walk and holds a second target in flight
         self::assertInstanceOf(SingletonFixture::class, $this->child->getAliased('outer'));
 
-        // Both walks resolved in the child, so the frozen parent kept neither result
         self::assertTrue($this->child->isPublished(ProvidedFixture::class));
         self::assertFalse($this->parent->isPublished(ProvidedFixture::class));
         self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
@@ -790,7 +782,6 @@ final class NativeChildContainerTest extends TestCase
         );
         $this->parent->bindAlias('cyclicAlias', 'cyclic');
 
-        // The factory registered the target, so the alias answers rather than throwing
         self::assertInstanceOf(SingletonFixture::class, $this->child->getAliased('cyclicAlias'));
     }
 

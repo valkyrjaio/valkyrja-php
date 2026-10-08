@@ -138,7 +138,6 @@ final class ContainerTest extends TestCase
 
         $this->expectException(ContainerCyclicAliasException::class);
 
-        // setFromData() is an entry point for aliases, so it validates them too
         $container->setFromData(new ContainerData(aliases: ['first' => 'second', 'second' => 'first']));
     }
 

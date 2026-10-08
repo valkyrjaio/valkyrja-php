@@ -243,8 +243,6 @@ final class ChildContainerTest extends TestCase
 
         $fromChild = $child->getSingleton(SingletonFixture::class);
 
-        // The parent ran the factory, so the registration stayed in the parent and the
-        // child cached what the factory returned
         self::assertSame($registered, $this->parent->getSingleton(SingletonFixture::class));
         self::assertNotSame($registered, $fromChild);
         self::assertSame($fromChild, $child->getSingleton(SingletonFixture::class));
@@ -307,14 +305,12 @@ final class ChildContainerTest extends TestCase
         self::assertTrue($child->isSingletonInstance('Unresolved'));
         self::assertFalse($this->parent->isSingletonInstance('Unresolved'));
 
-        // The alias reaches the same copy, so the request holds one instance of it
         self::assertSame($child->get('Unresolved'), $child->get('UnresolvedAlias'));
         self::assertFalse($this->parent->isSingletonInstance('Unresolved'));
     }
 
     public function testAChainOntoAnUnbuiltParentSingletonResolvesInTheChild(): void
     {
-        // outer → middle → the singleton, none of it built in the parent
         $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
         $this->parent->bindAlias('middle', SingletonFixture::class);
         $this->parent->bindAlias('outer', 'middle');
@@ -333,7 +329,6 @@ final class ChildContainerTest extends TestCase
         $this->parent->bindAlias('providedAlias', ProvidedFixture::class);
         $child = $this->createChild();
 
-        // The child holds the same callback, so it publishes into itself
         $fromId    = $child->get(ProvidedFixture::class);
         $fromAlias = $child->get('providedAlias');
 
@@ -536,7 +531,6 @@ final class ChildContainerTest extends TestCase
     {
         $this->parent->register(new PublishingProviderFixture());
         $this->parent->bindAlias('providedAlias', ProvidedFixture::class);
-        // The parent publishes at boot, so the request reuses what it holds
         $shared = $this->parent->get(ProvidedFixture::class);
         $child  = $this->createChild();
 
@@ -565,7 +559,6 @@ final class ChildContainerTest extends TestCase
         $this->parent->bind(ServiceFixture::class, [ServiceFixture::class, 'make']);
         $child = $this->createChild();
 
-        // The child holds the same callback, so it publishes into itself
         $fromId = $child->get(ProvidedFixture::class);
 
         self::assertSame($fromId, $child->getAliased('outer'));
@@ -642,7 +635,6 @@ final class ChildContainerTest extends TestCase
         $child = $this->createChild();
 
         self::assertInstanceOf(SingletonFixture::class, $child->getAliased('outer'));
-        // The walk reaches the unbuilt singleton, so the child builds it
         self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
     }
 
@@ -671,7 +663,6 @@ final class ChildContainerTest extends TestCase
         // walk and holds a second target in flight
         self::assertInstanceOf(SingletonFixture::class, $child->getAliased('outer'));
 
-        // Both walks resolved in the child, so the frozen parent kept neither result
         self::assertTrue($child->isPublished(ProvidedFixture::class));
         self::assertFalse($this->parent->isPublished(ProvidedFixture::class));
         self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
@@ -844,7 +835,6 @@ final class ChildContainerTest extends TestCase
             },
         );
 
-        // The factory registered the target, so the alias answers rather than throwing
         self::assertInstanceOf(SingletonFixture::class, $child->getAliased('cyclicAlias'));
     }
 
@@ -871,7 +861,6 @@ final class ChildContainerTest extends TestCase
             $child->getAliased('firstAlias');
             self::fail('The chain returns to the target, so the lookup throws.');
         } catch (ContainerCyclicAliasException $exception) {
-            // The alias that closed the chain names the pair, not the outer one
             self::assertSame(
                 'Alias `secondAlias` cannot reach `' . SingletonFixture::class
                     . '`, because the chain from `' . SingletonFixture::class
