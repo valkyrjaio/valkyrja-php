@@ -292,8 +292,10 @@ public static function bootstrapParentServices(ApplicationContract $app): void
 ```
 
 Anything resolved here lives in the frozen parent, and every request reads it.
-The parent also publishes a deferred id, and caches a singleton, when it
-answers a lookup a child handed to it. A child that holds the publish callback,
+Under `ChildContainer` the parent also publishes a deferred id, and caches a
+singleton, when it answers a lookup the child handed to it.
+`NativeChildContainer` resolves every unrun publisher and every unbuilt
+singleton in the child instead. A child that holds the publish callback,
 or the singleton binding from the data, builds the id fresh in the child's own
 scope. That is correct, and the build costs time on every request.
 
@@ -317,9 +319,9 @@ Two implementations are available for the per-request child container:
 The two differ on the factory receiver: a factory bound on the parent receives
 the child under `NativeChildContainer`, and the parent under `ChildContainer`. A
 parent-declared alias is the exception, because both hand that call to the
-parent. The one case they do not is a target the parent would resolve for the
-first time, when the child holds that registration too: a singleton the parent
-never built, or a publisher it has not run.
+parent. They do not hand it over for a target the parent would resolve for the
+first time, when the child holds that registration too. That target is a
+singleton the parent never built, or a publisher it has not run.
 
 ## Focus on Configuration
 
