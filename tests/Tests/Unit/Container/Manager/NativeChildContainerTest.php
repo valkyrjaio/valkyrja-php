@@ -141,7 +141,6 @@ final class NativeChildContainerTest extends TestCase
     public function testIsSingletonBindingReadsTheChildThenTheParent(): void
     {
         $this->child->bindSingleton(ServiceFixture::class, [ServiceFixture::class, 'make']);
-        // A snapshot copies the parent's bindings, so only a later one reaches the fallback
         $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
 
         self::assertTrue($this->child->isSingletonBinding(ServiceFixture::class));
@@ -311,16 +310,13 @@ final class NativeChildContainerTest extends TestCase
 
     public function testSnapshotChildResolvesAnUnbuiltParentSingletonItself(): void
     {
-        // Boot: two singletons on the parent, one resolved before any child exists
         $this->parent->bindSingleton('Resolved', [SingletonFixture::class, 'make']);
         $this->parent->bindSingleton('Unresolved', [ServiceFixture::class, 'make']);
         $this->parent->bindAlias('UnresolvedAlias', 'Unresolved');
         $shared = $this->parent->getSingleton('Resolved');
 
-        // The request loop begins from one snapshot
         $this->child = new NativeChildContainer($this->parent);
 
-        // The resolved one is shared, and the unresolved one is the child's own
         self::assertSame($shared, $this->child->get('Resolved'));
         self::assertInstanceOf(ServiceFixture::class, $this->child->get('Unresolved'));
         self::assertTrue($this->child->isSingletonInstance('Unresolved'));
@@ -712,7 +708,6 @@ final class NativeChildContainerTest extends TestCase
         $this->parent->bindAlias('parentAlias', SingletonFixture::class);
         $this->child->setSingleton(SingletonFixture::class, $scoped = new SingletonFixture());
 
-        // The alias belongs to the parent, so the parent answers it from its own maps
         self::assertSame($shared, $this->child->getAliased('parentAlias'));
         self::assertSame($scoped, $this->child->get(SingletonFixture::class));
     }
