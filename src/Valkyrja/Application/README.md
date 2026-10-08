@@ -829,11 +829,10 @@ request should share. An id resolved here lives in the frozen parent, and each
 child reuses that one instance. Under `ChildContainer` a child delegates any
 other id to the parent, and the parent answers it as it would for any caller.
 `NativeChildContainer` reads the parent's maps and resolves in the child
-instead. The exception in both is a parent-declared alias onto a target the
-parent has not resolved, which the child resolves itself when it holds that
-registration too. The base implementation
-resolves the route collection, so an override calls
-`parent::bootstrapParentServices($app)` first.
+instead. A parent-declared alias goes to the parent under both. The exception is
+a target the parent would resolve for the first time, which the child resolves
+when it holds that registration too. The base implementation resolves the route
+collection, so an override calls `parent::bootstrapParentServices($app)` first.
 
 ### Swapping the Child Container
 
@@ -845,11 +844,10 @@ Two `ChildContainer` implementations exist in `Valkyrja\Container\Manager`:
   lower construction cost. It requires a concrete `Container` parent and takes
   no `ContainerData`. It answers a direct lookup from the parent's maps rather
   than delegating, so a factory bound on the parent receives the child here, and
-  the parent under `ChildContainer`. A
-  parent-declared alias is the exception, because both hand that call to the
-  parent, unless the parent would resolve its target for the first time and the
-  child holds that registration too. Choose the behavior your services need, not
-  the construction cost alone.
+  the parent under `ChildContainer`. A parent-declared alias is the exception,
+  because both hand that call to the parent. The child resolves a target the
+  parent has not resolved, when it holds that registration too. Choose the
+  behavior your services need, not the construction cost alone.
 
 To swap the implementation, override `getChildContainer()` in your concrete
 worker subclass.
