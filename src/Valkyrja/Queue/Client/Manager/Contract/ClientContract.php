@@ -33,8 +33,7 @@ interface ClientContract
      * Settle a retry for the job as dispatched.
      *
      * A processor with no retry of its own settles a retry through this method,
-     * with the job as dispatched. The client always authors two fields on that
-     * job:
+     * with the job as dispatched. The client always authors two fields:
      *
      * - the attempt count, incremented
      * - the modification time, stamped
