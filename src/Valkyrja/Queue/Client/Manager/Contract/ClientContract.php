@@ -42,10 +42,8 @@ interface ClientContract
      * well, ramped where that job says so. An in-process client has nowhere to
      * hold one, so it publishes the retry without a hold.
      *
-     * A processor that owns redelivery never reaches this method, because the
-     * entry of such a processor answers the retry from its own settlement. A
-     * client for one of those processors therefore re-enqueues nothing of its
-     * own here, and leaves the same seam `retry` reaches unimplemented.
+     * A processor that owns redelivery never reaches this method. The entry of
+     * such a processor answers the retry from its own settlement instead.
      *
      * @param JobContract $job The job as dispatched, before any increment
      */
@@ -67,10 +65,6 @@ interface ClientContract
      * A pull worker calls this before each job, so one job is its unit of work.
      * Every other host has to call it at the end of whatever its own unit of
      * work is, because nothing else bounds the record.
-     *
-     * For a buffering client that unit of work ends once a drain has run every
-     * recorded job. A host that clears before then destroys a job the drain has
-     * not reached, and nothing reports the loss.
      *
      * A host holds one client for its whole life, so the record has to end with
      * the unit of work rather than with the process.
