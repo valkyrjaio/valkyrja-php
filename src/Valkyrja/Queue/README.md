@@ -51,9 +51,9 @@ Each stage has a matching handler contract in
 that stage and runs it in order.
 
 `Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract` runs a job through
-those stages. An entry calls `run` to get the outcome, settles it with its
-processor when it has one to settle with, and then calls `resultSettled`. The
-settlement therefore sits between the last two stages. `run` is `handle` plus
+those stages. An entry calls `run`, which returns the outcome, and calls
+`resultSettled` last. Settling the outcome with the processor is the entry's
+own work, and it belongs between the two calls. `run` is `handle` plus
 `settlingResult`, and an entry calls those two separately when it has to act
 between them.
 
@@ -72,12 +72,14 @@ than retrying it.
 
 `Valkyrja\Queue\Throwable\Contract\QueueThrowable` marks every throwable the
 component raises, and each sub-component narrows it with its own marker, as
-`QueueMessageThrowable` and `QueueServerThrowable` do. Each marker has an
-abstract `*InvalidArgumentException` and `*RuntimeException` pair. A concrete
-exception extends one of its own sub-component's pair, so a caller can catch one
-sub-component or the whole component. `QueueNonRetryableThrowable` sits beside
-`QueueThrowable` and is not a sub-component marker: it marks a throwable the
-pipeline must not retry, whichever sub-component raises it.
+`QueueMessageThrowable` and `QueueServerThrowable` do. Each sub-component
+marker has an abstract `*InvalidArgumentException` and `*RuntimeException`
+pair. A concrete exception extends one of its own sub-component's pair, so a
+caller can catch one sub-component or the whole component.
+`QueueNonRetryableThrowable` narrows `QueueThrowable` as well, so
+`catch (QueueThrowable)` catches it too, but it is cross-cutting rather than a
+sub-component marker: it marks a throwable the pipeline must not retry,
+whichever sub-component raises it.
 
 ## Routing
 
