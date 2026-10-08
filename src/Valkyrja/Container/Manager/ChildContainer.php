@@ -106,8 +106,7 @@ class ChildContainer extends Container
     #[Override]
     protected function getSingletonWithoutChecks(string $id): object|null
     {
-        // Parent already has a resolved instance — reuse it (frozen, safe)
-        // and the child has none of its own
+        // The parent's instance is frozen, so every request reads that one object.
         if (! parent::isSingletonInstance($id) && $this->parent->isSingletonInstance($id)) {
             return $this->parent->getSingleton($id);
         }
