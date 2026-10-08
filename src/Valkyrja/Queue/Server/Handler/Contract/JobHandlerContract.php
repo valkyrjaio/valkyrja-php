@@ -18,7 +18,7 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 interface JobHandlerContract
 {
     /**
-     * Handle a job through the router, mapping any throwable to an outcome.
+     * Handle a job and map any throwable to an outcome.
      */
     public function handle(JobContract $job): JobResult;
 
