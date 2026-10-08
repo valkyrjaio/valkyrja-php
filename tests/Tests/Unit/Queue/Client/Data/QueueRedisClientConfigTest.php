@@ -27,24 +27,27 @@ final class QueueRedisClientConfigTest extends TestCase
     {
         $config = new QueueRedisClientConfig();
 
-        self::assertSame('127.0.0.1', $config->redisHost);
-        self::assertSame(6379, $config->redisPort);
-        self::assertSame('queues:default', $config->redisQueue);
-        self::assertSame('default', $config->redisWorkerName);
+        self::assertSame('127.0.0.1', $config->queueRedisClientHost);
+        self::assertSame(6379, $config->queueRedisClientPort);
+        self::assertSame('', $config->queueRedisClientPrefix);
+        self::assertSame('queues:default', $config->queueRedisClientQueue);
+        self::assertSame('default', $config->queueRedisClientWorkerName);
     }
 
     public function testCustomValuesAreStored(): void
     {
         $config = new QueueRedisClientConfig(
-            redisHost: 'redis.test',
-            redisPort: 6380,
-            redisQueue: 'queues:test',
-            redisWorkerName: 'worker.3',
+            queueRedisClientHost: 'redis.test',
+            queueRedisClientPort: 6380,
+            queueRedisClientPrefix: 'app:',
+            queueRedisClientQueue: 'queues:test',
+            queueRedisClientWorkerName: 'worker.3',
         );
 
-        self::assertSame('redis.test', $config->redisHost);
-        self::assertSame(6380, $config->redisPort);
-        self::assertSame('queues:test', $config->redisQueue);
-        self::assertSame('worker.3', $config->redisWorkerName);
+        self::assertSame('redis.test', $config->queueRedisClientHost);
+        self::assertSame(6380, $config->queueRedisClientPort);
+        self::assertSame('app:', $config->queueRedisClientPrefix);
+        self::assertSame('queues:test', $config->queueRedisClientQueue);
+        self::assertSame('worker.3', $config->queueRedisClientWorkerName);
     }
 }

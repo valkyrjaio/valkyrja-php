@@ -17,16 +17,18 @@ use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
 class QueueRedisClientConfig implements QueueRedisClientConfigContract
 {
     /**
-     * @param non-empty-string $redisHost       The host to connect to
-     * @param int              $redisPort       The port to connect to
-     * @param non-empty-string $redisQueue      The list key jobs are pushed onto
-     * @param non-empty-string $redisWorkerName The name of this worker's slot
+     * @param non-empty-string $queueRedisClientHost       The host to connect to
+     * @param int              $queueRedisClientPort       The port to connect to
+     * @param string           $queueRedisClientPrefix     The prefix to prepend to every key
+     * @param non-empty-string $queueRedisClientQueue      The list key jobs are pushed onto
+     * @param non-empty-string $queueRedisClientWorkerName The name of this worker's slot
      */
     public function __construct(
-        public readonly string $redisHost = '127.0.0.1',
-        public readonly int $redisPort = 6379,
-        public readonly string $redisQueue = 'queues:default',
-        public readonly string $redisWorkerName = 'default',
+        public readonly string $queueRedisClientHost = '127.0.0.1',
+        public readonly int $queueRedisClientPort = 6379,
+        public readonly string $queueRedisClientPrefix = '',
+        public readonly string $queueRedisClientQueue = 'queues:default',
+        public readonly string $queueRedisClientWorkerName = 'default',
     ) {
     }
 }

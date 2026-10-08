@@ -165,13 +165,14 @@ An envelope no factory can read is parked on an unreadable list instead of being
 discarded. Every other processor has the broker return an unacknowledged
 delivery on its own.
 
-The in-flight list belongs to one worker slot, named by `redisWorkerName`. That
+The in-flight list belongs to one worker slot, named by
+`queueRedisClientWorkerName`. That
 slot reads its own list and no other, so a worker returns its held envelope to
 the ready list on the way out and takes back whatever a previous run of the same
 slot left behind on the way in. A graceful stop therefore leaves nothing in
 flight, and a worker killed mid-job redelivers when that slot restarts.
 
-Warning: give each worker its own `redisWorkerName` — a pod ordinal, a
+Warning: give each worker its own `queueRedisClientWorkerName` — a pod ordinal, a
 supervisor slot number. Two workers sharing a name share an in-flight list, and
 then a restart of one hands the other's running job back to the ready list as a
 second delivery. A slot that is retired rather than restarted leaves its list
@@ -316,12 +317,21 @@ an application config that does not implement its contract.
 
 #### `QueueRedisClientConfigContract`
 
-| Property          | Default            | Description                                                 |
-| :---------------- | :----------------- | :---------------------------------------------------------- |
-| `redisHost`       | `'127.0.0.1'`      | Redis host                                                  |
-| `redisPort`       | `6379`             | Redis port                                                  |
-| `redisQueue`      | `'queues:default'` | The list key jobs are pushed onto                           |
-| `redisWorkerName` | `'default'`        | Names this worker's slot, which owns its own in-flight list |
+| Property                     | Default            | Description                                                 |
+| :--------------------------- | :----------------- | :---------------------------------------------------------- |
+| `queueRedisClientHost`       | `'127.0.0.1'`      | Redis host                                                  |
+| `queueRedisClientPort`       | `6379`             | Redis port                                                  |
+| `queueRedisClientPrefix`     | `''`               | Prepended to every key this client and its worker build     |
+| `queueRedisClientQueue`      | `'queues:default'` | The list key jobs are pushed onto                           |
+| `queueRedisClientWorkerName` | `'default'`        | Names this worker's slot, which owns its own in-flight list |
+
+The properties carry the component and the subcomponent because Cache configures
+redis too, and `CacheRedisConfigContract` holds the bare `redisHost`. An
+application config that implements `CacheRedisConfigContract` and not this one
+gets this contract built from that redis: the host, the port, and the prefix come
+across, so one redis serves the cache and the queue without being named twice.
+The worker name does not come across, because it names a slot rather than a
+connection.
 
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not

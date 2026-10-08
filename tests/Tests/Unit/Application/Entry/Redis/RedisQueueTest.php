@@ -281,8 +281,8 @@ final class RedisQueueTest extends TestCase
 
         // A slot the config names, not the default, so a hardcoded name fails
         RedisQueueFixture::connect($this->application(new QueueRedisClientConfig(
-            redisQueue: self::QUEUE,
-            redisWorkerName: 'worker.2',
+            queueRedisClientQueue: self::QUEUE,
+            queueRedisClientWorkerName: 'worker.2',
         )));
 
         // The reclaim names this slot's key alone, so it cannot take an
@@ -293,6 +293,31 @@ final class RedisQueueTest extends TestCase
                 2,
                 self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX . ':worker.2',
                 self::QUEUE,
+                '1000',
+            ]],
+            $this->redis->getCalls('eval')
+        );
+    }
+
+    public function testConnectPrefixesEveryKeyItBuilds(): void
+    {
+        RedisQueueFixture::reset();
+        RedisQueueFixture::inject($this->redis, self::QUEUE);
+
+        RedisQueueFixture::connect($this->application(new QueueRedisClientConfig(
+            queueRedisClientPrefix: 'app:',
+            queueRedisClientQueue: self::QUEUE,
+            queueRedisClientWorkerName: 'worker.2',
+        )));
+
+        // The prefix namespaces the application on a redis it may share, so it
+        // has to reach the ready list and the in-flight list alike
+        self::assertSame(
+            [[
+                RedisQueueFixture::reclaimScript(),
+                2,
+                'app:' . self::QUEUE . RedisQueue::IN_FLIGHT_SUFFIX . ':worker.2',
+                'app:' . self::QUEUE,
                 '1000',
             ]],
             $this->redis->getCalls('eval')

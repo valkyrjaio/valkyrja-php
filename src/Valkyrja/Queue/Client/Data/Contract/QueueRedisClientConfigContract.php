@@ -15,21 +15,25 @@ namespace Valkyrja\Queue\Client\Data\Contract;
 interface QueueRedisClientConfigContract
 {
     /** @var non-empty-string */
-    public string $redisHost {
+    public string $queueRedisClientHost {
         get;
     }
 
-    public int $redisPort {
+    public int $queueRedisClientPort {
+        get;
+    }
+
+    public string $queueRedisClientPrefix {
         get;
     }
 
     /** @var non-empty-string */
-    public string $redisQueue {
+    public string $queueRedisClientQueue {
         get;
     }
 
     /** @var non-empty-string */
-    public string $redisWorkerName {
+    public string $queueRedisClientWorkerName {
         get;
     }
 }

@@ -260,12 +260,12 @@ require __DIR__ . '/../vendor/autoload.php';
 // own slot, which is what keeps one worker's in-flight list to itself
 RedisQueue::run(new WorkerConfig(
     dir: __DIR__ . '/..',
-    redisWorkerName: (string) ($_SERVER['WORKER_NAME'] ?? 'worker.1'),
+    queueRedisClientWorkerName: (string) ($_SERVER['WORKER_NAME'] ?? 'worker.1'),
 ));
 ```
 
 Warning: every process started from that script needs its own
-`redisWorkerName` — a pod ordinal, a supervisor slot number. A plain
+`queueRedisClientWorkerName` — a pod ordinal, a supervisor slot number. A plain
 `QueueConfig` implements no Redis config contract, so the framework falls back
 to one default name, and a fleet sharing a name hands one worker's running job
 back to the queue when another restarts. The Queue component's `README.md` has

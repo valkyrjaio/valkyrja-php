@@ -31,18 +31,19 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param class-string<ClientContract> $defaultQueueClient
      * @param class-string<InternalQueue>  $syncEntry
      * @param class-string<InternalQueue>  $deferredEntry
-     * @param non-empty-string             $redisHost
-     * @param non-empty-string             $redisQueue
-     * @param non-empty-string             $redisWorkerName
+     * @param non-empty-string             $queueRedisClientHost
+     * @param non-empty-string             $queueRedisClientQueue
+     * @param non-empty-string             $queueRedisClientWorkerName
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
         public string $syncEntry = InternalQueueFixture::class,
         public string $deferredEntry = InternalQueueFixture::class,
-        public string $redisHost = 'redis.test',
-        public int $redisPort = 6380,
-        public string $redisQueue = 'queues:test',
-        public string $redisWorkerName = 'worker.test',
+        public string $queueRedisClientHost = 'redis.test',
+        public int $queueRedisClientPort = 6380,
+        public string $queueRedisClientPrefix = '',
+        public string $queueRedisClientQueue = 'queues:test',
+        public string $queueRedisClientWorkerName = 'worker.test',
     ) {
         parent::__construct(
             applicationName: 'host',

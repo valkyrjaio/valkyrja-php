@@ -294,9 +294,9 @@ final class RedisIntegrationTest extends TestCase
     private function config(): QueueConfigContract
     {
         return new RedisWorkerConfigFixture(
-            redisHost: $this->redisHost,
-            redisPort: $this->redisPort,
-            redisQueue: self::QUEUE,
+            queueRedisClientHost: $this->redisHost,
+            queueRedisClientPort: $this->redisPort,
+            queueRedisClientQueue: self::QUEUE,
         );
     }
 

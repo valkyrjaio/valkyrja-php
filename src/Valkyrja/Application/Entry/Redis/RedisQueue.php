@@ -110,8 +110,8 @@ class RedisQueue extends PullQueue
     {
         $config = $app->getContainer()->getSingleton(QueueRedisClientConfigContract::class);
 
-        static::$queue      = $config->redisQueue;
-        static::$workerName = $config->redisWorkerName;
+        static::$queue      = $config->queueRedisClientPrefix . $config->queueRedisClientQueue;
+        static::$workerName = $config->queueRedisClientWorkerName;
         static::$redis      = static::getRedis($config);
         static::$current    = null;
 
@@ -267,8 +267,8 @@ class RedisQueue extends PullQueue
     {
         return new Client(
             parameters: [
-                'host' => $config->redisHost,
-                'port' => $config->redisPort,
+                'host' => $config->queueRedisClientHost,
+                'port' => $config->queueRedisClientPort,
             ]
         );
     }

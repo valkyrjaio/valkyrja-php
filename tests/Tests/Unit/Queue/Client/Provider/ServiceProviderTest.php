@@ -33,6 +33,7 @@ use Valkyrja\Queue\Client\Provider\QueueClientServiceProvider;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientConfigNotFoundException;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
+use Valkyrja\Tests\Fixtures\Cache\Data\CacheConfigFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\Data\QueueClientConfigFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
@@ -141,9 +142,10 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueueRedisClientConfigContract::class);
 
-        self::assertSame('127.0.0.1', $config->redisHost);
-        self::assertSame(6379, $config->redisPort);
-        self::assertSame('queues:default', $config->redisQueue);
+        self::assertSame('127.0.0.1', $config->queueRedisClientHost);
+        self::assertSame(6379, $config->queueRedisClientPort);
+        self::assertSame('', $config->queueRedisClientPrefix);
+        self::assertSame('queues:default', $config->queueRedisClientQueue);
     }
 
     public function testPublishRedisConfigWithApplicationConfig(): void
@@ -154,9 +156,25 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueueRedisClientConfigContract::class);
 
-        self::assertSame('redis.test', $config->redisHost);
-        self::assertSame(6380, $config->redisPort);
-        self::assertSame('queues:test', $config->redisQueue);
+        self::assertSame('redis.test', $config->queueRedisClientHost);
+        self::assertSame(6380, $config->queueRedisClientPort);
+        self::assertSame('queues:test', $config->queueRedisClientQueue);
+    }
+
+    public function testPublishRedisConfigFallsBackToTheCacheRedis(): void
+    {
+        // The fixture implements the cache redis contract and no queue one, so
+        // the queue takes the redis the application already named
+        $this->container->setSingleton(ConfigContract::class, new CacheConfigFixture());
+
+        $this->publish(QueueRedisClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueRedisClientConfigContract::class);
+
+        self::assertSame('redis.test', $config->queueRedisClientHost);
+        self::assertSame(6380, $config->queueRedisClientPort);
+        self::assertSame('redis:', $config->queueRedisClientPrefix);
+        self::assertSame('queues:default', $config->queueRedisClientQueue);
     }
 
     /**

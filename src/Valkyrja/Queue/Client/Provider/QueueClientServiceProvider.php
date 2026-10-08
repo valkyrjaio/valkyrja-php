@@ -15,6 +15,7 @@ namespace Valkyrja\Queue\Client\Provider;
 use Override;
 use Predis\Client;
 use Valkyrja\Application\Data\Contract\ConfigContract;
+use Valkyrja\Cache\Data\Contract\CacheRedisConfigContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
@@ -102,6 +103,23 @@ class QueueClientServiceProvider implements ServiceProviderContract
             return;
         }
 
+        // A redis cache already names a redis the application owns, so a queue
+        // with no redis config of its own takes that connection rather than a
+        // localhost default. The prefix comes with it, because it namespaces
+        // the application on a host it may share with another application.
+        if ($config instanceof CacheRedisConfigContract) {
+            $container->setSingleton(
+                QueueRedisClientConfigContract::class,
+                new QueueRedisClientConfig(
+                    queueRedisClientHost: $config->redisHost,
+                    queueRedisClientPort: $config->redisPort,
+                    queueRedisClientPrefix: $config->redisPrefix,
+                )
+            );
+
+            return;
+        }
+
         $container->setSingleton(
             QueueRedisClientConfigContract::class,
             new QueueRedisClientConfig()
@@ -178,11 +196,11 @@ class QueueClientServiceProvider implements ServiceProviderContract
             new RedisClient(
                 redis: new Client(
                     parameters: [
-                        'host' => $config->redisHost,
-                        'port' => $config->redisPort,
+                        'host' => $config->queueRedisClientHost,
+                        'port' => $config->queueRedisClientPort,
                     ]
                 ),
-                queue: $config->redisQueue,
+                queue: $config->queueRedisClientPrefix . $config->queueRedisClientQueue,
                 applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
             )
         );
