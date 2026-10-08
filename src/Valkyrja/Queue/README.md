@@ -84,17 +84,10 @@ must not retry, whatever raises it.
 ## The Client
 
 `Valkyrja\Queue\Client\Manager\Contract\ClientContract` is the producer
-surface. `push` enqueues a fresh job. `getPushed` returns the jobs handed to
-the client during one unit of work, and `clearPushed` ends that unit of work.
-
-`requeue` and `retry` settle a retry. A processor with no retry of its own
-settles through `requeue`, with the job as dispatched. The client then
-increments the attempt and stamps the modification time. A client with
-somewhere to hold a job derives the hold from that job too. `retry` is the
-lower seam `requeue` calls, and it takes the already incremented copy with the
-hold supplied. The framework reaches neither on a processor that owns
-redelivery, because that processor's entry answers the retry from its own
-settlement.
+surface. `push` enqueues a fresh job. `requeue` and `retry` settle a retry, the
+first taking the job as dispatched and the second the already incremented copy.
+`getPushed` returns the jobs handed to the client during one unit of work, and
+`clearPushed` ends that unit of work.
 
 ## Routing
 
