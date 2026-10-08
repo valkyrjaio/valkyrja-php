@@ -32,18 +32,15 @@ interface ClientContract
     /**
      * Settle a retry for the job as dispatched.
      *
-     * The framework calls this with the job as dispatched. What the client
-     * writes depends on which side owns redelivery.
-     *
-     * A client that owns redelivery authors all three:
+     * The entry of a processor with no retry of its own calls this with the
+     * job as dispatched, and the client authors all three:
      *
      * - the hold, derived from the dispatched job, ramped where the job says so
      * - the attempt count, incremented
      * - the modification time, stamped
      *
-     * A client whose processor owns redelivery authors none of the three. That
-     * client hands the processor the retry signal. The processor then times the
-     * next delivery from its own backoff.
+     * A processor that owns redelivery never reaches this method. The entry of
+     * such a processor answers the retry from its own settlement instead.
      *
      * @param JobContract $job The job as dispatched, before any increment
      */
@@ -52,8 +49,8 @@ interface ClientContract
     /**
      * Get the stamped jobs handed to this client during this unit of work.
      *
-     * A redelivery is recorded, so a job appears once for each delivery that
-     * this client enqueued.
+     * A redelivery is recorded as well, so a job appears once for each time it
+     * was handed to this client.
      *
      * @return JobContract[]
      */
@@ -62,15 +59,12 @@ interface ClientContract
     /**
      * Drop the record, ending the unit of work it belongs to.
      *
-     * The framework calls this, and application code never does. The call comes
-     * once the unit of work is over:
+     * A pull worker calls this before each job, so one job is its unit of work.
+     * Every other host calls it at the end of whatever its own unit of work is,
+     * because nothing else bounds the record.
      *
-     * - A buffering client is cleared once a drain has run every recorded job.
-     * - Every other client is cleared at the end of the request, the command,
-     *   or the one job a worker just ran.
-     *
-     * A long-running worker holds one client for its whole life, so the record
-     * has to end with each job rather than with the process.
+     * A host holds one client for its whole life, so the record has to end with
+     * the unit of work rather than with the process.
      */
     public function clearPushed(): void;
 }
