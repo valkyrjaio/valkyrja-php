@@ -253,8 +253,8 @@ class NativeChildContainer extends Container
         // A chain that closes across two walks returns here rather than to one walk. An
         // instance cached for the target has broken the chain, so read that first.
         if (isset($this->targetsInFlight[$target])) {
-            // This class runs the parent's callable itself, so the child's map is where a
-            // write made during this resolution lands.
+            // The child's own map is the one this resolution writes, so the guard reads
+            // it rather than the pair of maps the public read covers.
             $registered = $this->instances[$target] ?? null;
 
             if ($registered !== null) {
