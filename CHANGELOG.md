@@ -1,6 +1,15 @@
 # Release Notes for 26.x
 
-## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.17.4...26.x)
+## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.18.0...26.x)
+
+## [v26.18.0](https://github.com/valkyrjaio/valkyrja/compare/v26.17.4...v26.18.0) - 2026-10-08
+
+* [Queue] feat!: Add the middleware and routing contracts by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/971
+* [Container] fix!: Resolve a parent-declared alias in the container that declares it by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1268
+* [Queue] feat: Add the server contracts by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/972
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1353
+* [Workflow] ci: Update .github workflow refs to v26.25.7 by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1354
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1355
 
 ## [v26.17.4](https://github.com/valkyrjaio/valkyrja/compare/v26.17.3...v26.17.4) - 2026-10-07
 
