@@ -252,7 +252,7 @@ final class ChildContainerTest extends TestCase
         $this->parent->get(ServiceFixture::class);
         $child = new ChildContainer($this->parent, new ContainerData());
 
-        // The callback ran, so the guard lets the delegation through
+        // The callback ran, so the parent holds the service the child delegates for
         self::assertTrue($this->parent->isPublished(ServiceFixture::class));
         self::assertInstanceOf(ServiceFixture::class, $child->getService(ServiceFixture::class));
     }
@@ -631,6 +631,48 @@ final class ChildContainerTest extends TestCase
         $this->expectException(ContainerCyclicAliasException::class);
 
         $child->setFromData(new ContainerData(aliases: ['second' => 'first']));
+    }
+
+    public function testGetAliasedWalksASecondChainWhenAPublisherRegistersNothing(): void
+    {
+        $this->parent->setFromData(new ContainerData(
+            callbacks: [ProvidedFixture::class => static function (ContainerContract $container): void {
+            }],
+        ));
+        $this->parent->bindAlias('outer', ProvidedFixture::class);
+        $this->parent->bindAlias(ProvidedFixture::class, SingletonFixture::class);
+        $this->parent->bindSingleton(SingletonFixture::class, [SingletonFixture::class, 'make']);
+        $child = $this->createChild();
+
+        // The publisher leaves its own id unresolved, so this one lookup runs a second
+        // walk and holds a second target in flight
+        self::assertInstanceOf(SingletonFixture::class, $child->getAliased('outer'));
+
+        // Both walks resolved in the child, so the frozen parent kept neither result
+        self::assertTrue($child->isPublished(ProvidedFixture::class));
+        self::assertFalse($this->parent->isPublished(ProvidedFixture::class));
+        self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
+    }
+
+    public function testGetSingletonLeavesTheTwoContainersHoldingDifferentObjects(): void
+    {
+        $registered = new SingletonFixture();
+        $this->parent->bindSingleton(
+            SingletonFixture::class,
+            static function (ContainerContract $container) use ($registered): object {
+                $container->setSingleton(SingletonFixture::class, $registered);
+
+                return new SingletonFixture();
+            }
+        );
+        $child = $this->createChild();
+
+        $fromChild = $child->getSingleton(SingletonFixture::class);
+
+        // The parent ran the factory, so the registration stayed in the parent and the
+        // child cached what the factory returned
+        self::assertSame($registered, $this->parent->getSingleton(SingletonFixture::class));
+        self::assertNotSame($registered, $fromChild);
     }
 
     public function testGetAliasedAnswersFromTheParentWhenBothHoldAnInstance(): void
