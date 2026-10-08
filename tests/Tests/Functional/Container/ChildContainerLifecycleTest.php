@@ -35,8 +35,7 @@ final class ChildContainerLifecycleTest extends TestCase
         $parent->bindAlias('sharedAlias', 'shared');
         $shared = $parent->getSingleton('shared');
 
-        $data          = $parent->getData();
-        $registrations = $parent->getData();
+        $data = $parent->getData();
 
         $scoped   = [];
         $unbuilt  = [];
@@ -75,9 +74,9 @@ final class ChildContainerLifecycleTest extends TestCase
 
         $current = $parent->getData();
 
-        self::assertSame($registrations->aliases, $current->aliases);
-        self::assertSame($registrations->singletons, $current->singletons);
-        self::assertSame($registrations->services, $current->services);
-        self::assertSame($registrations->callbacks, $current->callbacks);
+        self::assertSame($data->aliases, $current->aliases);
+        self::assertSame($data->singletons, $current->singletons);
+        self::assertSame($data->services, $current->services);
+        self::assertSame($data->callbacks, $current->callbacks);
     }
 }
