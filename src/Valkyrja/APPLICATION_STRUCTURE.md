@@ -220,7 +220,7 @@ Key constructor parameters:
 | `$key`                       | Application secret key used for signing/encryption; generate with a cryptographically secure random string (e.g. `bin2hex(random_bytes(32))`) |
 | `$dataPath`                  | Relative path to the `Data/` directory                                                                                                        |
 | `$dataNamespace`             | PHP namespace of the `Data/` classes (e.g. `App\Http\Data`)                                                                                   |
-| `$applicationName`           | The application's name, stamped into the provenance of a queued job                                                                           |
+| `$applicationName`           | The application's name                                                                                                                        |
 | `$providers`                 | Ordered list of `ComponentClass` constants + `ComponentProvider::class`                                                                       |
 | `$callbacks`                 | Callbacks run after providers are booted (e.g. `ComponentProvider::publish`)                                                                  |
 | `$requestReceivedMiddleware` | Middleware run on every incoming request                                                                                                      |
