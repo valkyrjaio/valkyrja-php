@@ -61,10 +61,6 @@ The outcome is one of four `JobResult` cases: `ACK`, `RETRY`, `FAIL`, or
 carries `Valkyrja\Queue\Throwable\Contract\QueueNonRetryableThrowable`, rather
 than retrying it.
 
-The runtime collector and `sindri` append each route middleware in order.
-Neither one dedupes. A middleware registered twice therefore runs twice, because
-the generated cache must match reflection exactly.
-
 ## Throwables
 
 `Valkyrja\Queue\Throwable\Contract\QueueThrowable` marks every throwable the
