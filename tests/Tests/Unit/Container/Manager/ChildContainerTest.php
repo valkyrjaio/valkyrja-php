@@ -228,7 +228,6 @@ final class ChildContainerTest extends TestCase
         self::assertNotNull($childInstance);
     }
 
-    // -----------------------------------------------------------------------
     public function testGetSingletonLeavesTheTwoContainersHoldingDifferentObjects(): void
     {
         $registered = new SingletonFixture();
@@ -251,6 +250,7 @@ final class ChildContainerTest extends TestCase
         self::assertSame($fromChild, $child->getSingleton(SingletonFixture::class));
     }
 
+    // -----------------------------------------------------------------------
     // getService — parent delegation and child-local
     // -----------------------------------------------------------------------
 
@@ -868,7 +868,14 @@ final class ChildContainerTest extends TestCase
         try {
             $child->getAliased('firstAlias');
             self::fail('The chain returns to the target, so the lookup throws.');
-        } catch (ContainerCyclicAliasException) {
+        } catch (ContainerCyclicAliasException $exception) {
+            // The alias that closed the chain names the pair, not the outer one
+            self::assertSame(
+                'Alias `secondAlias` cannot reach `' . SingletonFixture::class
+                    . '`, because the chain from `' . SingletonFixture::class
+                    . '` returns to `secondAlias`.',
+                $exception->getMessage()
+            );
         }
 
         // The marker holds the target, not the alias, so the second alias returns to a

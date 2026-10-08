@@ -247,7 +247,6 @@ final class NativeChildContainerTest extends TestCase
         self::assertNotNull($childInstance);
     }
 
-    // -----------------------------------------------------------------------
     public function testGetSingletonLeavesOneObjectForTheTwoContainers(): void
     {
         $registered = new SingletonFixture();
@@ -263,9 +262,11 @@ final class NativeChildContainerTest extends TestCase
         // This class runs the parent's callable itself, so the registration lands in the
         // child and one object answers both reads
         self::assertSame($registered, $this->child->getSingleton(SingletonFixture::class));
+        self::assertSame($registered, $this->child->getSingleton(SingletonFixture::class));
         self::assertFalse($this->parent->isSingletonInstance(SingletonFixture::class));
     }
 
+    // -----------------------------------------------------------------------
     // getService — parent fallback
     // -----------------------------------------------------------------------
 
@@ -631,6 +632,39 @@ final class NativeChildContainerTest extends TestCase
         $this->expectException(ContainerCyclicAliasException::class);
 
         $this->child->setFromData(new ContainerData(aliases: ['second' => 'first']));
+    }
+
+    public function testGetAliasedHoldsTheTargetOnceForTwoAliasesOntoIt(): void
+    {
+        $runs = 0;
+        $this->parent->bindAlias('firstAlias', SingletonFixture::class);
+        $this->parent->bindAlias('secondAlias', SingletonFixture::class);
+        $this->parent->bindSingleton(
+            SingletonFixture::class,
+            static function (ContainerContract $container) use (&$runs): object {
+                $runs++;
+                $container->getAliased('secondAlias');
+
+                return new SingletonFixture();
+            }
+        );
+
+        try {
+            $this->child->getAliased('firstAlias');
+            self::fail('The chain returns to the target, so the lookup throws.');
+        } catch (ContainerCyclicAliasException $exception) {
+            // The alias that closed the chain names the pair, not the outer one
+            self::assertSame(
+                'Alias `secondAlias` cannot reach `' . SingletonFixture::class
+                    . '`, because the chain from `' . SingletonFixture::class
+                    . '` returns to `secondAlias`.',
+                $exception->getMessage()
+            );
+        }
+
+        // The marker holds the target, not the alias, so the second alias returns to a
+        // target already in flight and the factory runs once
+        self::assertSame(1, $runs);
     }
 
     public function testGetAliasedWalksASecondChainWhenAPublisherRegistersNothing(): void
