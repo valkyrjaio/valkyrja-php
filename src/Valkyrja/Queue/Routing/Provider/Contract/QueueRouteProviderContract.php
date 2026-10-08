@@ -17,7 +17,7 @@ use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 interface QueueRouteProviderContract
 {
     /**
-     * Get a list of attributed job handler classes.
+     * Get a list of job handler classes the collector reads routes from.
      *
      * @return class-string[]
      */

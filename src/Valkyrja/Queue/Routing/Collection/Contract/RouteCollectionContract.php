@@ -28,7 +28,9 @@ interface RouteCollectionContract
     public function setFromData(QueueRoutingData $data): void;
 
     /**
-     * Add routes, keyed by job name.
+     * Add routes.
+     *
+     * @param RouteContract ...$routes The routes
      */
     public function add(RouteContract ...$routes): static;
 
