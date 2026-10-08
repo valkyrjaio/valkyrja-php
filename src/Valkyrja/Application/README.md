@@ -825,14 +825,15 @@ the handler before the runtime writes the response out.
 
 ### Customizing the Parent
 
-Override `bootstrapParentServices()` to prepare in the parent whatever the
-parent would otherwise write while answering a child. An id resolved here lives
-in the frozen parent. A child still delegates any other id to the parent, and
-the parent answers it as before. The child refuses only when the parent holds an
-unrun publish callback for that id, or an unresolved singleton binding behind a
-parent-declared alias
-([Exceptions](../Container/README.md#exceptions)). The base implementation
-resolves the route collection, so an override calls
+Override `bootstrapParentServices()` to resolve in the parent whatever every
+request should share. An id resolved here lives in the frozen parent, and each
+child reuses that one instance. Under `ChildContainer` a child delegates any
+other id to the parent, and the parent answers it as it would for any caller.
+`NativeChildContainer` reads the parent's maps and resolves in the child
+instead. A parent-declared alias goes to the parent under both. The exception is
+a singleton the parent never built, or a publisher it has not run. The child
+resolves such a target when it holds that registration too. The base
+implementation resolves the route collection, so an override calls
 `parent::bootstrapParentServices($app)` first.
 
 ### Swapping the Child Container
@@ -843,13 +844,13 @@ Two `ChildContainer` implementations exist in `Valkyrja\Container\Manager`:
   `ContainerContract`, so any parent that implements the contract works.
 - `NativeChildContainer` reads the parent's protected fields directly for a
   lower construction cost. It requires a concrete `Container` parent and takes
-  no `ContainerData`. It raises the alias refusal, and not the direct-lookup one,
-  because it answers a direct lookup from the parent's maps rather than
-  delegating. The two also differ on the factory receiver: a factory bound on
-  the parent receives the child here, and the parent under `ChildContainer`. A
-  parent-declared alias is the exception, because both hand that call to the
-  parent. Choose the behavior your services need, not the construction cost
-  alone.
+  no `ContainerData`. It answers a direct lookup from the parent's maps rather
+  than delegating. A factory bound on the parent receives the child here, and
+  the parent under `ChildContainer`. Both hand a parent-declared alias to the
+  parent. The exception is a singleton the parent never built, or a publisher
+  it has not run. The child resolves such a target when it holds that
+  registration too. Choose the behavior your services need, not the construction
+  cost alone.
 
 To swap the implementation, override `getChildContainer()` in your concrete
 worker subclass.

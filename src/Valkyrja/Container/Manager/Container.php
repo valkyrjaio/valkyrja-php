@@ -12,12 +12,15 @@ declare(strict_types=1);
 
 namespace Valkyrja\Container\Manager;
 
+use Closure;
 use Override;
 use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Manager\Trait\ProvidersAware;
+use Valkyrja\Container\Throwable\Exception\ContainerCyclicAliasException;
 use Valkyrja\Container\Throwable\Exception\ContainerInvalidReferenceException;
 
+use function array_keys;
 use function array_merge;
 use function is_object;
 
@@ -56,6 +59,9 @@ class Container implements ContainerContract
     public function __construct(
         protected ContainerData $data = new ContainerData()
     ) {
+        // Nothing is installed yet, so past the map there is nothing to read.
+        $this->validateAliasMapIsNotCyclic($data->aliases, static fn (string $id): null => null);
+
         $this->aliases          = $data->aliases;
         $this->callbacks        = $data->callbacks;
         $this->services         = $data->services;
@@ -82,6 +88,12 @@ class Container implements ContainerContract
     #[Override]
     public function setFromData(ContainerData $data): void
     {
+        // Nothing is installed before the walks end.
+        $this->validateAliasMapIsNotCyclic(
+            $data->aliases,
+            fn (string $id): string|null => $this->getAliasedId($id),
+        );
+
         $this->aliases          = array_merge($this->aliases, $data->aliases);
         $this->callbacks        = array_merge($this->callbacks, $data->callbacks);
         $this->services         = array_merge($this->services, $data->services);
@@ -128,6 +140,8 @@ class Container implements ContainerContract
     #[Override]
     public function bindAlias(string $alias, string $id): static
     {
+        $this->validateAliasIsNotCyclic($alias, $id);
+
         $this->aliases[$alias] = $id;
 
         return $this;
@@ -338,7 +352,13 @@ class Container implements ContainerContract
 
         $singleton = $this->getServiceWithoutChecks($id);
 
-        return is_object($singleton) ? $this->instances[$id] = $singleton : null;
+        if (! is_object($singleton)) {
+            return null;
+        }
+
+        // The map decides which instance every reader gets, because a factory can cache
+        // an instance for this id while it runs, before this write.
+        return $this->instances[$id] ??= $singleton;
     }
 
     /**
@@ -357,6 +377,67 @@ class Container implements ContainerContract
 
         // Make the object by dispatching the service
         return $service($this, $arguments);
+    }
+
+    /**
+     * Validate that an alias does not point at a chain that returns to it.
+     *
+     * @param class-string $alias The alias being bound
+     * @param class-string $id    The id the alias points at
+     */
+    protected function validateAliasIsNotCyclic(string $alias, string $id): void
+    {
+        if ($alias === $id) {
+            throw new ContainerCyclicAliasException($alias, $id);
+        }
+
+        $seen    = [];
+        $current = $id;
+
+        while (($aliasedId = $this->getAliasedId($current)) !== null) {
+            if ($aliasedId === $alias) {
+                throw new ContainerCyclicAliasException($alias, $id);
+            }
+
+            // A parent that binds an alias after a child is built checks only its own map,
+            // so the two can hold a cycle this alias is no part of. End the walk there.
+            if (isset($seen[$aliasedId])) {
+                return;
+            }
+
+            $seen[$aliasedId] = true;
+            $current          = $aliasedId;
+        }
+    }
+
+    /**
+     * Validate that no alias in the map points at a chain that returns to it.
+     *
+     * @param array<class-string, class-string>          $aliases   The aliases that start a walk
+     * @param Closure(class-string): (class-string|null) $installed The read for an id the map does not hold
+     */
+    protected function validateAliasMapIsNotCyclic(array $aliases, Closure $installed): void
+    {
+        foreach (array_keys($aliases) as $alias) {
+            $seen    = [$alias => true];
+            $current = $alias;
+
+            while (($aliasedId = $aliases[$current] ?? $installed($current)) !== null) {
+                // Name the edge that took the walk back to its start.
+                if ($aliasedId === $alias) {
+                    throw new ContainerCyclicAliasException($current, $aliasedId);
+                }
+
+                // A chain the container already held returns here. `bindAlias()` ends its
+                // walk for that state, so this entry point answers it the same way.
+                if (isset($seen[$aliasedId])) {
+                    continue 2;
+                }
+
+                $seen[$aliasedId] = true;
+                $current          = $aliasedId;
+            }
+        }
     }
 
     /**

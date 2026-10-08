@@ -14,11 +14,17 @@ namespace Valkyrja\Container\Manager;
 
 use Override;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
-use Valkyrja\Container\Throwable\Exception\ContainerInvalidReferenceException;
-use Valkyrja\Container\Throwable\Exception\ContainerUnresolvedParentAliasException;
+use Valkyrja\Container\Throwable\Exception\ContainerCyclicAliasException;
 
 class NativeChildContainer extends Container
 {
+    /**
+     * The alias targets this container is resolving.
+     *
+     * @var array<class-string, true>
+     */
+    private array $targetsInFlight = [];
+
     public function __construct(
         protected Container $parent
     ) {
@@ -123,63 +129,18 @@ class NativeChildContainer extends Container
             return parent::getAliasedWithoutChecks($id, $arguments);
         }
 
-        if (! isset($this->parent->aliases[$id])) {
+        $target = $this->getParentAliasTarget($id);
+
+        if ($target === null) {
             return null;
         }
 
-        $this->validateParentAliasResolution($id);
+        // One request must not hold one copy for the alias and another for the target.
+        if ($this->resolvesInChild($target)) {
+            return $this->getTargetOnce($id, $target, $arguments);
+        }
 
         return $this->parent->getAliased($id, $arguments);
-    }
-
-    /**
-     * Validate that the parent answers an alias without caching anything new.
-     *
-     * @param class-string $id The alias
-     */
-    protected function validateParentAliasResolution(string $id): void
-    {
-        $seen    = [];
-        $current = $id;
-
-        while (($aliasedId = $this->parent->aliases[$current] ?? null) !== null) {
-            if (isset($seen[$aliasedId])) {
-                throw new ContainerInvalidReferenceException($id);
-            }
-
-            $seen[$aliasedId] = true;
-            $current          = $aliasedId;
-
-            if ($this->isUnresolvedInParent($current)) {
-                throw new ContainerUnresolvedParentAliasException($id, $current);
-            }
-
-            // The parent answers a singleton or a service before it follows an
-            // alias, so it never reaches the rest of the chain.
-            if (isset($this->parent->instances[$current]) || isset($this->parent->services[$current])) {
-                return;
-            }
-        }
-    }
-
-    /**
-     * Check whether the parent would cache a given id for the first time.
-     *
-     * @param class-string $id The service id
-     */
-    protected function isUnresolvedInParent(string $id): bool
-    {
-        // The parent publishes before it reads any map, so this test comes first.
-        // It is the same test publishUnpublishedProvided() makes.
-        if (isset($this->parent->callbacks[$id]) && ! isset($this->parent->published[$id])) {
-            return true;
-        }
-
-        if (isset($this->parent->instances[$id])) {
-            return false;
-        }
-
-        return isset($this->parent->singletons[$id]);
     }
 
     /**
@@ -223,5 +184,90 @@ class NativeChildContainer extends Container
         return $this->services[$id]
             ?? $this->parent->services[$id]
             ?? null;
+    }
+
+    /**
+     * Walk the parent's chain of aliases, and return the last hop it reaches.
+     *
+     * @param class-string $id The alias
+     *
+     * @return class-string|null
+     */
+    private function getParentAliasTarget(string $id): string|null
+    {
+        $current = $id;
+        $target  = null;
+
+        // Every write to a container's own alias map validates first, so the parent's map
+        // holds no cycle and this walk needs no bound.
+        while (($aliasedId = $this->parent->aliases[$current] ?? null) !== null) {
+            $target  = $aliasedId;
+            $current = $aliasedId;
+
+            // The parent reads these before it follows an alias, so it can answer at this
+            // hop rather than continue the chain.
+            if (($this->parent->isDeferred($current) && ! $this->parent->isPublished($current))
+                || isset($this->parent->singletons[$current])
+                || isset($this->parent->instances[$current])
+                || isset($this->parent->services[$current])
+            ) {
+                break;
+            }
+        }
+
+        return $target;
+    }
+
+    /**
+     * Check whether the child resolves the target of a parent-declared alias itself.
+     *
+     * @param class-string $target The target id
+     */
+    private function resolvesInChild(string $target): bool
+    {
+        // The parent publishes before it reads any map, so this test comes first. This
+        // class copies no callback map, so the parent's callback is the child's as well.
+        if ($this->parent->isDeferred($target) && ! $this->parent->isPublished($target)) {
+            return true;
+        }
+
+        if (isset($this->parent->instances[$target])) {
+            return false;
+        }
+
+        // This class copies no map, so the parent's marker is the child's as well.
+        return $this->parent->isSingletonBinding($target);
+    }
+
+    /**
+     * Resolve an alias target, and check a chain that returns to one already in flight.
+     *
+     * @param class-string            $id        The alias
+     * @param class-string            $target    The target id
+     * @param array<array-key, mixed> $arguments The arguments
+     */
+    private function getTargetOnce(string $id, string $target, array $arguments): object
+    {
+        // A chain that closes across two walks returns here rather than to one walk. An
+        // instance cached for the target has broken the chain, so read that first.
+        if (isset($this->targetsInFlight[$target])) {
+            // The child's own map is the one this resolution writes, so the guard reads
+            // it rather than the pair of maps the public read covers.
+            $registered = $this->instances[$target] ?? null;
+
+            if ($registered !== null) {
+                return $registered;
+            }
+
+            throw new ContainerCyclicAliasException($id, $target);
+        }
+
+        $this->targetsInFlight[$target] = true;
+
+        try {
+            return $this->get($target, $arguments);
+        } finally {
+            unset($this->targetsInFlight[$target]);
+        }
     }
 }
