@@ -60,7 +60,7 @@ class Container implements ContainerContract
         protected ContainerData $data = new ContainerData()
     ) {
         // Nothing is installed yet, so past the map there is nothing to read.
-        $this->validateAliasMapIsNotCyclic($data->aliases, static fn (): null => null);
+        $this->validateAliasMapIsNotCyclic($data->aliases, static fn (string $id): null => null);
 
         $this->aliases          = $data->aliases;
         $this->callbacks        = $data->callbacks;
@@ -88,8 +88,6 @@ class Container implements ContainerContract
     #[Override]
     public function setFromData(ContainerData $data): void
     {
-        $aliases = array_merge($this->aliases, $data->aliases);
-
         // Only the incoming aliases start a walk, and each walk reads the container past
         // the map it is given. Nothing is installed before the walks end.
         $this->validateAliasMapIsNotCyclic(
@@ -97,7 +95,7 @@ class Container implements ContainerContract
             fn (string $id): string|null => $this->getAliasedId($id),
         );
 
-        $this->aliases          = $aliases;
+        $this->aliases          = array_merge($this->aliases, $data->aliases);
         $this->callbacks        = array_merge($this->callbacks, $data->callbacks);
         $this->services         = array_merge($this->services, $data->services);
         $this->singletons       = array_merge($this->singletons, $data->singletons);
