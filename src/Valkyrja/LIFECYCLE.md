@@ -319,9 +319,8 @@ Two implementations are available for the per-request child container:
 The two differ on the factory receiver: a factory bound on the parent receives
 the child under `NativeChildContainer`, and the parent under `ChildContainer`. A
 parent-declared alias is the exception, because both hand that call to the
-parent. They do not hand it over for a target the parent would resolve for the
-first time, when the child holds that registration too. That target is a
-singleton the parent never built, or a publisher it has not run.
+parent. They keep a singleton the parent never built, or a publisher it has not
+run, in the child when it holds that registration too.
 
 ## Focus on Configuration
 
