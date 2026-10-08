@@ -55,7 +55,7 @@ those stages. An entry calls `run`, which returns the outcome, and calls
 `resultSettled` last. Settling the outcome with the processor is the entry's
 own work, and it belongs between the two calls. `run` is `handle` plus
 `settlingResult`. An entry calls those two methods separately when it has to
-act between them, as the entry that caps an exhausted retry does.
+act between them.
 
 `JobReceived`, `SettlingResult`, and `ResultSettled` always run. The other four
 are conditional. A `JobReceived` middleware that returns an outcome
