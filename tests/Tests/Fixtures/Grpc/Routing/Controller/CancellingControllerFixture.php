@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Fixtures\Grpc\Routing\Controller;
 
 use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Routing\Attribute\Method;
@@ -32,6 +33,17 @@ final class CancellingControllerFixture
     {
         throw new CancelledException(
             message: 'the client went away',
+            reason: CancellationReason::CLIENT_CANCELLED
+        );
+    }
+
+    #[Method(name: 'EmitThenFail', clientStreaming: true, serverStreaming: true)]
+    public static function emitThenFail(ContainerContract $container, RouteContract $route): ServiceResponseContract
+    {
+        $container->getSingleton(ServiceCallContract::class)->send('partial');
+
+        throw new CancelledException(
+            message: 'the handler stopped after emitting',
             reason: CancellationReason::CLIENT_CANCELLED
         );
     }
