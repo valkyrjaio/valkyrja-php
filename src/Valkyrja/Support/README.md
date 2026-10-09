@@ -17,7 +17,8 @@ Time::unfreeze(): void             // Resume real time
 Time::get(): int                   // Return the frozen time, or time() if not frozen
 ```
 
-`Valkyrja\Support\Time\Microtime` mirrors the same API at microsecond precision:
+`Valkyrja\Support\Time\Microtime` mirrors the same API at microsecond
+precision, and adds a millisecond reader:
 
 ```php
 Microtime::freeze(float $microtime): void
@@ -27,7 +28,7 @@ Microtime::getMilliseconds(): int  // The same instant as whole epoch millisecon
 ```
 
 `Valkyrja\Support\Time\Rfc3339` renders epoch milliseconds as an RFC 3339
-instant in UTC, with millisecond precision. The value must not be negative:
+instant in UTC, with millisecond precision. The value must not be negative.
 
 ```php
 Rfc3339::fromMilliseconds(int $milliseconds): string
