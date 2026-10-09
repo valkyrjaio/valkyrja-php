@@ -2,102 +2,185 @@
 
 ## Introduction
 
-The Queue component runs a job outside the request that produced it. A producer
-dispatches a `JobContract` through a client. A consumer receives the same job,
-runs it through a middleware pipeline, and settles the outcome with the
-processor.
+The Queue component runs a job outside the request that produced it. A consumer
+receives a job, runs the job through a middleware pipeline, and returns one of
+four outcomes. The outcome tells the processor what to do with the job.
 
-The pipeline takes a job in and returns a `JobResult` out. There is no response
-envelope, because no caller waits for one.
+## Writing a Job Handler
 
-This document describes how the contracts interact.
+A job names a route, and the route holds the handler that runs the job. Every
+handler has this signature:
 
-## The Job
+```php
+callable(ContainerContract $container, RouteContract $route): JobResult
+```
 
-`Valkyrja\Queue\Message\Job\Contract\JobContract` is the one message class, and
-it travels in both directions. A job is immutable: the framework builds a new
-one through a `with*` method, the same way an HTTP request and a CLI input work.
+The router calls the handler with the container and the matched route. The
+handler reads the job from the container, does the work, and returns the
+outcome:
 
-The envelope is a cross-language contract, so every field is always present. A
-millisecond field is authoritative, and the matching `_iso` field is derived
-from it.
+```php
+use App\Notification\Contract\NotifierContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
+use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 
-A job carries a payload and a set of attributes.
-`Valkyrja\Queue\Message\Payload\Contract\PayloadContract` holds the data the
-handler reads. `Valkyrja\Queue\Message\Attributes\Contract\AttributesContract`
-holds the metadata that middleware and the handler read. Both are immutable for
-the same reason the job is.
+final class SendWelcomeNotificationHandler
+{
+    public static function handle(ContainerContract $container, RouteContract $route): JobResult
+    {
+        $payload = $container->getSingleton(JobContract::class)->getPayload();
+        $message = $payload->get('message');
 
-`Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract` builds a job,
-and renders one for the wire.
+        if (!is_string($message)) {
+            return JobResult::FAIL;
+        }
 
-## The Pipeline
+        $notifier = $container->getSingleton(NotifierContract::class);
+        $notifier->notify($message);
 
-A job runs through seven middleware stages, and each stage has its own contract
-in `Valkyrja\Queue\Middleware\Contract`:
+        return JobResult::ACK;
+    }
+}
+```
 
-| Stage             | Runs when                                |
-| ----------------- | ---------------------------------------- |
-| `JobReceived`     | the job arrives, before routing          |
-| `RouteMatched`    | the router finds a route                 |
-| `RouteNotMatched` | the router finds no route                |
-| `RouteDispatched` | the handler returns                      |
-| `ThrowableCaught` | an earlier stage throws                  |
-| `SettlingResult`  | before the outcome reaches the processor |
-| `ResultSettled`   | after the outcome reaches the processor  |
+The payload holds the data the producer sent. A retry cannot fix a bad payload,
+so the handler returns `FAIL`.
 
-Each stage has a matching handler contract in
-`Valkyrja\Queue\Middleware\Handler\Contract`, which holds the middleware of
-that stage and runs it in order.
+The attributes hold the metadata that middleware and the handler read. The
+middleware example below reads an attribute.
 
-`Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract` runs a job through
-those stages. An entry calls `run`, which returns the outcome, and calls
-`resultSettled` last. Settling the outcome with the processor is the entry's
-own work, and it belongs between the two calls. `run` is `handle` plus
-`settlingResult`. An entry calls `handle` and `settlingResult` separately when
-it has to change the outcome between them.
+## Registering a Route
 
-`JobReceived`, `SettlingResult`, and `ResultSettled` always run. The other four
-are conditional. A `JobReceived` middleware that returns an outcome
-short-circuits the pipeline, and the router never runs. The router otherwise
-chooses `RouteMatched` or `RouteNotMatched`. `RouteDispatched` runs once the
-handler returns, and `ThrowableCaught` runs when any earlier stage throws.
+A route provider tells the application where the routes are. Implement
+`QueueRouteProviderContract`. `getControllerClasses()` names the handler
+classes that the collector reads routes from, and `getRoutes()` returns the
+routes the application builds in code:
 
-The outcome is one of four `JobResult` cases: `ACK`, `RETRY`, `FAIL`, or
-`DEAD_LETTER`. A `ThrowableCaught` middleware dead-letters a throwable that
-carries `Valkyrja\Queue\Throwable\Contract\QueueNonRetryableThrowable`, rather
-than retrying it.
+```php
+use Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract;
 
-## Throwables
+final class AppQueueRouteProvider implements QueueRouteProviderContract
+{
+    public function getControllerClasses(): array
+    {
+        return [SendWelcomeNotificationHandler::class];
+    }
+
+    public function getRoutes(): array
+    {
+        return [];
+    }
+}
+```
+
+## Returning an Outcome
+
+`Valkyrja\Queue\Message\Enum\JobResult` holds the four outcomes:
+
+| Outcome       | What it means                                                       |
+| ------------- | ------------------------------------------------------------------- |
+| `ACK`         | The job is done. The processor removes the job.                     |
+| `RETRY`       | The processor redelivers the job after its retry delay.             |
+| `FAIL`        | The handler gives up. The job goes to the dead-letter destination.  |
+| `DEAD_LETTER` | The retry chain ended. The job goes to the dead-letter destination. |
+
+A handler returns `ACK`, `RETRY`, or `FAIL`. The framework returns
+`DEAD_LETTER`. `FAIL` is the handler's own decision, and `DEAD_LETTER` is a
+retry chain that reached the job's max attempts.
+
+Two methods read an outcome. `JobResult::isTerminal()` reports that the job's
+life is over, and every outcome but `RETRY` is terminal.
+`JobResult::isDeadLettered()` reports that the job goes to the dead-letter
+destination.
+
+## Marking a Throwable Non-Retryable
+
+The pipeline must not retry a throwable that carries
+`Valkyrja\Queue\Throwable\Contract\QueueNonRetryableThrowable`. Add the
+contract to an application throwable that a retry cannot fix:
+
+```php
+use Valkyrja\Queue\Throwable\Contract\QueueNonRetryableThrowable;
+use Valkyrja\Throwable\Exception\Abstract\ValkyrjaRuntimeException;
+
+final class InvalidRecipientException extends ValkyrjaRuntimeException implements QueueNonRetryableThrowable
+{
+}
+```
 
 `Valkyrja\Queue\Throwable\Contract\QueueThrowable` marks every throwable the
-component raises, and each sub-component narrows it with its own marker, as
-`QueueMessageThrowable` and `QueueServerThrowable` do. Each sub-component
-marker has an abstract `*InvalidArgumentException` and `*RuntimeException`
-pair. A concrete exception extends one of its own sub-component's pair, so a
-caller can catch one sub-component or the whole component.
-`QueueNonRetryableThrowable` narrows `QueueThrowable` as well, so
-`catch (QueueThrowable)` catches a throwable that carries it. That marker is
-cross-cutting rather than per sub-component. It marks a throwable the pipeline
-must not retry, whatever raises it.
+component raises, so `catch (QueueThrowable)` catches the whole component.
 
-## Routing
+## Writing Middleware
 
-A job names a route, and
-`Valkyrja\Queue\Routing\Dispatcher\Contract\RouterContract` turns that name
-into the handler that runs it.
-`Valkyrja\Queue\Routing\Collection\Contract\RouteCollectionContract` holds the
-routes. `Valkyrja\Queue\Routing\Collector\Contract\RouteCollectorContract`
-gathers them from the classes an application names, and
-`Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract` is how an
-application names those classes and contributes routes in code.
+Each stage has its own contract in `Valkyrja\Queue\Middleware\Contract`. A
+middleware class implements the contract of each stage it runs in:
 
-`Valkyrja\Queue\Routing\Data\QueueRoutingData` is the generated cache of that
-collection, so a production boot reads the routes from a data class instead of
-gathering them again.
+| Contract                            | Runs when                                |
+| ----------------------------------- | ---------------------------------------- |
+| `JobReceivedMiddlewareContract`     | the job arrives, before routing          |
+| `RouteMatchedMiddlewareContract`    | the router finds a route                 |
+| `RouteNotMatchedMiddlewareContract` | the router finds no route                |
+| `RouteDispatchedMiddlewareContract` | the handler returns                      |
+| `ThrowableCaughtMiddlewareContract` | an earlier stage throws                  |
+| `SettlingResultMiddlewareContract`  | before the outcome reaches the processor |
+| `ResultSettledMiddlewareContract`   | after the outcome reaches the processor  |
+
+Each middleware calls its handler to continue, and returns the type its own
+stage declares. A `JobReceived` or a `RouteMatched` middleware returns a
+`JobResult` instead, to stop the job before the handler runs:
+
+```php
+use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
+use Valkyrja\Queue\Middleware\Contract\JobReceivedMiddlewareContract;
+use Valkyrja\Queue\Middleware\Handler\Contract\JobReceivedHandlerContract;
+
+final class RequireTenantAttributeMiddleware implements JobReceivedMiddlewareContract
+{
+    public function jobReceived(
+        JobContract $job,
+        JobReceivedHandlerContract $handler
+    ): JobContract|JobResult {
+        if ($job->getAttributes()->getFirst('tenant') === null) {
+            return JobResult::FAIL;
+        }
+
+        return $handler->jobReceived($job);
+    }
+}
+```
 
 ## Configuration
 
-`Valkyrja\Application\Data\Contract\QueueConfigContract` is the application
-config a queue consumer boots from. It adds the middleware of each of the
-seven stages to the properties every application config carries.
+A queue consumer boots from an application config that implements
+`Valkyrja\Application\Data\Contract\QueueConfigContract`. The contract adds one
+middleware array for each stage to the properties every application config
+carries. Each array holds the class name of a middleware for that stage:
+
+```php
+use Valkyrja\Application\Data\Config;
+use Valkyrja\Application\Data\Contract\QueueConfigContract;
+
+final class AppQueueConfig extends Config implements QueueConfigContract
+{
+    public array $jobReceivedMiddleware = [RequireTenantAttributeMiddleware::class];
+
+    public array $routeMatchedMiddleware = [];
+
+    public array $routeNotMatchedMiddleware = [];
+
+    public array $routeDispatchedMiddleware = [];
+
+    public array $throwableCaughtMiddleware = [];
+
+    public array $settlingResultMiddleware = [];
+
+    public array $resultSettledMiddleware = [];
+}
+```
+
+`Config` carries the shared properties, and the
+[Application README](../Application/README.md#configuration) covers each one.
