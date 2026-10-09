@@ -23,11 +23,11 @@ Time::get(): int                   // Return the frozen time, or time() if not f
 Microtime::freeze(float $microtime): void
 Microtime::unfreeze(): void
 Microtime::get(): float            // Returns frozen microtime, or microtime(true) if not frozen
-Microtime::getMilliseconds(): int  // The same instant as whole epoch milliseconds
+Microtime::getMilliseconds(): int  // The same instant as whole epoch milliseconds, never negative
 ```
 
 `Valkyrja\Support\Time\Rfc3339` renders epoch milliseconds as an RFC 3339
-instant in UTC, with millisecond precision:
+instant in UTC, with millisecond precision. The value must not be negative:
 
 ```php
 Rfc3339::fromMilliseconds(int $milliseconds): string
