@@ -157,10 +157,9 @@ final class RequireTenantAttributeMiddleware implements JobReceivedMiddlewareCon
 
 ## Configuration
 
-A queue consumer boots from an application config that implements
-`Valkyrja\Application\Data\Contract\QueueConfigContract`. The contract adds one
-middleware array for each stage to the properties every application config
-carries. Each array holds the class name of a middleware for that stage:
+`Valkyrja\Application\Data\Contract\QueueConfigContract` adds one middleware
+array for each stage to the properties every application config carries. Each
+array holds the class name of a middleware for that stage:
 
 ```php
 use Valkyrja\Application\Data\Config;
