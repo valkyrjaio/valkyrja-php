@@ -69,4 +69,11 @@ final class CliWithHttpApplicationComponentProviderTest extends TestCase
 
         self::assertEmpty(new CliWithHttpApplicationComponentProvider()->getHttpProviders($app));
     }
+
+    public function testGetGrpcProviders(): void
+    {
+        $app = self::createStub(ApplicationContract::class);
+
+        self::assertEmpty(new CliWithHttpApplicationComponentProvider()->getGrpcProviders($app));
+    }
 }

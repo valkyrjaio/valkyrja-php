@@ -91,6 +91,15 @@ class ChildApplication implements ApplicationContract
      * @inheritDoc
      */
     #[Override]
+    public function getGrpcProviders(): array
+    {
+        return $this->parent->getGrpcProviders();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
     public function getDebugMode(): bool
     {
         return $this->parent->getDebugMode();

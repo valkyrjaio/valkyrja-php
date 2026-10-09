@@ -10,13 +10,13 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Http\Server\Provider;
+namespace Valkyrja\Tests\Fixtures\Application\Provider;
 
 use Override;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Application\Provider\Contract\ComponentProviderContract;
 
-class HttpServerComponentProvider implements ComponentProviderContract
+final class GrpcRouteComponentProviderFixture implements ComponentProviderContract
 {
     /**
      * @inheritDoc
@@ -33,9 +33,7 @@ class HttpServerComponentProvider implements ComponentProviderContract
     #[Override]
     public function getContainerProviders(ApplicationContract $app): array
     {
-        return [
-            new HttpServerServiceProvider(),
-        ];
+        return [];
     }
 
     /**
@@ -71,6 +69,8 @@ class HttpServerComponentProvider implements ComponentProviderContract
     #[Override]
     public function getGrpcProviders(ApplicationContract $app): array
     {
-        return [];
+        return [
+            GrpcRouteProviderFixture::class,
+        ];
     }
 }
