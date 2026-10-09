@@ -352,13 +352,18 @@ value object.
 
 ## Casts
 
-`Valkyrja\Type\Data\Cast` records the type that converts a route parameter
-value, and how to return the result. `Cast::$type` is a `class-string`, and PHP
-holds a class string as a container binding key, so the field names a binding.
+`Valkyrja\Type\Data\Cast` records the type to convert a value to, and how to
+return the result. `Cast::$type` is a `class-string`, and PHP holds a class
+string as a container binding key, so the CLI caster reads the field as one.
+
+Three readers hold a cast. The CLI caster asks the container for the type. A
+model casting and the HTTP matcher each call the named constructor of the type,
+so neither needs a binding.
 
 `Valkyrja\Type\Enum\CastType` names a type for each primitive that this
 component ships. `Valkyrja\Type\Provider\TypeServiceProvider` binds every one
-of them, so a cast that `CastType` names resolves with no further registration.
+of them, and `TypeComponentProvider` returns that service provider, so a cast
+that `CastType` names resolves with no further registration.
 
 An application binds its own type under the key that the cast names, and the
 factory reads the raw value under `Valkyrja\Type\Constant\CastArgument::VALUE`:
@@ -378,9 +383,13 @@ $container->bind(
 $cast = new Cast(type: Slug::class);
 ```
 
-Warning: register a cast type with `bind`. The reader of a cast calls
+Warning: register a cast type for the CLI caster with `bind`. The caster calls
 `getService()`, which reads only a service binding, so an alias and an instance
 that `setSingleton` holds each raise `ContainerInvalidReferenceException`.
+
+Warning: the factory returns a `TypeContract`. The caster calls `asValue()` on
+the object that the container builds, and an object without that method raises
+an `Error`.
 
 `getService()` also skips the singleton cache, so the container builds one type
 for each value. That is not the lifetime that `bindSingleton` states, which is

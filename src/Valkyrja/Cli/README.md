@@ -795,7 +795,8 @@ Warning: register a cast type with `bind`. The caster calls `getService()`,
 which reads only a service binding, so an alias and an instance that
 `setSingleton` holds each raise `ContainerInvalidReferenceException`.
 `Valkyrja\Type\Provider\TypeServiceProvider` binds every type that `CastType`
-names, so a `CastType` cast needs no further registration.
+names, and `CliRoutingComponentProvider` returns the type component, so a
+`CastType` cast needs no further registration.
 
 Pass a `Cast` to a parameter, then ask the caster for the values:
 
@@ -803,10 +804,16 @@ Pass a `Cast` to a parameter, then ask the caster for the values:
 use Valkyrja\Cli\Routing\Attribute\ArgumentParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
 use Valkyrja\Cli\Routing\Caster\Contract\CasterContract;
+use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Routing\Enum\ArgumentMode;
-use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Type\Data\Cast;
 use Valkyrja\Type\Enum\CastType;
+
+public function __construct(
+    protected RouteContract $route,
+    protected CasterContract $caster,
+) {
+}
 
 #[Route(name: 'queue:work', description: 'Work the queue')]
 #[ArgumentParameter(
@@ -815,12 +822,10 @@ use Valkyrja\Type\Enum\CastType;
     cast:        new Cast(CastType::int),
     mode:        ArgumentMode::REQUIRED,
 )]
-public function run(ContainerContract $container): OutputContract
+public function run(): OutputContract
 {
     // php myapp queue:work 4
-    $caster = $container->getSingleton(CasterContract::class);
-
-    [$workers] = $caster->getCastValues($this->route->getArgument('workers')); // int(4)
+    [$workers] = $this->caster->getCastValues($this->route->getArgument('workers')); // int(4)
 }
 ```
 
