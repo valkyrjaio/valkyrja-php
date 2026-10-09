@@ -52,8 +52,8 @@
   methods, properties, parameters, functions, and closures
 - [Reflection](Reflection/README.md) — Cached reflection wrapper for classes,
   methods, properties, functions, and dependency extraction
-- [Support](Support/README.md) — Time/Microtime freeze utilities and file
-  generator helpers
+- [Support](Support/README.md) — Time and Microtime clock readers with freezing
+  for tests, and the Rfc3339 instant renderer
 - [Throwable](Throwable/README.md) — Exception hierarchy, throwable handler
   contract, and Whoops integration
 
