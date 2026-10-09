@@ -12,8 +12,10 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Unit\Grpc\Routing\Data;
 
+use Valkyrja\Grpc\Message\Response\ServiceResponse;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Routing\Data\GrpcRoutingData;
+use Valkyrja\Grpc\Routing\Data\Route;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class GrpcRoutingDataTest extends TestCase
@@ -25,7 +27,7 @@ final class GrpcRoutingDataTest extends TestCase
 
     public function testHoldsSuppliedRoutes(): void
     {
-        $route = self::createStub(RouteContract::class);
+        $route = new Route('/pkg.Service/Method', static fn (): ServiceResponse => ServiceResponse::ok());
 
         $data = new GrpcRoutingData(['/pkg.Service/Method' => static fn (): RouteContract => $route]);
 
