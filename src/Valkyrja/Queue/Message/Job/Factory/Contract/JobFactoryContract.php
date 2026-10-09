@@ -44,8 +44,10 @@ interface JobFactoryContract
      *
      * The `payload` field takes any of three shapes: a `PayloadContract` the
      * caller already built, which is used as it stands; an object decoded from
-     * JSON without associative arrays; or a plain array. Any other object is
-     * ignored, because casting one would put its own properties on the wire.
+     * JSON without associative arrays; or a plain array. Any other object in
+     * that field is ignored, and one nested anywhere inside the payload raises
+     * the envelope throwable, because casting either would put that object's
+     * own properties on the wire.
      *
      * @param array<array-key, mixed> $data The decoded envelope
      *
