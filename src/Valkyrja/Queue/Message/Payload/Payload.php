@@ -21,7 +21,6 @@ use function array_filter;
 use function array_is_list;
 use function in_array;
 use function is_array;
-use function is_object;
 use function is_scalar;
 
 use const ARRAY_FILTER_USE_KEY;
