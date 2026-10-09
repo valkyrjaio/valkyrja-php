@@ -23,10 +23,18 @@ Time::get(): int                   // Return the frozen time, or time() if not f
 Microtime::freeze(float $microtime): void
 Microtime::unfreeze(): void
 Microtime::get(): float            // Returns frozen microtime, or microtime(true) if not frozen
+Microtime::getMilliseconds(): int  // The same instant as whole epoch milliseconds
 ```
 
-Both classes are designed to be extended. Override `time()` or `microtime()` in
-a subclass to substitute a custom time source.
+`Valkyrja\Support\Time\Rfc3339` renders epoch milliseconds as an RFC 3339
+instant in UTC, with millisecond precision:
+
+```php
+Rfc3339::fromMilliseconds(int $milliseconds): string
+```
+
+`Time` and `Microtime` are designed to be extended. Override `time()` or
+`microtime()` in a subclass to substitute a custom time source.
 
 The primary use case is deterministic testing. Code that calls `Time::get()`
 instead of `time()` directly can be tested with a fixed timestamp:
