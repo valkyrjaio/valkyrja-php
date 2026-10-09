@@ -27,6 +27,7 @@ use Valkyrja\Queue\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Queue\Routing\Collector\Contract\RouteCollectorContract;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 use Valkyrja\Queue\Routing\Data\Route;
+use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingMissingRouteHandlerException;
 use Valkyrja\Reflection\Reflector\Contract\ReflectorContract;
 use Valkyrja\Reflection\Reflector\Reflector;
 
@@ -74,6 +75,8 @@ class AttributeRouteCollector implements RouteCollectorContract
      *
      * @param class-string     $class  The class name
      * @param non-empty-string $method The method name
+     *
+     * @throws QueueRoutingMissingRouteHandlerException
      */
     protected function updateHandler(Route $route, string $class, string $method): Route
     {
@@ -83,8 +86,14 @@ class AttributeRouteCollector implements RouteCollectorContract
 
         $handler = $routeHandler->handler ?? null;
 
+        // A route with no handler would otherwise keep the attribute's
+        // sentinel and fail only once a job reaches it, so the collection
+        // rejects it at boot, where the class and the method are still known
         if ($handler === null) {
-            return $route;
+            throw new QueueRoutingMissingRouteHandlerException(
+                'Route `' . $route->getName() . '` on ' . $class . '::' . $method
+                . ' carries no ' . RouteHandler::class . ' attribute'
+            );
         }
 
         return $route->withHandler($handler);

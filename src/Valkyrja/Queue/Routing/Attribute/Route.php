@@ -24,6 +24,7 @@ use Valkyrja\Queue\Middleware\Contract\SettlingResultMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 use Valkyrja\Queue\Routing\Data\Route as Model;
+use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingMissingRouteHandlerException;
 
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
 class Route extends Model implements ReflectionAwareAttributeContract
@@ -53,12 +54,28 @@ class Route extends Model implements ReflectionAwareAttributeContract
         parent::__construct(
             name: $name,
             description: $description,
-            handler: $handler ?? static fn (ContainerContract $container, RouteContract $route): JobResult => JobResult::ACK,
+            handler: $handler ?? [self::class, 'defaultHandler'],
             routeMatchedMiddleware: $routeMatchedMiddleware,
             routeDispatchedMiddleware: $routeDispatchedMiddleware,
             throwableCaughtMiddleware: $throwableCaughtMiddleware,
             settlingResultMiddleware: $settlingResultMiddleware,
             resultSettledMiddleware: $resultSettledMiddleware,
+        );
+    }
+
+    /**
+     * Stand in for a handler the author did not supply.
+     *
+     * The collector rejects a route that still carries this, so reaching it
+     * means a route was built by hand without a handler. It throws rather
+     * than acknowledging, because an acknowledgement destroys the job.
+     *
+     * @throws QueueRoutingMissingRouteHandlerException
+     */
+    public static function defaultHandler(ContainerContract $container, RouteContract $route): JobResult
+    {
+        throw new QueueRoutingMissingRouteHandlerException(
+            'Route `' . $route->getName() . '` carries no handler'
         );
     }
 }
