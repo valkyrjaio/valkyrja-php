@@ -22,6 +22,8 @@ use Valkyrja\Cli\Middleware\Handler\Contract\RouteDispatchedHandlerContract;
 use Valkyrja\Cli\Middleware\Handler\Contract\RouteMatchedHandlerContract;
 use Valkyrja\Cli\Middleware\Handler\Contract\RouteNotMatchedHandlerContract;
 use Valkyrja\Cli\Middleware\Handler\Contract\ThrowableCaughtHandlerContract;
+use Valkyrja\Cli\Routing\Caster\Caster;
+use Valkyrja\Cli\Routing\Caster\Contract\CasterContract;
 use Valkyrja\Cli\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Cli\Routing\Collection\RouteCollection;
 use Valkyrja\Cli\Routing\Collector\AttributeRouteCollector;
@@ -55,6 +57,17 @@ class CliRoutingServiceProvider implements ServiceProviderContract
                 attributes: $container->getSingleton(CollectorContract::class),
                 reflection: $container->getSingleton(ReflectorContract::class),
             )
+        );
+    }
+
+    /**
+     * Publish the caster service.
+     */
+    public static function publishCaster(ContainerContract $container): void
+    {
+        $container->setSingleton(
+            CasterContract::class,
+            new Caster(container: $container)
         );
     }
 
@@ -155,6 +168,7 @@ class CliRoutingServiceProvider implements ServiceProviderContract
     {
         return [
             RouteCollectorContract::class  => [self::class, 'publishAttributeRouteCollector'],
+            CasterContract::class          => [self::class, 'publishCaster'],
             RouterContract::class          => [self::class, 'publishRouter'],
             RouteCollectionContract::class => [self::class, 'publishRouteCollection'],
             CliRoutingData::class          => [self::class, 'publishData'],
