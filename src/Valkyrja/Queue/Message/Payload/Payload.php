@@ -1,0 +1,282 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the Valkyrja Framework package.
+ *
+ * Copyright (c) 2016-present Melech Mizrachi
+ *
+ * Released under the MIT License. See LICENSE.md for details.
+ */
+
+namespace Valkyrja\Queue\Message\Payload;
+
+use Override;
+use stdClass;
+use Valkyrja\Queue\Message\Payload\Contract\PayloadContract;
+use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
+
+use function array_filter;
+use function array_is_list;
+use function in_array;
+use function is_array;
+use function is_scalar;
+
+use const ARRAY_FILTER_USE_KEY;
+
+class Payload implements PayloadContract
+{
+    /** @var array<array-key, scalar|PayloadContract|null> */
+    protected array $params = [];
+
+    /** Whether this node encodes as a JSON array rather than a JSON object */
+    protected bool $isList = false;
+
+    /**
+     * @param array<array-key, scalar|PayloadContract|null> $params The params
+     * @param bool                                          $isList Whether the node is a list
+     */
+    public function __construct(array $params = [], bool $isList = false)
+    {
+        $this->validateParams($params);
+
+        $this->params = $params;
+        $this->isList = $isList;
+    }
+
+    /**
+     * Create a new instance from an array, recursively converting nested arrays.
+     *
+     * @param array<array-key, mixed> $data The data to create from
+     */
+    public static function fromArray(array $data): static
+    {
+        $params = [];
+
+        /**
+         * @var array-key                                           $name
+         * @var scalar|object|array<array-key, mixed>|resource|null $param
+         */
+        foreach ($data as $name => $param) {
+            if (is_array($param)) {
+                $param = static::fromArray($param);
+            }
+
+            static::validateParam($param);
+
+            $params[$name] = $param;
+        }
+
+        /**
+         * @var array<array-key, scalar|PayloadContract|null> $params
+         *
+         * @phpstan-ignore-next-line
+         */
+        return new static($params, $data !== [] && array_is_list($data));
+    }
+
+    /**
+     * Create from a value decoded without associative arrays.
+     *
+     * A JSON object arrives as an object and a JSON array as a list, so the two
+     * stay apart all the way to the encoder.
+     *
+     * @param object|array<array-key, mixed> $value The decoded value
+     */
+    public static function fromJsonValue(object|array $value): static
+    {
+        $params = [];
+
+        /** @var mixed $param */
+        foreach ((array) $value as $name => $param) {
+            // Only the two shapes a JSON decode produces. A PayloadContract
+            // passes through to validateParam, which accepts it, and any other
+            // object is rejected there rather than array-cast: casting would
+            // put that object's own properties on the wire and drop its real
+            // contents. readPayload narrows to the same two shapes.
+            if (is_array($param) || $param instanceof stdClass) {
+                $param = static::fromJsonValue($param);
+            }
+
+            static::validateParam($param);
+
+            /** @var array-key $name */
+            $params[$name] = $param;
+        }
+
+        /**
+         * @var array<array-key, scalar|PayloadContract|null> $params
+         *
+         * @phpstan-ignore-next-line
+         */
+        return new static($params, is_array($value) && array_is_list($value));
+    }
+
+    /**
+     * Validate a param.
+     *
+     * @psalm-assert scalar|PayloadContract|null $param
+     *
+     * @phpstan-assert scalar|PayloadContract|null $param
+     */
+    protected static function validateParam(mixed $param): void
+    {
+        if (! static::isValidParam($param)) {
+            throw new QueueMessageInvalidPayloadParamException(
+                'Payload param must be scalar, null, or a PayloadContract instance'
+            );
+        }
+    }
+
+    /**
+     * Determine if a param is valid.
+     */
+    protected static function isValidParam(mixed $param): bool
+    {
+        return is_scalar($param) || $param instanceof PayloadContract || $param === null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function has(int|string $key): bool
+    {
+        return isset($this->params[$key]);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function get(int|string $key): PayloadContract|float|bool|int|string|null
+    {
+        return $this->params[$key]
+            ?? null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getAll(): array
+    {
+        return $this->params;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getOnly(string|int ...$keys): array
+    {
+        return array_filter(
+            $this->params,
+            static fn (string|int $name): bool => in_array($name, $keys, true),
+            ARRAY_FILTER_USE_KEY
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getAllExcept(string|int ...$keys): array
+    {
+        return array_filter(
+            $this->params,
+            static fn (string|int $name): bool => ! in_array($name, $keys, true),
+            ARRAY_FILTER_USE_KEY
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function with(array $params): static
+    {
+        $this->validateParams($params);
+
+        $new = clone $this;
+
+        $new->params = $params;
+        // The flag describes the params, so replacing them recomputes it rather
+        // than carrying the old node's shape onto the new one. Emptying a node
+        // keeps the shape it had, because an empty list and an empty map encode
+        // differently and emptying a node does not reshape it.
+        $new->isList = $params === []
+            ? $this->isList
+            : array_is_list($params);
+
+        return $new;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function withAdded(array $params): static
+    {
+        $this->validateParams($params);
+
+        $new = clone $this;
+
+        // Do not use array_merge as it would rewrite int keys when mixed with string keys
+        foreach ($params as $name => $param) {
+            $new->params[$name] = $param;
+        }
+
+        $new->isList = $new->params === []
+            ? $this->isList
+            : array_is_list($new->params);
+
+        return $new;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function isList(): bool
+    {
+        return $this->isList;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function asArray(): array
+    {
+        $data = [];
+
+        foreach ($this->params as $name => $param) {
+            $data[$name] = $param instanceof PayloadContract
+                ? $param->asArray()
+                : $param;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Validate params.
+     *
+     * @param array<array-key, mixed> $params The params to validate
+     *
+     * @psalm-assert array<array-key, scalar|PayloadContract|null> $params
+     *
+     * @phpstan-assert array<array-key, scalar|PayloadContract|null> $params
+     */
+    protected function validateParams(array $params): void
+    {
+        /**
+         * @var scalar|object|array<array-key, mixed>|resource|null $param
+         */
+        foreach ($params as $param) {
+            static::validateParam($param);
+        }
+    }
+}

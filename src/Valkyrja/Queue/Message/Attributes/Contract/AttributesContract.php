@@ -47,7 +47,7 @@ interface AttributesContract
     /**
      * Get all the attributes, keyed by normalized name.
      *
-     * @return array<non-empty-lowercase-string, string[]>
+     * @return array<non-empty-lowercase-string|int, string[]>
      */
     public function getAll(): array;
 
@@ -56,7 +56,7 @@ interface AttributesContract
      *
      * @param non-empty-string ...$names The attribute names
      *
-     * @return array<non-empty-lowercase-string, string[]>
+     * @return array<non-empty-lowercase-string|int, string[]>
      */
     public function getOnly(string ...$names): array;
 
@@ -65,7 +65,7 @@ interface AttributesContract
      *
      * @param non-empty-string ...$names The attribute names
      *
-     * @return array<non-empty-lowercase-string, string[]>
+     * @return array<non-empty-lowercase-string|int, string[]>
      */
     public function getAllExcept(string ...$names): array;
 
@@ -95,7 +95,7 @@ interface AttributesContract
     /**
      * Get the wire representation: a plain object of name to value list.
      *
-     * @return array<non-empty-lowercase-string, string[]>
+     * @return array<non-empty-lowercase-string|int, string[]>
      */
     public function asArray(): array;
 }
