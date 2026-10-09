@@ -17,6 +17,7 @@ use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Routing\Attribute\Route;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
+use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingMissingRouteHandlerException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class RouteTest extends TestCase
@@ -27,15 +28,28 @@ final class RouteTest extends TestCase
     /** @var non-empty-string */
     protected const string DESCRIPTION = 'Send the welcome email';
 
-    public function testDefaultHandlerReturnsAck(): void
+    public function testDefaultHandlerThrows(): void
     {
         $route = new Route(name: self::NAME, description: self::DESCRIPTION);
 
         $handler = $route->getHandler();
 
-        // A route that names no handler acknowledges, so a job routed to it
-        // never retries on the strength of a missing handler alone
-        self::assertSame(JobResult::ACK, $handler(new Container(), $route));
+        // The collector rejects a route that still carries the sentinel, so
+        // reaching it means a route was built by hand with no handler. It
+        // throws rather than acknowledging, because an acknowledgement
+        // destroys the job it was given
+        $this->expectException(QueueRoutingMissingRouteHandlerException::class);
+
+        $handler(new Container(), $route);
+    }
+
+    public function testTheDefaultHandlerIsNamedSoItCanBeRecognized(): void
+    {
+        $route = new Route(name: self::NAME, description: self::DESCRIPTION);
+
+        // A closure would compare unequal to itself, so the sentinel is a
+        // named reference that a caller can test for
+        self::assertSame([Route::class, 'defaultHandler'], $route->getHandler());
     }
 
     public function testAnExplicitHandlerIsKept(): void

@@ -41,6 +41,7 @@ final class JobControllerFixture
     }
 
     #[Route(name: 'ChargeCard', description: 'Charge the card')]
+    #[RouteHandler([self::class, 'handle'])]
     #[Name('v2')]
     #[Middleware(RouteMatchedMiddlewareFixture::class)]
     #[Middleware(RouteDispatchedMiddlewareFixture::class)]

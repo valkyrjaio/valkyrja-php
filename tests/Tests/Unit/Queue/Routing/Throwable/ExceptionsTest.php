@@ -17,6 +17,7 @@ use Valkyrja\Queue\Routing\Throwable\Contract\QueueRoutingThrowable;
 use Valkyrja\Queue\Routing\Throwable\Exception\Abstract\QueueRoutingInvalidArgumentException;
 use Valkyrja\Queue\Routing\Throwable\Exception\Abstract\QueueRoutingRuntimeException;
 use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingInvalidRouteNameException;
+use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingMissingRouteHandlerException;
 use Valkyrja\Queue\Throwable\Contract\QueueThrowable;
 use Valkyrja\Queue\Throwable\Exception\Abstract\QueueInvalidArgumentException;
 use Valkyrja\Queue\Throwable\Exception\Abstract\QueueRuntimeException;
@@ -45,5 +46,10 @@ final class ExceptionsTest extends TestCase
     public function testInvalidRouteNameException(): void
     {
         self::isA(QueueRoutingInvalidArgumentException::class, QueueRoutingInvalidRouteNameException::class);
+    }
+
+    public function testMissingRouteHandlerException(): void
+    {
+        self::isA(QueueRoutingInvalidArgumentException::class, QueueRoutingMissingRouteHandlerException::class);
     }
 }

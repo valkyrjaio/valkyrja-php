@@ -16,6 +16,7 @@ use Override;
 use Valkyrja\Attribute\Collector\Collector;
 use Valkyrja\Queue\Routing\Collector\AttributeRouteCollector;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
+use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingMissingRouteHandlerException;
 use Valkyrja\Reflection\Reflector\Reflector;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultSettledMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\RouteDispatchedMiddlewareFixture;
@@ -23,6 +24,7 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\RouteMatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\SettlingResultMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ThrowableCaughtMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\JobControllerFixture;
+use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\JobControllerMissingHandlerFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\UnnamedJobControllerFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
@@ -46,6 +48,15 @@ final class AttributeRouteCollectorTest extends TestCase
     public function testCollectsEveryAttributedRoute(): void
     {
         self::assertCount(2, $this->collector->getRoutes(JobControllerFixture::class));
+    }
+
+    public function testRejectsARouteThatNamesNoHandler(): void
+    {
+        // Without this the route would keep the attribute's sentinel and fail
+        // only once a job reached it, long after the author could act on it
+        $this->expectException(QueueRoutingMissingRouteHandlerException::class);
+
+        $this->collector->getRoutes(JobControllerMissingHandlerFixture::class);
     }
 
     public function testCollectsNothingForNoClasses(): void
@@ -83,14 +94,6 @@ final class AttributeRouteCollectorTest extends TestCase
         $route = $this->routeFor('acme.SendWelcomeEmail');
 
         self::assertSame([JobControllerFixture::class, 'handle'], $route->getHandler());
-    }
-
-    public function testFallsBackToTheAttributeDefaultHandler(): void
-    {
-        $route = $this->routeFor('acme.ChargeCard.v2');
-
-        // No RouteHandler attribute, so the attribute's own default is kept
-        self::assertNotSame([JobControllerFixture::class, 'handle'], $route->getHandler());
     }
 
     public function testDispatchesMiddlewareToItsStage(): void
