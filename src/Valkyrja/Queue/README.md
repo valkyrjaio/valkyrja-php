@@ -4,7 +4,7 @@
 
 The Queue component runs a job outside the request that produced it. A consumer
 receives a job, runs the job through a middleware pipeline, and returns one of
-four outcomes. The outcome tells the processor what to do with the job.
+four outcomes. The outcome decides what happens to the job next.
 
 ## Writing a Job Handler
 
@@ -82,7 +82,7 @@ final class AppQueueRouteProvider implements QueueRouteProviderContract
 | Outcome       | What it means                                                       |
 | ------------- | ------------------------------------------------------------------- |
 | `ACK`         | The job is done. The processor removes the job.                     |
-| `RETRY`       | The processor redelivers the job after its retry delay.             |
+| `RETRY`       | The job runs again after its retry delay.                           |
 | `FAIL`        | The handler gives up. The job goes to the dead-letter destination.  |
 | `DEAD_LETTER` | The retry chain ended. The job goes to the dead-letter destination. |
 
