@@ -15,9 +15,6 @@ namespace Valkyrja\Tests\Unit\Type\Constant;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 use Valkyrja\Type\Constant\CastArgument;
 
-/**
- * Test the cast argument constant.
- */
 final class CastArgumentTest extends TestCase
 {
     public function testValue(): void

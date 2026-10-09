@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Unit\Type\Provider;
 
+use stdClass;
 use Valkyrja\Container\Manager\Container;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 use Valkyrja\Type\Array\ArrayT;
@@ -30,9 +31,10 @@ use Valkyrja\Type\Object\SerializedObject;
 use Valkyrja\Type\Provider\TypeServiceProvider;
 use Valkyrja\Type\String\StringT;
 
-/**
- * Test the type service provider.
- */
+use function array_keys;
+use function count;
+use function serialize;
+
 final class TypeServiceProviderTest extends TestCase
 {
     public function testPublishersHoldEveryTypeThatACastTypeNames(): void
@@ -41,56 +43,94 @@ final class TypeServiceProviderTest extends TestCase
 
         foreach (CastType::cases() as $case) {
             self::assertArrayHasKey($case->value, $publishers);
+            self::assertIsCallable($publishers[$case->value]);
+        }
+
+        self::assertCount(count(CastType::cases()), $publishers);
+    }
+
+    public function testEachPublisherBindsOnlyItsOwnType(): void
+    {
+        foreach (new TypeServiceProvider()->publishers() as $id => $publisher) {
+            $container = new Container();
+
+            $publisher($container);
+
+            self::assertTrue($container->isService($id));
+
+            foreach (array_keys(new TypeServiceProvider()->publishers()) as $other) {
+                if ($other !== $id) {
+                    self::assertFalse($container->isService($other));
+                }
+            }
         }
     }
 
-    public function testPublishTypesBindsEveryType(): void
+    public function testTheArrayTFactoryReadsTheCastArgument(): void
     {
-        $container = new Container();
-
-        TypeServiceProvider::publishTypes($container);
-
-        foreach (
-            [
-                ArrayT::class,
-                BoolT::class,
-                FalseT::class,
-                FloatT::class,
-                IntT::class,
-                Json::class,
-                JsonObject::class,
-                NullT::class,
-                ObjectT::class,
-                SerializedObject::class,
-                StringT::class,
-                TrueT::class,
-            ] as $type
-        ) {
-            self::assertTrue($container->isService($type));
-        }
+        self::assertSame(['a'], $this->build(ArrayT::class, ['a'])->asValue());
     }
 
-    public function testEachBoundTypeReadsTheCastArgument(): void
+    public function testTheBoolTFactoryReadsTheCastArgument(): void
     {
-        $container = new Container();
+        self::assertTrue($this->build(BoolT::class, '1')->asValue());
+    }
 
-        TypeServiceProvider::publishTypes($container);
+    public function testTheFalseTFactoryReadsTheCastArgument(): void
+    {
+        self::assertFalse($this->build(FalseT::class, false)->asValue());
+    }
 
-        self::assertSame(1, $container->getService(IntT::class, [CastArgument::VALUE => '1'])->asValue());
-        self::assertSame('a', $container->getService(StringT::class, [CastArgument::VALUE => 'a'])->asValue());
-        self::assertSame(1.5, $container->getService(FloatT::class, [CastArgument::VALUE => '1.5'])->asValue());
-        self::assertTrue($container->getService(BoolT::class, [CastArgument::VALUE => '1'])->asValue());
-        self::assertSame(['a'], $container->getService(ArrayT::class, [CastArgument::VALUE => ['a']])->asValue());
-        self::assertTrue($container->getService(TrueT::class, [CastArgument::VALUE => true])->asValue());
-        self::assertFalse($container->getService(FalseT::class, [CastArgument::VALUE => false])->asValue());
-        self::assertNull($container->getService(NullT::class, [CastArgument::VALUE => null])->asValue());
+    public function testTheFloatTFactoryReadsTheCastArgument(): void
+    {
+        self::assertSame(1.5, $this->build(FloatT::class, '1.5')->asValue());
+    }
+
+    public function testTheIntTFactoryReadsTheCastArgument(): void
+    {
+        self::assertSame(1, $this->build(IntT::class, '1')->asValue());
+    }
+
+    public function testTheJsonFactoryReadsTheCastArgument(): void
+    {
+        self::assertSame(['a' => 1], $this->build(Json::class, '{"a":1}')->asValue());
+    }
+
+    public function testTheJsonObjectFactoryReadsTheCastArgument(): void
+    {
+        self::assertSame(1, $this->build(JsonObject::class, '{"a":1}')->asValue()->a);
+    }
+
+    public function testTheNullTFactoryReadsTheCastArgument(): void
+    {
+        self::assertNull($this->build(NullT::class, null)->asValue());
+    }
+
+    public function testTheObjectTFactoryReadsTheCastArgument(): void
+    {
+        self::assertSame(1, $this->build(ObjectT::class, '{"a":1}')->asValue()->a);
+    }
+
+    public function testTheSerializedObjectFactoryReadsTheCastArgument(): void
+    {
+        self::assertInstanceOf(SerializedObject::class, $this->build(SerializedObject::class, serialize(new stdClass())));
+    }
+
+    public function testTheStringTFactoryReadsTheCastArgument(): void
+    {
+        self::assertSame('a', $this->build(StringT::class, 'a')->asValue());
+    }
+
+    public function testTheTrueTFactoryReadsTheCastArgument(): void
+    {
+        self::assertTrue($this->build(TrueT::class, true)->asValue());
     }
 
     public function testTheContainerBuildsOneTypeForEachCall(): void
     {
         $container = new Container();
 
-        TypeServiceProvider::publishTypes($container);
+        TypeServiceProvider::publishIntT($container);
 
         $first  = $container->getService(IntT::class, [CastArgument::VALUE => '1']);
         $second = $container->getService(IntT::class, [CastArgument::VALUE => '2']);
@@ -98,5 +138,28 @@ final class TypeServiceProviderTest extends TestCase
         self::assertNotSame($first, $second);
         self::assertSame(1, $first->asValue());
         self::assertSame(2, $second->asValue());
+    }
+
+    /**
+     * Build a type through the container, the way a caster does.
+     *
+     * @template T of object
+     *
+     * @param class-string<T> $id    The type id
+     * @param mixed           $value The raw value
+     *
+     * @return T
+     */
+    protected function build(string $id, mixed $value): object
+    {
+        $container = new Container();
+
+        foreach (new TypeServiceProvider()->publishers() as $publisherId => $publisher) {
+            if ($publisherId === $id) {
+                $publisher($container);
+            }
+        }
+
+        return $container->getService($id, [CastArgument::VALUE => $value]);
     }
 }

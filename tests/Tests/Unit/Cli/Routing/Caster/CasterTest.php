@@ -27,9 +27,6 @@ use Valkyrja\Type\Enum\CastType;
 use Valkyrja\Type\Int\IntT;
 use Valkyrja\Type\Provider\TypeServiceProvider;
 
-/**
- * Test the caster service.
- */
 final class CasterTest extends TestCase
 {
     public function testParameterWithNoCastGivesEachRawValue(): void
@@ -115,7 +112,9 @@ final class CasterTest extends TestCase
     {
         $container = new Container();
 
-        TypeServiceProvider::publishTypes($container);
+        foreach (new TypeServiceProvider()->publishers() as $publisher) {
+            $publisher($container);
+        }
 
         return $container;
     }
