@@ -12,9 +12,10 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Unit\Type\Provider;
 
+use __PHP_Incomplete_Class;
 use stdClass;
 use Valkyrja\Container\Manager\Container;
-use Valkyrja\Tests\Unit\Abstract\TestCase;
+use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
 use Valkyrja\Type\Array\ArrayT;
 use Valkyrja\Type\Bool\BoolT;
 use Valkyrja\Type\Bool\FalseT;
@@ -35,8 +36,11 @@ use function array_keys;
 use function count;
 use function serialize;
 
-final class TypeServiceProviderTest extends TestCase
+final class ServiceProviderTest extends ServiceProviderTestCase
 {
+    /** @inheritDoc */
+    protected static string $provider = TypeServiceProvider::class;
+
     public function testPublishersHoldEveryTypeThatACastTypeNames(): void
     {
         $publishers = new TypeServiceProvider()->publishers();
@@ -113,7 +117,10 @@ final class TypeServiceProviderTest extends TestCase
 
     public function testTheSerializedObjectFactoryReadsTheCastArgument(): void
     {
-        self::assertInstanceOf(SerializedObject::class, $this->build(SerializedObject::class, serialize(new stdClass())));
+        self::assertInstanceOf(
+            __PHP_Incomplete_Class::class,
+            $this->build(SerializedObject::class, serialize(new stdClass()))->asValue()
+        );
     }
 
     public function testTheStringTFactoryReadsTheCastArgument(): void

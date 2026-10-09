@@ -28,10 +28,10 @@ final class ComponentProviderTest extends TestCase
     {
         $app = self::createStub(ApplicationContract::class);
 
-        self::assertInstanceOf(
-            TypeComponentProvider::class,
-            new CliRoutingComponentProvider()->getComponentProviders($app)[0]
-        );
+        $providers = new CliRoutingComponentProvider()->getComponentProviders($app);
+
+        self::assertCount(1, $providers);
+        self::assertInstanceOf(TypeComponentProvider::class, $providers[0]);
     }
 
     public function testGetContainerProvider(): void

@@ -801,6 +801,7 @@ names, and `CliRoutingComponentProvider` returns the type component, so a
 Pass a `Cast` to a parameter, then ask the caster for the values:
 
 ```php
+use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
 use Valkyrja\Cli\Routing\Attribute\ArgumentParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
 use Valkyrja\Cli\Routing\Caster\Contract\CasterContract;

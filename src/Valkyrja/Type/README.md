@@ -356,14 +356,18 @@ value object.
 return the result. `Cast::$type` is a `class-string`, and PHP holds a class
 string as a container binding key, so the CLI caster reads the field as one.
 
-Three readers hold a cast. The CLI caster asks the container for the type. A
-model casting and the HTTP matcher each call the named constructor of the type,
-so neither needs a binding.
+Four readers hold a cast. The CLI caster asks the container for the type. A
+model casting, an ORM entity, and the HTTP matcher each call the named
+constructor of the type, so none of them needs a binding.
 
 `Valkyrja\Type\Enum\CastType` names a type for each primitive that this
 component ships. `Valkyrja\Type\Provider\TypeServiceProvider` binds every one
-of them, and `TypeComponentProvider` returns that service provider, so a cast
-that `CastType` names resolves with no further registration.
+of them, and `TypeComponentProvider` returns that service provider.
+
+The CLI routing component returns `TypeComponentProvider`, so a CLI application
+resolves a cast that `CastType` names with no further registration. An
+application that resolves a cast type anywhere else registers
+`TypeComponentProvider` itself.
 
 An application binds its own type under the key that the cast names, and the
 factory reads the raw value under `Valkyrja\Type\Constant\CastArgument::VALUE`:
@@ -390,6 +394,24 @@ that `setSingleton` holds each raise `ContainerInvalidReferenceException`.
 Warning: the factory returns a `TypeContract`. The caster calls `asValue()` on
 the object that the container builds, and an object without that method raises
 an `Error`.
+
+A binding also reaches an argument that a named constructor takes beyond the
+value. `SerializedObject::fromValue()` takes the classes that `unserialize`
+allows, and a binding passes them:
+
+```php
+use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Type\Constant\CastArgument;
+use Valkyrja\Type\Object\SerializedObject;
+
+$container->bind(
+    SerializedObject::class,
+    static fn (ContainerContract $container, array $arguments): SerializedObject => SerializedObject::fromValue(
+        $arguments[CastArgument::VALUE] ?? null,
+        [Slug::class]
+    )
+);
+```
 
 `getService()` also skips the singleton cache, so the container builds one type
 for each value. That is not the lifetime that `bindSingleton` states, which is
