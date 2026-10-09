@@ -89,6 +89,18 @@ first taking the job as dispatched and the second the already incremented copy.
 `getPushed` returns the jobs handed to the client during one unit of work, and
 `clearPushed` ends that unit of work.
 
+A processor with no retry of its own settles through `requeue`. The client
+increments the attempt, stamps the modification time, and reads the hold from
+the job as dispatched. `retry` is the lower seam `requeue` calls, and it takes
+the hold already supplied. The framework reaches neither on a processor that
+owns redelivery, because that processor's entry answers the retry from its own
+settlement.
+
+Both seams record the job in `getPushed`. A buffering host drains that record
+until it is empty before it calls `clearPushed`, because a job that a handler
+pushes during the drain is lost otherwise. Application code only ever calls
+`push`.
+
 ## Routing
 
 A job names a route, and
