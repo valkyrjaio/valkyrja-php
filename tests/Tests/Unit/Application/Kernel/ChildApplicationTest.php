@@ -20,6 +20,7 @@ use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Container\Manager\ChildContainer;
 use Valkyrja\Container\Manager\Container;
 use Valkyrja\Container\Manager\NativeChildContainer;
+use Valkyrja\Tests\Fixtures\Application\Provider\QueueRouteComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Container\SingletonFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
@@ -108,7 +109,16 @@ final class ChildApplicationTest extends TestCase
 
     public function testGetQueueProvidersDelegatesToParent(): void
     {
-        self::assertSame($this->parent->getQueueProviders(), $this->child->getQueueProviders());
+        $config          = new Config(providers: [new QueueRouteComponentProviderFixture()]);
+        $parentContainer = new Container();
+        $parent          = new Valkyrja(container: $parentContainer, config: $config);
+        $child           = new ChildApplication($parent, new NativeChildContainer($parentContainer));
+
+        $expected = $parent->getQueueProviders();
+
+        // An empty parent would pass against a child that never delegates
+        self::assertNotSame([], $expected);
+        self::assertSame($expected, $child->getQueueProviders());
     }
 
     public function testGetDebugModeDelegatesToParent(): void
