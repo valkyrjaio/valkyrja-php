@@ -293,8 +293,8 @@ final class ComponentProvider implements ComponentProviderContract
     public function getContainerProviders(ApplicationContract $app): array
     {
         return [
-            DataProvider::class,
-            ServiceProvider::class,
+            new DataProvider(),
+            new ServiceProvider(),
         ];
     }
 
@@ -314,7 +314,7 @@ final class ComponentProvider implements ComponentProviderContract
     public function getHttpProviders(ApplicationContract $app): array
     {
         return [
-            RouteProvider::class,
+            new RouteProvider(),
         ];
     }
 
