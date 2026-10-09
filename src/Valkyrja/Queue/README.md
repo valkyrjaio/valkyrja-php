@@ -10,6 +10,184 @@ processor.
 The pipeline takes a job in and returns a `JobResult` out. There is no response
 envelope, because no caller waits for one.
 
+This document describes how the contracts interact.
+
+## Writing a Job Handler
+
+A job names a route, and the route holds the handler that runs the job. Every
+handler has this signature:
+
+```php
+callable(ContainerContract $container, RouteContract $route): JobResult
+```
+
+The router calls the handler with the container and the matched route. The
+handler reads the job from the container, does the work, and returns the
+outcome:
+
+```php
+use App\Notification\Contract\NotifierContract;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
+use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
+
+final class SendWelcomeNotificationHandler
+{
+    public static function handle(ContainerContract $container, RouteContract $route): JobResult
+    {
+        $payload = $container->getSingleton(JobContract::class)->getPayload();
+        $message = $payload->get('message');
+
+        if (!is_string($message)) {
+            return JobResult::FAIL;
+        }
+
+        $notifier = $container->getSingleton(NotifierContract::class);
+        $notifier->notify($message);
+
+        return JobResult::ACK;
+    }
+}
+```
+
+The payload holds the data the producer sent. A retry cannot fix a bad payload,
+so the handler returns `FAIL`.
+
+The attributes hold the metadata that middleware and the handler read. The
+middleware example below reads an attribute.
+
+## Registering a Route
+
+A route provider tells the application where the routes are. Implement
+`QueueRouteProviderContract`. `getControllerClasses()` names the handler
+classes that the collector reads routes from, and `getRoutes()` returns the
+routes the application builds in code:
+
+```php
+use Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract;
+
+final class AppQueueRouteProvider implements QueueRouteProviderContract
+{
+    public function getControllerClasses(): array
+    {
+        return [SendWelcomeNotificationHandler::class];
+    }
+
+    public function getRoutes(): array
+    {
+        return [];
+    }
+}
+```
+
+## Returning an Outcome
+
+`Valkyrja\Queue\Message\Enum\JobResult` holds the four outcomes:
+
+| Outcome       | What it means                                                       |
+| ------------- | ------------------------------------------------------------------- |
+| `ACK`         | The job is done. The processor removes the job.                     |
+| `RETRY`       | The job runs again after its retry delay.                           |
+| `FAIL`        | The handler gives up. The job goes to the dead-letter destination.  |
+| `DEAD_LETTER` | The retry chain ended. The job goes to the dead-letter destination. |
+
+A handler returns `ACK`, `RETRY`, or `FAIL`. The framework returns
+`DEAD_LETTER`. `FAIL` is the handler's own decision, and `DEAD_LETTER` is a
+retry chain that reached the job's max attempts.
+
+Two methods read an outcome. `JobResult::isTerminal()` reports that the job's
+life is over, and every outcome but `RETRY` is terminal.
+`JobResult::isDeadLettered()` reports that the job goes to the dead-letter
+destination.
+
+## Marking a Throwable Non-Retryable
+
+The pipeline must not retry a throwable that carries
+`Valkyrja\Queue\Throwable\Contract\QueueNonRetryableThrowable`. Add the
+contract to an application throwable that a retry cannot fix:
+
+```php
+use Valkyrja\Queue\Throwable\Contract\QueueNonRetryableThrowable;
+use Valkyrja\Throwable\Exception\Abstract\ValkyrjaRuntimeException;
+
+final class InvalidRecipientException extends ValkyrjaRuntimeException implements QueueNonRetryableThrowable
+{
+}
+```
+
+## Writing Middleware
+
+Each stage has its own contract in `Valkyrja\Queue\Middleware\Contract`. A
+middleware class implements the contract of each stage it runs in:
+
+| Contract                            | Runs when                                |
+| ----------------------------------- | ---------------------------------------- |
+| `JobReceivedMiddlewareContract`     | the job arrives, before routing          |
+| `RouteMatchedMiddlewareContract`    | the router finds a route                 |
+| `RouteNotMatchedMiddlewareContract` | the router finds no route                |
+| `RouteDispatchedMiddlewareContract` | the handler returns                      |
+| `ThrowableCaughtMiddlewareContract` | an earlier stage throws                  |
+| `SettlingResultMiddlewareContract`  | before the outcome reaches the processor |
+| `ResultSettledMiddlewareContract`   | after the outcome reaches the processor  |
+
+Each middleware calls its handler to continue, and returns the type its own
+stage declares. A `JobReceived` or a `RouteMatched` middleware returns a
+`JobResult` instead, to stop the job before the handler runs:
+
+```php
+use Valkyrja\Queue\Message\Enum\JobResult;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
+use Valkyrja\Queue\Middleware\Contract\JobReceivedMiddlewareContract;
+use Valkyrja\Queue\Middleware\Handler\Contract\JobReceivedHandlerContract;
+
+final class RequireTenantAttributeMiddleware implements JobReceivedMiddlewareContract
+{
+    public function jobReceived(
+        JobContract $job,
+        JobReceivedHandlerContract $handler
+    ): JobContract|JobResult {
+        if ($job->getAttributes()->getFirst('tenant') === null) {
+            return JobResult::FAIL;
+        }
+
+        return $handler->jobReceived($job);
+    }
+}
+```
+
+## Configuration
+
+`Valkyrja\Application\Data\Contract\QueueConfigContract` is the application
+config a queue consumer boots from. It adds one middleware array for each stage
+to the properties every application config carries. Each array holds the class
+name of a middleware for that stage:
+
+```php
+use Valkyrja\Application\Data\Config;
+use Valkyrja\Application\Data\Contract\QueueConfigContract;
+
+final class AppQueueConfig extends Config implements QueueConfigContract
+{
+    public array $jobReceivedMiddleware = [RequireTenantAttributeMiddleware::class];
+
+    public array $routeMatchedMiddleware = [];
+
+    public array $routeNotMatchedMiddleware = [];
+
+    public array $routeDispatchedMiddleware = [];
+
+    public array $throwableCaughtMiddleware = [];
+
+    public array $settlingResultMiddleware = [];
+
+    public array $resultSettledMiddleware = [];
+}
+```
+
+`Config` carries the shared properties, and the
+[Application README](../Application/README.md#configuration) covers each one.
+
 ## The Job
 
 `Valkyrja\Queue\Message\Job\Contract\JobContract` is the one message class, and
@@ -31,18 +209,10 @@ and renders one for the wire.
 
 ## The Pipeline
 
-`JobHandler` runs one job through seven middleware stages, and each stage has
-its own contract in `Valkyrja\Queue\Middleware\Contract`:
-
-| Stage             | Runs when                                |
-| ----------------- | ---------------------------------------- |
-| `JobReceived`     | the job arrives, before routing          |
-| `RouteMatched`    | the router finds a route                 |
-| `RouteNotMatched` | the router finds no route                |
-| `RouteDispatched` | the handler returns                      |
-| `ThrowableCaught` | an earlier stage throws                  |
-| `SettlingResult`  | before the outcome reaches the processor |
-| `ResultSettled`   | after the outcome reaches the processor  |
+A job runs through seven middleware stages. Each stage has its own contract in
+`Valkyrja\Queue\Middleware\Contract`, and
+[Writing Middleware](#writing-middleware) lists each contract with the
+condition it runs under.
 
 Each stage has a matching handler contract in
 `Valkyrja\Queue\Middleware\Handler\Contract`, which holds the middleware of
@@ -271,11 +441,7 @@ gathering them again.
 The same route runs a job that arrives from an external broker, an in-process
 `sync` push, a `deferred` drain, or an `inmemory` test.
 
-## Configuration
-
-`Valkyrja\Application\Data\Contract\QueueConfigContract` is the application
-config a queue consumer boots from. It adds the middleware of each of the
-seven stages to the properties every application config carries.
+## Client Configuration
 
 `Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract` names the
 default client, and an application config may implement it to choose one.
@@ -284,8 +450,6 @@ rather than naming a client.
 
 A client stamps the `applicationName` of the application that pushes the job
 into the producer field of the job.
-
-### Client Configuration
 
 The service provider binds `ClientContract` to the client that
 `QueueClientConfigContract::$defaultQueueClient` names, and the default is
@@ -297,25 +461,25 @@ queue config of the application. The service provider throws
 `QueueClientConfigNotFoundException` when it builds one of the two clients for
 an application config that does not implement its contract.
 
-#### `QueueClientConfigContract`
+### `QueueClientConfigContract`
 
 | Property             | Default              | Description                               |
 | :------------------- | :------------------- | :---------------------------------------- |
 | `defaultQueueClient` | `RedisClient::class` | The client that `ClientContract` binds to |
 
-#### `QueueSyncClientConfigContract`
+### `QueueSyncClientConfigContract`
 
 | Property    | Default | Description                                  |
 | :---------- | :------ | :------------------------------------------- |
 | `syncEntry` | none    | The `InternalQueue` entry that runs each job |
 
-#### `QueueDeferredClientConfigContract`
+### `QueueDeferredClientConfigContract`
 
 | Property        | Default | Description                                  |
 | :-------------- | :------ | :------------------------------------------- |
 | `deferredEntry` | none    | The `InternalQueue` entry that runs each job |
 
-#### `QueueRedisClientConfigContract`
+### `QueueRedisClientConfigContract`
 
 | Property                     | Default            | Description                                                 |
 | :--------------------------- | :----------------- | :---------------------------------------------------------- |
