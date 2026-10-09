@@ -3,8 +3,8 @@
 ## Introduction
 
 The Support component provides small, focused utilities used across the
-framework and in application code: time helpers for deterministic testing and a
-file generator contract for code generation tools.
+framework and in application code. `Time` and `Microtime` read the clock, and
+each one freezes for a test. `Rfc3339` renders an instant for the wire.
 
 ## Time
 
