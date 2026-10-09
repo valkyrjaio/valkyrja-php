@@ -111,7 +111,9 @@ final class InvalidRecipientException extends ValkyrjaRuntimeException implement
 ```
 
 `Valkyrja\Queue\Throwable\Contract\QueueThrowable` marks every throwable the
-component raises, so `catch (QueueThrowable)` catches the whole component.
+component raises. `QueueNonRetryableThrowable` extends it, so
+`catch (QueueThrowable)` also catches an application throwable that carries the
+marker.
 
 ## Writing Middleware
 
