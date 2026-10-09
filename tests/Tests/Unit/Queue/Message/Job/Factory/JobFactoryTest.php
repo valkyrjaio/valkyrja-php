@@ -63,6 +63,8 @@ final class JobFactoryTest extends TestCase
             'empty list in a map' => ['{"meta":{"ids":[]}}'],
             'non-empty list'      => ['{"ids":[1,2]}'],
             'non-empty map'       => ['{"user":{"id":42}}'],
+            'null param'          => ['{"a":null}'],
+            'mixed three deep'    => ['{"a":[{"b":{}},[]]}'],
         ];
     }
 
