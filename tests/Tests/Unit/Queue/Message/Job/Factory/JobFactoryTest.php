@@ -531,6 +531,31 @@ final class JobFactoryTest extends TestCase
         $this->factory->fromArray(['name' => 'SendWelcomeEmail', 'payload' => ['a' => new stdClass()]]);
     }
 
+    public function testFromArrayKeepsAnObjectOutOfADecodedObjectPayload(): void
+    {
+        // The stdClass narrowing holds at every depth, not only the top: a
+        // decoded object payload rejects a foreign object the same way a plain
+        // array payload does
+        $this->expectException(QueueMessageInvalidEnvelopeException::class);
+
+        $this->factory->fromArray([
+            EnvelopeField::NAME    => self::NAME,
+            EnvelopeField::PAYLOAD => (object) ['at' => new DateTimeImmutable()],
+        ]);
+    }
+
+    public function testFromArrayKeepsABuiltPayloadInsideADecodedObjectPayload(): void
+    {
+        // A built payload is a valid param, so it passes through rather than
+        // being array-cast, which would drop everything it holds
+        $job = $this->factory->fromArray([
+            EnvelopeField::NAME    => self::NAME,
+            EnvelopeField::PAYLOAD => (object) ['user' => Payload::fromArray(['id' => 1])],
+        ]);
+
+        self::assertSame(['user' => ['id' => 1]], $job->getPayload()->asArray());
+    }
+
     public function testCreateRejectsANonScalarPayloadParam(): void
     {
         // create() is producer-facing, so the payload throwable reaches the

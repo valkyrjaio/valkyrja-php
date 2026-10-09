@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Queue\Message\Payload;
 
 use Override;
+use stdClass;
 use Valkyrja\Queue\Message\Payload\Contract\PayloadContract;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidPayloadParamException;
 
@@ -90,7 +91,12 @@ class Payload implements PayloadContract
 
         /** @var mixed $param */
         foreach ((array) $value as $name => $param) {
-            if (is_object($param) || is_array($param)) {
+            // Only the two shapes a JSON decode produces. A PayloadContract
+            // passes through to validateParam, which accepts it, and any other
+            // object is rejected there rather than array-cast: casting would
+            // put that object's own properties on the wire and drop its real
+            // contents. readPayload narrows the same way at the top level.
+            if (is_array($param) || $param instanceof stdClass) {
                 $param = static::fromJsonValue($param);
             }
 
