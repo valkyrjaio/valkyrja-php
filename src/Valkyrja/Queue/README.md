@@ -109,6 +109,9 @@ gathers them from the classes an application names, and
 `Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract` is how an
 application names those classes and contributes routes in code.
 
+A component provider returns its queue route providers from its
+`getQueueProviders()` method.
+
 `Valkyrja\Queue\Routing\Data\QueueRoutingData` is the generated cache of that
 collection, so a production boot reads the routes from a data class instead of
 gathering them again.
