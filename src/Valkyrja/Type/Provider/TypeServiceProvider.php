@@ -32,9 +32,9 @@ use Valkyrja\Type\String\StringT;
 class TypeServiceProvider implements ServiceProviderContract
 {
     /**
-     * Publish the type that each cast type names.
+     * Publish the ArrayT type.
      */
-    public static function publishTypes(ContainerContract $container): void
+    public static function publishArrayT(ContainerContract $container): void
     {
         $container->bind(
             ArrayT::class,
@@ -42,66 +42,143 @@ class TypeServiceProvider implements ServiceProviderContract
                 $arguments[CastArgument::VALUE] ?? null
             )
         );
+    }
+
+    /**
+     * Publish the BoolT type.
+     */
+    public static function publishBoolT(ContainerContract $container): void
+    {
         $container->bind(
             BoolT::class,
             static fn (ContainerContract $container, array $arguments): BoolT => BoolT::fromValue(
                 $arguments[CastArgument::VALUE] ?? null
             )
         );
+    }
+
+    /**
+     * Publish the FalseT type.
+     */
+    public static function publishFalseT(ContainerContract $container): void
+    {
         $container->bind(
             FalseT::class,
             static fn (ContainerContract $container, array $arguments): FalseT => FalseT::fromValue(
                 $arguments[CastArgument::VALUE] ?? null
             )
         );
+    }
+
+    /**
+     * Publish the FloatT type.
+     */
+    public static function publishFloatT(ContainerContract $container): void
+    {
         $container->bind(
             FloatT::class,
             static fn (ContainerContract $container, array $arguments): FloatT => FloatT::fromValue(
                 $arguments[CastArgument::VALUE] ?? null
             )
         );
+    }
+
+    /**
+     * Publish the IntT type.
+     */
+    public static function publishIntT(ContainerContract $container): void
+    {
         $container->bind(
             IntT::class,
             static fn (ContainerContract $container, array $arguments): IntT => IntT::fromValue(
                 $arguments[CastArgument::VALUE] ?? null
             )
         );
+    }
+
+    /**
+     * Publish the Json type.
+     */
+    public static function publishJson(ContainerContract $container): void
+    {
         $container->bind(
             Json::class,
             static fn (ContainerContract $container, array $arguments): Json => Json::fromValue(
                 $arguments[CastArgument::VALUE] ?? null
             )
         );
+    }
+
+    /**
+     * Publish the JsonObject type.
+     */
+    public static function publishJsonObject(ContainerContract $container): void
+    {
         $container->bind(
             JsonObject::class,
             static fn (ContainerContract $container, array $arguments): JsonObject => JsonObject::fromValue(
                 $arguments[CastArgument::VALUE] ?? null
             )
         );
+    }
+
+    /**
+     * Publish the NullT type.
+     */
+    public static function publishNullT(ContainerContract $container): void
+    {
         $container->bind(
             NullT::class,
             static fn (ContainerContract $container, array $arguments): NullT => NullT::fromValue(
                 $arguments[CastArgument::VALUE] ?? null
             )
         );
+    }
+
+    /**
+     * Publish the ObjectT type.
+     */
+    public static function publishObjectT(ContainerContract $container): void
+    {
         $container->bind(
             ObjectT::class,
             static fn (ContainerContract $container, array $arguments): ObjectT => ObjectT::fromValue(
                 $arguments[CastArgument::VALUE] ?? null
             )
         );
+    }
+
+    /**
+     * Publish the SerializedObject type.
+     */
+    public static function publishSerializedObject(ContainerContract $container): void
+    {
         $container->bind(
             SerializedObject::class,
             static fn (ContainerContract $container, array $arguments): SerializedObject => SerializedObject::fromValue(
                 $arguments[CastArgument::VALUE] ?? null
             )
         );
+    }
+
+    /**
+     * Publish the StringT type.
+     */
+    public static function publishStringT(ContainerContract $container): void
+    {
         $container->bind(
             StringT::class,
             static fn (ContainerContract $container, array $arguments): StringT => StringT::fromValue(
                 $arguments[CastArgument::VALUE] ?? null
             )
         );
+    }
+
+    /**
+     * Publish the TrueT type.
+     */
+    public static function publishTrueT(ContainerContract $container): void
+    {
         $container->bind(
             TrueT::class,
             static fn (ContainerContract $container, array $arguments): TrueT => TrueT::fromValue(
@@ -116,27 +193,19 @@ class TypeServiceProvider implements ServiceProviderContract
     #[Override]
     public function publishers(): array
     {
-        $publishers = [];
-
-        foreach (
-            [
-                ArrayT::class,
-                BoolT::class,
-                FalseT::class,
-                FloatT::class,
-                IntT::class,
-                Json::class,
-                JsonObject::class,
-                NullT::class,
-                ObjectT::class,
-                SerializedObject::class,
-                StringT::class,
-                TrueT::class,
-            ] as $type
-        ) {
-            $publishers[$type] = [self::class, 'publishTypes'];
-        }
-
-        return $publishers;
+        return [
+            ArrayT::class           => [self::class, 'publishArrayT'],
+            BoolT::class            => [self::class, 'publishBoolT'],
+            FalseT::class           => [self::class, 'publishFalseT'],
+            FloatT::class           => [self::class, 'publishFloatT'],
+            IntT::class             => [self::class, 'publishIntT'],
+            Json::class             => [self::class, 'publishJson'],
+            JsonObject::class       => [self::class, 'publishJsonObject'],
+            NullT::class            => [self::class, 'publishNullT'],
+            ObjectT::class          => [self::class, 'publishObjectT'],
+            SerializedObject::class => [self::class, 'publishSerializedObject'],
+            StringT::class          => [self::class, 'publishStringT'],
+            TrueT::class            => [self::class, 'publishTrueT'],
+        ];
     }
 }
