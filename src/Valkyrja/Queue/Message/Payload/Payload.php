@@ -94,7 +94,7 @@ class Payload implements PayloadContract
             // passes through to validateParam, which accepts it, and any other
             // object is rejected there rather than array-cast: casting would
             // put that object's own properties on the wire and drop its real
-            // contents. readPayload narrows the same way at the top level.
+            // contents. readPayload narrows to the same two shapes.
             if (is_array($param) || $param instanceof stdClass) {
                 $param = static::fromJsonValue($param);
             }
