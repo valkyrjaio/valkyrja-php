@@ -81,6 +81,23 @@ caller can catch one sub-component or the whole component.
 cross-cutting rather than per sub-component. It marks a throwable the pipeline
 must not retry, whatever raises it.
 
+## The Client
+
+`Valkyrja\Queue\Client\Manager\Contract\ClientContract` is the producer
+surface. `push` enqueues a fresh job. `requeue` and `retry` settle a retry, the
+first taking the job as dispatched and the second the already incremented copy.
+`getPushed` returns the jobs handed to the client during one unit of work, and
+`clearPushed` ends that unit of work.
+
+A processor with no retry of its own settles through `requeue`. The client
+increments the attempt, stamps the modification time, and reads the hold from
+the job as dispatched. `requeue` calls `retry` with that hold already supplied.
+The framework reaches neither on a processor that owns redelivery, because that
+processor's entry answers the retry from its own settlement.
+
+Both seams record the job in `getPushed`. The framework clears that record, and
+application code never does.
+
 ## Routing
 
 A job names a route, and
@@ -101,3 +118,8 @@ gathering them again.
 `Valkyrja\Application\Data\Contract\QueueConfigContract` is the application
 config a queue consumer boots from. It adds the middleware of each of the
 seven stages to the properties every application config carries.
+
+`Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract` names the
+default client, and an application config may implement it to choose one.
+`QueueConfigContract` is a separate thing: it configures a queue application
+rather than naming a client.
