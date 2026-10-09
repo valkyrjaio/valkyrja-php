@@ -16,7 +16,10 @@ use Override;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Application\Provider\Contract\ComponentProviderContract;
 
-final class ComponentProviderFixture implements ComponentProviderContract
+/**
+ * A component provider that contributes only a queue route provider.
+ */
+final class QueueRouteComponentProviderFixture implements ComponentProviderContract
 {
     /**
      * @inheritDoc
@@ -24,10 +27,7 @@ final class ComponentProviderFixture implements ComponentProviderContract
     #[Override]
     public function getComponentProviders(ApplicationContract $app): array
     {
-        return [
-            new CliComponentProviderFixture(),
-            new HttpComponentProviderFixture(),
-        ];
+        return [];
     }
 
     /**
@@ -72,6 +72,8 @@ final class ComponentProviderFixture implements ComponentProviderContract
     #[Override]
     public function getQueueProviders(ApplicationContract $app): array
     {
-        return [];
+        return [
+            QueueRouteProviderFixture::class,
+        ];
     }
 }
