@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2b3a3061d3667d1cee579e6011aef95e",
+    "content-hash": "bb243bd851209c80d2d2c79c85262da6",
     "packages": [
         {
             "name": "psr/container",
@@ -2779,16 +2779,16 @@
         },
         {
             "name": "roadrunner-php/roadrunner-api-dto",
-            "version": "v1.17.0",
+            "version": "v1.18.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/roadrunner-php/roadrunner-api-dto.git",
-                "reference": "2f66cf73b4378a5a9fa538cc85a7ed0543999761"
+                "reference": "81d8247894cd3f75a4e0fba2b619f9d7efa03d27"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/roadrunner-php/roadrunner-api-dto/zipball/2f66cf73b4378a5a9fa538cc85a7ed0543999761",
-                "reference": "2f66cf73b4378a5a9fa538cc85a7ed0543999761",
+                "url": "https://api.github.com/repos/roadrunner-php/roadrunner-api-dto/zipball/81d8247894cd3f75a4e0fba2b619f9d7efa03d27",
+                "reference": "81d8247894cd3f75a4e0fba2b619f9d7efa03d27",
                 "shasum": ""
             },
             "require": {
@@ -2834,7 +2834,7 @@
                 "docs": "https://docs.roadrunner.dev",
                 "forum": "https://forum.roadrunner.dev",
                 "issues": "https://github.com/roadrunner-server/roadrunner/issues",
-                "source": "https://github.com/roadrunner-php/roadrunner-api-dto/tree/v1.17.0"
+                "source": "https://github.com/roadrunner-php/roadrunner-api-dto/tree/v1.18.0"
             },
             "funding": [
                 {
@@ -2842,7 +2842,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-09-16T11:44:04+00:00"
+            "time": "2026-10-09T15:32:54+00:00"
         },
         {
             "name": "spiral/goridge",
