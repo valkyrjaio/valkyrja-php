@@ -1,6 +1,19 @@
 # Release Notes for 26.x
 
-## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.18.0...26.x)
+## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.19.0...26.x)
+
+## [v26.19.0](https://github.com/valkyrjaio/valkyrja/compare/v26.18.0...v26.19.0) - 2026-10-10
+
+* [Workflow] ci: Update .github workflow refs to v26.26.0 by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1356
+* [Workflow] ci: Update .github workflow refs to v26.26.1 by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1358
+* [Queue] feat: Add the client contracts by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/973
+* [Provider] feat!: Add a queue hook to the component provider contract by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1163
+* [Queue] feat: Add the message implementation by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1164
+* [Workflow] ci: Update .github workflow refs to v26.26.2 by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1362
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1361
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1363
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1364
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1365
 
 ## [v26.18.0](https://github.com/valkyrjaio/valkyrja/compare/v26.17.4...v26.18.0) - 2026-10-08
 
