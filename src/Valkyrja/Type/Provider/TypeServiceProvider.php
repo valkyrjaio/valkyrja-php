@@ -28,6 +28,9 @@ use Valkyrja\Type\Null\NullT;
 use Valkyrja\Type\Object\ObjectT;
 use Valkyrja\Type\Object\SerializedObject;
 use Valkyrja\Type\String\StringT;
+use Valkyrja\Type\Throwable\Exception\TypeMissingCastArgumentException;
+
+use function array_key_exists;
 
 class TypeServiceProvider implements ServiceProviderContract
 {
@@ -39,7 +42,7 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             ArrayT::class,
             static fn (ContainerContract $container, array $arguments): ArrayT => ArrayT::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
     }
@@ -52,7 +55,7 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             BoolT::class,
             static fn (ContainerContract $container, array $arguments): BoolT => BoolT::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
     }
@@ -65,7 +68,7 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             FalseT::class,
             static fn (ContainerContract $container, array $arguments): FalseT => FalseT::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
     }
@@ -78,7 +81,7 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             FloatT::class,
             static fn (ContainerContract $container, array $arguments): FloatT => FloatT::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
     }
@@ -91,7 +94,7 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             IntT::class,
             static fn (ContainerContract $container, array $arguments): IntT => IntT::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
     }
@@ -104,7 +107,7 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             Json::class,
             static fn (ContainerContract $container, array $arguments): Json => Json::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
     }
@@ -117,7 +120,7 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             JsonObject::class,
             static fn (ContainerContract $container, array $arguments): JsonObject => JsonObject::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
     }
@@ -130,7 +133,7 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             NullT::class,
             static fn (ContainerContract $container, array $arguments): NullT => NullT::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
     }
@@ -143,7 +146,7 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             ObjectT::class,
             static fn (ContainerContract $container, array $arguments): ObjectT => ObjectT::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
     }
@@ -156,7 +159,7 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             SerializedObject::class,
             static fn (ContainerContract $container, array $arguments): SerializedObject => SerializedObject::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
     }
@@ -169,7 +172,7 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             StringT::class,
             static fn (ContainerContract $container, array $arguments): StringT => StringT::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
     }
@@ -182,9 +185,27 @@ class TypeServiceProvider implements ServiceProviderContract
         $container->bind(
             TrueT::class,
             static fn (ContainerContract $container, array $arguments): TrueT => TrueT::fromValue(
-                $arguments[CastArgument::VALUE] ?? null
+                self::getCastArgument($arguments)
             )
         );
+    }
+
+    /**
+     * Get the raw value that a cast passes to the container.
+     *
+     * @param array<array-key, mixed> $arguments The arguments
+     *
+     * @throws TypeMissingCastArgumentException
+     */
+    protected static function getCastArgument(array $arguments): mixed
+    {
+        if (!array_key_exists(CastArgument::VALUE, $arguments)) {
+            throw new TypeMissingCastArgumentException(
+                'A cast type takes the raw value under the `' . CastArgument::VALUE . '` argument'
+            );
+        }
+
+        return $arguments[CastArgument::VALUE];
     }
 
     /**
