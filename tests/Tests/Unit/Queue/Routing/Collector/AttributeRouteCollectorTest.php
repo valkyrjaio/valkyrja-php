@@ -14,9 +14,10 @@ namespace Valkyrja\Tests\Unit\Queue\Routing\Collector;
 
 use Override;
 use Valkyrja\Attribute\Collector\Collector;
+use Valkyrja\Queue\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Queue\Routing\Collector\AttributeRouteCollector;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
-use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingMissingRouteHandlerException;
+use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingNoRouteHandlerException;
 use Valkyrja\Reflection\Reflector\Reflector;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultSettledMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\RouteDispatchedMiddlewareFixture;
@@ -54,7 +55,10 @@ final class AttributeRouteCollectorTest extends TestCase
     {
         // Without this the route would keep the attribute's sentinel and fail
         // only once a job reached it, long after the author could act on it
-        $this->expectException(QueueRoutingMissingRouteHandlerException::class);
+        $this->expectException(QueueRoutingNoRouteHandlerException::class);
+        $this->expectExceptionMessage(
+            JobControllerMissingHandlerFixture::class . '::noHandler carries no ' . RouteHandler::class . ' attribute'
+        );
 
         $this->collector->getRoutes(JobControllerMissingHandlerFixture::class);
     }

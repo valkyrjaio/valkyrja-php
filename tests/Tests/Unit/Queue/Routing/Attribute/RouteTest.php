@@ -17,7 +17,8 @@ use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Routing\Attribute\Route;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
-use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingMissingRouteHandlerException;
+use Valkyrja\Queue\Routing\Support\NoRouteHandler;
+use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingNoRouteHandlerException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class RouteTest extends TestCase
@@ -38,18 +39,19 @@ final class RouteTest extends TestCase
         // reaching it means a route was built by hand with no handler. It
         // throws rather than acknowledging, because an acknowledgement
         // destroys the job it was given
-        $this->expectException(QueueRoutingMissingRouteHandlerException::class);
+        $this->expectException(QueueRoutingNoRouteHandlerException::class);
+        $this->expectExceptionMessage('Route `' . self::NAME . '` carries no handler');
 
         $handler(new Container(), $route);
     }
 
-    public function testTheDefaultHandlerIsNamedSoItCanBeRecognized(): void
+    public function testTheDefaultHandlerIsRecognizable(): void
     {
         $route = new Route(name: self::NAME, description: self::DESCRIPTION);
 
-        // A closure would compare unequal to itself, so the sentinel is a
-        // named reference that a caller can test for
-        self::assertSame([Route::class, 'defaultHandler'], $route->getHandler());
+        // A closure cannot be told apart from any other, so the sentinel is
+        // an object a caller can test for, which every port can express
+        self::assertInstanceOf(NoRouteHandler::class, $route->getHandler());
     }
 
     public function testAnExplicitHandlerIsKept(): void
