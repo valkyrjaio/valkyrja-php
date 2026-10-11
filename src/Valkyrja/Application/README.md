@@ -228,12 +228,13 @@ use, and `getThrowableHandler()` returns the debug-mode throwable handler.
 ## Configuration
 
 Configuration is a typed PHP object. There is no `.env` reader and no flat
-array registry. Three config classes exist, one per entry type. `HttpConfig`
-and `CliConfig` do not extend `Config`. Each of the two classes implements its
-own contract (`HttpConfigContract`, `CliConfigContract`) and repeats the base
-properties. Both contracts extend `ConfigContract`, and the entry classes
-discriminate on the contract: `Http::run()` requires an `HttpConfigContract`,
-and `Cli::run()` requires a `CliConfigContract`.
+array registry. One config class exists for each entry type. `HttpConfig`,
+`CliConfig` and `QueueConfig` do not extend `Config`. Each one implements its
+own contract (`HttpConfigContract`, `CliConfigContract`, `QueueConfigContract`)
+and repeats the base properties. Every contract extends `ConfigContract`, and
+the entry classes discriminate on the contract: `Http::run()` requires an
+`HttpConfigContract`, `Cli::run()` requires a `CliConfigContract`, and a queue
+entry requires a `QueueConfigContract`.
 
 Convention: hold your application's real values in the config object that the
 entry point builds. Create one config file per environment, or read the values
@@ -243,8 +244,8 @@ values.
 
 ### Base Properties
 
-`Valkyrja\Application\Data\Config` carries the properties that all three
-classes share:
+`Valkyrja\Application\Data\Config` carries the properties that every entry
+config shares:
 
 | Property          | Default                          | Description                                          |
 | ----------------- | -------------------------------- | ---------------------------------------------------- |
@@ -636,16 +637,17 @@ list.
 
 ## Built-in Component Providers
 
-The framework ships four aggregators in `Valkyrja\Application\Provider`. Each
+The framework ships five aggregators in `Valkyrja\Application\Provider`. Each
 declares framework components through `getComponentProviders()` and returns
-`[]` from the other four methods.
+`[]` from the other five methods.
 
-| Provider                                  | Composition                                                                                         | Default for  |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------ |
-| `ApplicationComponentProvider`            | Container, Event                                                                                    | `Config`     |
-| `CliApplicationComponentProvider`         | `ApplicationComponentProvider` + CLI Interaction, Middleware, Routing, Server + Log                 | —            |
-| `CliWithHttpApplicationComponentProvider` | `CliApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server           | `CliConfig`  |
-| `HttpApplicationComponentProvider`        | `ApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server + Log + View | `HttpConfig` |
+| Provider                                  | Composition                                                                                         | Default for   |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------- |
+| `ApplicationComponentProvider`            | Container, Event                                                                                    | `Config`      |
+| `CliApplicationComponentProvider`         | `ApplicationComponentProvider` + CLI Interaction, Middleware, Routing, Server + Log                 | —             |
+| `CliWithHttpApplicationComponentProvider` | `CliApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server           | `CliConfig`   |
+| `HttpApplicationComponentProvider`        | `ApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server + Log + View | `HttpConfig`  |
+| `QueueApplicationComponentProvider`       | `ApplicationComponentProvider` + Queue Message, Middleware, Routing + Log                           | `QueueConfig` |
 
 Choose by application shape:
 
