@@ -31,6 +31,7 @@ use Valkyrja\Type\Object\ObjectT;
 use Valkyrja\Type\Object\SerializedObject;
 use Valkyrja\Type\Provider\TypeServiceProvider;
 use Valkyrja\Type\String\StringT;
+use Valkyrja\Type\Throwable\Exception\TypeMissingCastArgumentException;
 
 use function array_keys;
 use function count;
@@ -131,6 +132,18 @@ final class ServiceProviderTest extends ServiceProviderTestCase
     public function testTheTrueTFactoryReadsTheCastArgument(): void
     {
         self::assertTrue($this->build(TrueT::class, true)->asValue());
+    }
+
+    public function testAMissingCastArgumentRaises(): void
+    {
+        $container = new Container();
+
+        TypeServiceProvider::publishIntT($container);
+
+        $this->expectException(TypeMissingCastArgumentException::class);
+        $this->expectExceptionMessage('A cast type takes the raw value under the `value` argument');
+
+        $container->getService(IntT::class);
     }
 
     public function testTheContainerBuildsOneTypeForEachCall(): void
