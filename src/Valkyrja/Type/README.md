@@ -356,9 +356,10 @@ value object.
 return the result. `Cast::$type` is a `class-string`, and PHP holds a class
 string as a container binding key, so the CLI caster reads the field as one.
 
-Four readers hold a cast. The CLI caster asks the container for the type. A
-model casting, an ORM entity, and the HTTP matcher each call the named
-constructor of the type, so none of them needs a binding.
+The CLI caster asks the container for the type. A model casting, an ORM entity,
+and the HTTP matcher each call the named constructor of the type, so none of
+them needs a binding. The ORM route middleware reads `type` as a class name
+only, and it builds no type.
 
 `Valkyrja\Type\Enum\CastType` names a type for each primitive that this
 component ships. `Valkyrja\Type\Provider\TypeServiceProvider` binds every one
@@ -390,6 +391,10 @@ $cast = new Cast(type: Slug::class);
 Warning: register a cast type for the CLI caster with `bind`. The caster calls
 `getService()`, which reads only a service binding, so an alias and an instance
 that `setSingleton` holds each raise `ContainerInvalidReferenceException`.
+
+Warning: the factory takes the raw value under `CastArgument::VALUE`. A call
+that passes no such argument raises `TypeMissingCastArgumentException`, because
+a type built from a value the caller never gave hides the mistake.
 
 Warning: the factory returns a `TypeContract`. The caster calls `asValue()` on
 the object that the container builds, and an object without that method raises
