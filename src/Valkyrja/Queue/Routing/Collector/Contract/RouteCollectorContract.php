@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Queue\Routing\Collector\Contract;
 
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
-use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingMissingRouteHandlerException;
+use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingNoRouteHandlerException;
 
 interface RouteCollectorContract
 {
@@ -22,7 +22,7 @@ interface RouteCollectorContract
      *
      * @param class-string ...$classes The classes
      *
-     * @throws QueueRoutingMissingRouteHandlerException
+     * @throws QueueRoutingNoRouteHandlerException
      *
      * @return RouteContract[]
      */

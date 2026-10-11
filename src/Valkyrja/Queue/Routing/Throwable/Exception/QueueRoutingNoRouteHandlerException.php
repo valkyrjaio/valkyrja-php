@@ -12,8 +12,9 @@ declare(strict_types=1);
 
 namespace Valkyrja\Queue\Routing\Throwable\Exception;
 
-use Valkyrja\Queue\Routing\Throwable\Exception\Abstract\QueueRoutingInvalidArgumentException;
+use Valkyrja\Queue\Routing\Throwable\Exception\Abstract\QueueRoutingRuntimeException;
+use Valkyrja\Queue\Throwable\Contract\QueueNonRetryableThrowable;
 
-class QueueRoutingMissingRouteHandlerException extends QueueRoutingInvalidArgumentException
+class QueueRoutingNoRouteHandlerException extends QueueRoutingRuntimeException implements QueueNonRetryableThrowable
 {
 }
