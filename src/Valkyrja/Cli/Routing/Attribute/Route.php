@@ -17,7 +17,6 @@ use Valkyrja\Attribute\Contract\ReflectionAwareAttributeContract;
 use Valkyrja\Attribute\Trait\ReflectionAwareAttribute;
 use Valkyrja\Cli\Interaction\Message\Contract\MessageContract;
 use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
-use Valkyrja\Cli\Interaction\Output\Output;
 use Valkyrja\Cli\Middleware\Contract\ProcessExitingMiddlewareContract;
 use Valkyrja\Cli\Middleware\Contract\RouteDispatchedMiddlewareContract;
 use Valkyrja\Cli\Middleware\Contract\RouteMatchedMiddlewareContract;
@@ -26,6 +25,7 @@ use Valkyrja\Cli\Routing\Data\Contract\ArgumentParameterContract;
 use Valkyrja\Cli\Routing\Data\Contract\OptionParameterContract;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Routing\Data\Route as Model;
+use Valkyrja\Cli\Routing\Support\NoRouteHandler;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
@@ -60,7 +60,7 @@ class Route extends Model implements ReflectionAwareAttributeContract
         parent::__construct(
             name: $name,
             description: $description,
-            handler: $handler ?? static fn (ContainerContract $container, RouteContract $route): OutputContract => new Output(),
+            handler: $handler ?? new NoRouteHandler(),
             helpText: $helpText,
             routeMatchedMiddleware: $routeMatchedMiddleware,
             routeDispatchedMiddleware: $routeDispatchedMiddleware,
