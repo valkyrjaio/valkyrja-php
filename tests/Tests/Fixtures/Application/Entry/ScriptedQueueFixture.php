@@ -21,12 +21,7 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 
 use function array_shift;
 
-/**
- * A pull entry that yields a scripted sequence of deliveries, then nothing.
- *
- * A null stands for a poll that timed out, which is what lets a test drive the
- * loop through the branch where nothing arrived.
- */
+/** A pull entry that yields a scripted sequence of deliveries, then nothing. */
 final class ScriptedQueueFixture extends PullQueue
 {
     public static bool $connected = false;

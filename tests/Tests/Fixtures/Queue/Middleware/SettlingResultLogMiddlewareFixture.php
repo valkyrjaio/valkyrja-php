@@ -18,16 +18,7 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Middleware\Contract\SettlingResultMiddlewareContract;
 use Valkyrja\Queue\Middleware\Handler\Contract\SettlingResultHandlerContract;
 
-/**
- * The per-job log of the outcome the settling stage was handed.
- *
- * `ResultLogMiddlewareFixture` records the ResultSettled stage, which reads the
- * same outcome whether a caller caps before or after settlement. This one reads
- * the stage whose job is the last word on the outcome, so a cap applied too late
- * shows up as a different entry.
- *
- * It exists to test the ordering only, and it is not a production mechanism.
- */
+/** The per-job log of the outcome the settling stage was handed. */
 final class SettlingResultLogMiddlewareFixture implements SettlingResultMiddlewareContract
 {
     /** @var array<string, JobResult[]> */

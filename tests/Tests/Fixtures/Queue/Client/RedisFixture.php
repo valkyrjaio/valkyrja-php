@@ -16,12 +16,7 @@ use Override;
 use Predis\ClientInterface;
 use Predis\Command\CommandInterface;
 
-/**
- * A recording stand-in for a Predis client.
- *
- * Every Redis command reaches a Predis client through `__call`, so recording
- * there captures the whole command surface without stubbing each one.
- */
+/** A recording stand-in for a Predis client. */
 final class RedisFixture implements ClientInterface
 {
     /** @var array<int, array{0: string, 1: array<int, mixed>}> */

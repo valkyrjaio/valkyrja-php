@@ -18,18 +18,7 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Middleware\Contract\ResultSettledMiddlewareContract;
 use Valkyrja\Queue\Middleware\Handler\Contract\ResultSettledHandlerContract;
 
-/**
- * The per-job result log.
- *
- * An outcome is never returned to the caller — settlement acts on it directly —
- * so distinguishing the four outcomes after the fact is a testing concern only.
- * This keeps an in-memory job-id to outcomes map so a job's whole life reads
- * back as `[ACK]`, `[FAIL]`, or `[RETRY, RETRY, DEAD_LETTER]`.
- *
- * It exists specifically to test the middleware, the clients, and the entry
- * classes. It is not a production mechanism, and it is separate from settlement
- * itself.
- */
+/** The per-job result log. */
 final class ResultLogMiddlewareFixture implements ResultSettledMiddlewareContract
 {
     /** @var array<string, JobResult[]> */

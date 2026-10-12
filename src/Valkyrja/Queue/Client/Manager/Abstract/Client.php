@@ -98,15 +98,6 @@ abstract class Client implements ClientContract
     /**
      * Hand an already incremented job back to the processor for redelivery.
      *
-     * For a framework-owned processor this is essentially a publish of the
-     * updated job, held for the given delay; a processor-owned one overrides it
-     * to hand over the native retry signal instead, and ignores the delay
-     * because the processor owns its own backoff.
-     *
-     * The in-process adapters skip the hold: there is no durable place to keep
-     * a job waiting, so only the timing differs from production, never the
-     * attempt count.
-     *
      * @param int<0, max> $delayMs The hold before the job becomes eligible again
      */
     protected function republish(JobContract $job, int $delayMs): void
