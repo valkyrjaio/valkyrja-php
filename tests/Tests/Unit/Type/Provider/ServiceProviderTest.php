@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Type\Provider;
 
 use __PHP_Incomplete_Class;
+use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use Valkyrja\Container\Manager\Container;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
@@ -134,16 +135,21 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertTrue($this->build(TrueT::class, true)->asValue());
     }
 
-    public function testAMissingCastArgumentRaises(): void
+    #[DataProvider('providesDataProvider')]
+    public function testEveryFactoryRaisesWithNoCastArgument(string $id): void
     {
         $container = new Container();
 
-        TypeServiceProvider::publishIntT($container);
+        foreach (new TypeServiceProvider()->publishers() as $publisherId => $publisher) {
+            if ($publisherId === $id) {
+                $publisher($container);
+            }
+        }
 
         $this->expectException(TypeMissingCastArgumentException::class);
         $this->expectExceptionMessage('A cast type takes the raw value under the `value` argument');
 
-        $container->getService(IntT::class);
+        $container->getService($id);
     }
 
     public function testTheContainerBuildsOneTypeForEachCall(): void
