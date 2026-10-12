@@ -110,7 +110,8 @@ class HttpRoutingServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             MatcherContract::class,
             new Matcher(
-                collection: $container->getSingleton(RouteCollectionContract::class)
+                collection: $container->getSingleton(RouteCollectionContract::class),
+                container: $container
             )
         );
     }
