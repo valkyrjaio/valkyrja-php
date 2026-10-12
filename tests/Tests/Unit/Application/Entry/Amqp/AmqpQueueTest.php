@@ -58,12 +58,28 @@ final class AmqpQueueTest extends TestCase
 
     public function testConnectDeclaresTheQueueAndSetsThePrefetch(): void
     {
-        AmqpQueueFixture::connect($this->application());
+        // The config names a queue the injection did not, so the declare can
+        // only carry it if connect read the config
+        AmqpQueueFixture::connect($this->application('queues.configured'));
 
-        self::assertCount(1, $this->channel->getCalls('queue_declare'));
+        // Durable, because the client publishes persistent: a producer and a
+        // consumer that disagree on durability cannot share the queue
+        self::assertSame(
+            [['queues.configured', false, true, false, false]],
+            $this->channel->getCalls('queue_declare')
+        );
         // Set for the day the entry registers a consumer; the broker ignores it
         // for the basic_get this entry fetches with
         self::assertSame([[0, 1, false]], $this->channel->getCalls('basic_qos'));
+    }
+
+    public function testAPollFetchesFromTheConfiguredQueue(): void
+    {
+        AmqpQueueFixture::connect($this->application('queues.configured'));
+
+        AmqpQueueFixture::receive();
+
+        self::assertSame([['queues.configured', false]], $this->channel->getCalls('basic_get'));
     }
 
     public function testPollingWithoutAChannelFails(): void
@@ -202,21 +218,11 @@ final class AmqpQueueTest extends TestCase
         AmqpQueueFixture::disconnect();
 
         // Closing the channel alone leaves the socket open, so a process that
-        // runs the loop twice would hold a second broker connection
+        // runs the loop twice would hold a second broker connection. Only the
+        // connection this entry opened is closed: a caller that handed over a
+        // channel still needs the connection under it.
         self::assertTrue($this->channel->closed);
         self::assertTrue($connection->closed);
-    }
-
-    public function testDisconnectLeavesAConnectionTheCallerOwns(): void
-    {
-        // A caller that handed over a channel still needs the connection under
-        // it, so the entry closes only what it opened
-        $connection = new AmqpConnectionFixture();
-
-        AmqpQueueFixture::disconnect();
-
-        self::assertTrue($this->channel->closed);
-        self::assertFalse($connection->closed);
     }
 
     public function testAnEmptyPollYieldsForTheConfiguredTimeout(): void
@@ -337,10 +343,10 @@ final class AmqpQueueTest extends TestCase
     /**
      * Build an application whose container carries the AMQP client config.
      */
-    protected function application(): ApplicationContract
+    protected function application(string $queue = self::QUEUE): ApplicationContract
     {
         $container = self::createStub(ContainerContract::class);
-        $container->method('getSingleton')->willReturn(new QueueAmqpClientConfig());
+        $container->method('getSingleton')->willReturn(new QueueAmqpClientConfig(queueAmqpClientQueue: $queue));
 
         $app = self::createStub(ApplicationContract::class);
         $app->method('getContainer')->willReturn($container);

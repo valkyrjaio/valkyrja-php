@@ -14,14 +14,10 @@ namespace Valkyrja\Tests\Fixtures\Queue\Client;
 
 use Override;
 use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Exception\AMQPChannelClosedException;
 use PhpAmqpLib\Message\AMQPMessage;
 
-/**
- * A recording stand-in for an AMQP channel.
- *
- * The constructor is bypassed on purpose: a real channel demands a live
- * connection, which is exactly what a unit test must not need.
- */
+/** A recording stand-in for an AMQP channel. */
 final class AmqpChannelFixture extends AMQPChannel
 {
     /** @var array<int, array{0: string, 1: array<int, mixed>}> */
@@ -106,6 +102,10 @@ final class AmqpChannelFixture extends AMQPChannel
     #[Override]
     public function basic_get($queue = '', $no_ack = false, $ticket = null)
     {
+        if ($this->closed) {
+            throw new AMQPChannelClosedException('The channel is closed.');
+        }
+
         $this->calls[] = ['basic_get', [$queue, $no_ack]];
 
         $next = $this->next;
@@ -121,6 +121,10 @@ final class AmqpChannelFixture extends AMQPChannel
     #[Override]
     public function basic_ack($delivery_tag, $multiple = false): void
     {
+        if ($this->closed) {
+            throw new AMQPChannelClosedException('The channel is closed.');
+        }
+
         $this->calls[] = ['basic_ack', [$delivery_tag, $multiple]];
     }
 
@@ -130,6 +134,10 @@ final class AmqpChannelFixture extends AMQPChannel
     #[Override]
     public function basic_nack($delivery_tag, $multiple = false, $requeue = false): void
     {
+        if ($this->closed) {
+            throw new AMQPChannelClosedException('The channel is closed.');
+        }
+
         $this->calls[] = ['basic_nack', [$delivery_tag, $multiple, $requeue]];
     }
 
