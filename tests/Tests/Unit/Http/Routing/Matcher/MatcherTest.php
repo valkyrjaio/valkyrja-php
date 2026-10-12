@@ -14,6 +14,8 @@ namespace Valkyrja\Tests\Unit\Http\Routing\Matcher;
 
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Valkyrja\Container\Manager\Container;
+use Valkyrja\Container\Throwable\Exception\ContainerInvalidReferenceException;
 use Valkyrja\Http\Message\Enum\RequestMethod;
 use Valkyrja\Http\Routing\Collection\RouteCollection;
 use Valkyrja\Http\Routing\Constant\Regex;
@@ -30,6 +32,7 @@ use Valkyrja\Tests\Unit\Abstract\TestCase;
 use Valkyrja\Type\Data\Cast;
 use Valkyrja\Type\Enum\CastType;
 use Valkyrja\Type\Int\IntT;
+use Valkyrja\Type\Provider\TypeServiceProvider;
 
 /**
  * Test the Matcher service.
@@ -61,6 +64,8 @@ final class MatcherTest extends TestCase
 
     protected Matcher $matcher;
 
+    protected RouteCollection $collection;
+
     /**
      * @return array<non-empty-string, array{non-empty-string, non-empty-string, non-empty-string|null}>
      */
@@ -80,6 +85,20 @@ final class MatcherTest extends TestCase
             'ulid'                 => [Regex::ULID, '01KYGBV64MKWPK63CC1QH0VGF7', 'notaulid'],
             'vlid v4'              => [Regex::VLID_V4, '04YHJMN6F5XHM497ZW', 'notavlid'],
         ];
+    }
+
+    /**
+     * Get a container that holds every type that a cast type names.
+     */
+    protected static function containerWithTypes(): Container
+    {
+        $container = new Container();
+
+        foreach (new TypeServiceProvider()->publishers() as $publisher) {
+            $publisher($container);
+        }
+
+        return $container;
     }
 
     #[Override]
@@ -174,7 +193,11 @@ final class MatcherTest extends TestCase
         $collection->add($invalidDynamicRoute);
         $collection->add($dynamicRoute);
 
-        $this->matcher = new Matcher(collection: $collection);
+        $this->collection = $collection;
+        $this->matcher    = new Matcher(
+            collection: $collection,
+            container: self::containerWithTypes()
+        );
     }
 
     public function testNoMatch(): void
@@ -182,7 +205,7 @@ final class MatcherTest extends TestCase
         $path        = self::STATIC_PATH;
         $dynamicPath = self::DYNAMIC_PATH;
 
-        $matcher = new Matcher();
+        $matcher = new Matcher(collection: new RouteCollection(), container: new Container());
 
         self::assertNull($matcher->match($path, RequestMethod::ANY));
         self::assertNull($matcher->match($dynamicPath, RequestMethod::ANY));
@@ -297,6 +320,15 @@ final class MatcherTest extends TestCase
         self::assertIsInt($route->getParameter('dynamic1')->getValue());
         self::assertInstanceOf(IntT::class, $route->getParameter('dynamic2')->getValue());
         self::assertIsInt($route->getParameter('dynamic2')->getValue()->asValue());
+    }
+
+    public function testCastTypeThatNoServiceHoldsRaises(): void
+    {
+        $matcher = new Matcher(collection: $this->collection, container: new Container());
+
+        $this->expectException(ContainerInvalidReferenceException::class);
+
+        $matcher->match(self::CAST_DYNAMIC_PATH, RequestMethod::ANY);
     }
 
     public function testInvalidDynamicMatch(): void
@@ -502,6 +534,6 @@ final class MatcherTest extends TestCase
             $collection->add($route);
         }
 
-        return new Matcher(collection: $collection);
+        return new Matcher(collection: $collection, container: new Container());
     }
 }

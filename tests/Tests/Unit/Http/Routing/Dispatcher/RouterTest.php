@@ -91,7 +91,7 @@ final class RouterTest extends TestCase
     public function testMethodNotAllowed(): void
     {
         $collection = new RouteCollection();
-        $matcher    = new Matcher(collection: $collection);
+        $matcher    = new Matcher(collection: $collection, container: new Container());
         $router     = new Router(matcher: $matcher);
         $request    = new ServerRequest(
             uri: UriFactory::fromString('/'),
@@ -118,7 +118,7 @@ final class RouterTest extends TestCase
         $routeNotMatchedHandler->add(RouteNotMatchedMiddlewareChangedFixture::class);
 
         $collection = new RouteCollection();
-        $matcher    = new Matcher(collection: $collection);
+        $matcher    = new Matcher(collection: $collection, container: new Container());
         $router     = new Router(matcher: $matcher, routeNotMatchedHandler: $routeNotMatchedHandler);
         $request    = new ServerRequest(
             uri: UriFactory::fromString('/'),
@@ -145,7 +145,7 @@ final class RouterTest extends TestCase
         $routeNotMatchedHandler->add(RouteMatchedMiddlewareChangedFixture::class);
 
         $collection = new RouteCollection();
-        $matcher    = new Matcher(collection: $collection);
+        $matcher    = new Matcher(collection: $collection, container: new Container());
         $router     = new Router(matcher: $matcher, routeMatchedHandler: $routeNotMatchedHandler);
         $request    = new ServerRequest(
             uri: UriFactory::fromString('/'),
@@ -169,7 +169,7 @@ final class RouterTest extends TestCase
         RouteMatchedMiddlewareChangedFixture::resetCounter();
 
         $collection = new RouteCollection();
-        $matcher    = new Matcher(collection: $collection);
+        $matcher    = new Matcher(collection: $collection, container: new Container());
         $router     = new Router(
             routeMatchedHandler: new RouteMatchedHandler(self::containerWithMiddleware()),
             matcher: $matcher
@@ -195,7 +195,7 @@ final class RouterTest extends TestCase
     public function testResponseAfterRouteDispatched(): void
     {
         $collection = new RouteCollection();
-        $matcher    = new Matcher(collection: $collection);
+        $matcher    = new Matcher(collection: $collection, container: new Container());
         $router     = new Router(matcher: $matcher);
         $request    = new ServerRequest(
             uri: UriFactory::fromString('/'),
