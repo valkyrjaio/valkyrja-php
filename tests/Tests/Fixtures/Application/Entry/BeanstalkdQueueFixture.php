@@ -43,6 +43,18 @@ final class BeanstalkdQueueFixture extends BeanstalkdQueue
     }
 
     /**
+     * Offer a connection for getPheanstalk to return, without setting it.
+     *
+     * An entry that never assigns what getPheanstalk returns is left with no
+     * connection at all, which is what makes the assignment observable.
+     */
+    public static function offer(
+        PheanstalkManagerInterface&PheanstalkSubscriberInterface $pheanstalk,
+    ): void {
+        self::$injected = $pheanstalk;
+    }
+
+    /**
      * Drop the connection and the overrides, so no test leaks into the next.
      */
     public static function reset(): void

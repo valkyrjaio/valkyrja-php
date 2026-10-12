@@ -126,6 +126,7 @@ final class BeanstalkdIntegrationTest extends TestCase
         BeanstalkdQueueFixture::run(
             config: $this->config(),
             maxJobs: 1,
+            maxSeconds: 10,
         );
 
         self::assertSame([JobResult::ACK], ResultLogMiddlewareFixture::getResults($job->getId()));
@@ -143,6 +144,7 @@ final class BeanstalkdIntegrationTest extends TestCase
         BeanstalkdQueueFixture::run(
             config: $this->config(),
             maxJobs: 1,
+            maxSeconds: 10,
         );
 
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
@@ -160,6 +162,7 @@ final class BeanstalkdIntegrationTest extends TestCase
         BeanstalkdQueueFixture::run(
             config: $this->config(),
             maxJobs: 1,
+            maxSeconds: 10,
         );
 
         // A release assigns the hold, so the retry is paced rather than a tight
@@ -180,6 +183,7 @@ final class BeanstalkdIntegrationTest extends TestCase
         BeanstalkdQueueFixture::run(
             config: $this->config(),
             maxJobs: 3,
+            maxSeconds: 10,
         );
 
         self::assertSame(
@@ -200,6 +204,7 @@ final class BeanstalkdIntegrationTest extends TestCase
         BeanstalkdQueueFixture::run(
             config: $this->config(),
             maxJobs: 1,
+            maxSeconds: 10,
         );
 
         self::assertSame([JobResult::FAIL], ResultLogMiddlewareFixture::getResults($job->getId()));

@@ -78,13 +78,52 @@ final class BeanstalkdQueueTest extends TestCase
         self::assertSame([[self::TUBE]], $this->pheanstalk->getCalls('watch'));
     }
 
+    public function testConnectReadsTheTubeAndTheTimeoutFromTheConfig(): void
+    {
+        // The injected tube and timeout differ from the config's, so the watch
+        // and the reserve can only carry these if connect read the config
+        BeanstalkdQueueFixture::inject($this->pheanstalk, 'stale', timeout: 9);
+
+        BeanstalkdQueueFixture::connect($this->application('configured'));
+
+        BeanstalkdQueueFixture::receive();
+
+        self::assertSame([['configured']], $this->pheanstalk->getCalls('watch'));
+        self::assertSame([[1]], $this->pheanstalk->getCalls('reserveWithTimeout'));
+    }
+
+    public function testConnectBuildsTheConnectionItThenReservesOn(): void
+    {
+        // Nothing is injected, so only the assignment in connect() can leave
+        // the entry with a connection to reserve on
+        BeanstalkdQueueFixture::reset();
+        BeanstalkdQueueFixture::offer($this->pheanstalk);
+
+        BeanstalkdQueueFixture::connect($this->application());
+
+        self::assertSame([[self::TUBE]], $this->pheanstalk->getCalls('watch'));
+    }
+
+    public function testDisconnectDropsTheConnectionItHeld(): void
+    {
+        BeanstalkdQueueFixture::connect($this->application());
+
+        BeanstalkdQueueFixture::disconnect();
+
+        // A connection left behind would be reserved on by the next run of the
+        // loop, on a socket this one already closed
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        BeanstalkdQueueFixture::receive();
+    }
+
     public function testConnectStopsWatchingTheDefaultTube(): void
     {
         // A fresh connection watches `default` already, so without the ignore a
         // reserve could take a job that another producer put on `default`
         BeanstalkdQueueFixture::connect($this->application());
 
-        self::assertSame([[BeanstalkdQueue::DEFAULT_TUBE]], $this->pheanstalk->getCalls('ignore'));
+        self::assertSame([['default']], $this->pheanstalk->getCalls('ignore'));
     }
 
     public function testConnectKeepsTheDefaultTubeWhenItIsTheConfiguredOne(): void
