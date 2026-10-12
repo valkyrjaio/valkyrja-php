@@ -16,7 +16,7 @@ use JsonException;
 use Override;
 use Pheanstalk\Contract\PheanstalkManagerInterface;
 use Pheanstalk\Contract\PheanstalkSubscriberInterface;
-use Pheanstalk\Pheanstalk;
+use Pheanstalk\Exception\JobNotFoundException;
 use Pheanstalk\Values\Job;
 use Pheanstalk\Values\TubeName;
 use Valkyrja\Application\Entry\Abstract\PullQueue;
@@ -65,7 +65,9 @@ class BeanstalkdQueue extends PullQueue
     {
         $config = $app->getContainer()->getSingleton(QueueBeanstalkdClientConfigContract::class);
 
+        static::$current    = null;
         static::$tube       = $config->queueBeanstalkdClientTube;
+        static::$timeout    = $config->queueBeanstalkdClientReserveTimeout;
         static::$pheanstalk = static::getPheanstalk($config);
 
         $pheanstalk = static::getConnection();
@@ -111,13 +113,21 @@ class BeanstalkdQueue extends PullQueue
     #[Override]
     public static function disconnect(): void
     {
-        // Anything still reserved was not completed, so hand it back rather
-        // than letting it wait out the time-to-release
-        static::releaseCurrent();
+        try {
+            // Anything still reserved was not completed, so hand it back
+            // rather than letting it wait out the time-to-release
+            static::releaseCurrent();
+        } catch (JobNotFoundException) {
+            // The time-to-release lapsed and another worker holds the job now,
+            // so there is nothing here to hand back
+        } finally {
+            static::$pheanstalk?->disconnect();
 
-        static::getConnection()->disconnect();
-
-        static::$pheanstalk = null;
+            // A disconnect that throws must not leave this entry holding a
+            // connection a later run would reserve on
+            static::$current    = null;
+            static::$pheanstalk = null;
+        }
     }
 
     /**
@@ -136,6 +146,26 @@ class BeanstalkdQueue extends PullQueue
 
         $pheanstalk = static::getConnection();
 
+        try {
+            static::apply($pheanstalk, $reserved, $job, $result);
+        } catch (JobNotFoundException) {
+            // The time-to-release lapsed, so beanstalkd gave the job to another
+            // worker and that worker settles it. The outcome of this run is
+            // dropped rather than the stage that reports it.
+        }
+    }
+
+    /**
+     * Hand the outcome to beanstalkd.
+     *
+     * @throws JobNotFoundException
+     */
+    protected static function apply(
+        PheanstalkManagerInterface $pheanstalk,
+        Job $reserved,
+        JobContract $job,
+        JobResult $result,
+    ): void {
         if ($result === JobResult::RETRY) {
             // Release assigns a new priority and delay rather than keeping the
             // job's own, so both are passed: the default would drop every retry
@@ -218,7 +248,7 @@ class BeanstalkdQueue extends PullQueue
      */
     protected static function getPheanstalk(QueueBeanstalkdClientConfigContract $config): PheanstalkManagerInterface&PheanstalkSubscriberInterface
     {
-        return Pheanstalk::create($config->queueBeanstalkdClientHost, $config->queueBeanstalkdClientPort);
+        return BeanstalkdClient::createPheanstalk($config);
     }
 
     /**
