@@ -477,8 +477,9 @@ matcher takes the container. `HttpRoutingServiceProvider` passes it, and a
 Warning: register a cast type with `bind`. The matcher calls `getService()`,
 which reads only a service binding, so an alias and an instance that
 `setSingleton` holds each raise `ContainerInvalidReferenceException` out of
-`match()`. `TypeServiceProvider` binds every type that `CastType` names, so a
-`CastType` cast needs no further registration. See
+`match()`. `TypeServiceProvider` binds every type that `CastType` names, and
+`HttpRoutingComponentProvider` returns the type component, so a `CastType` cast
+needs no further registration. See
 [the type component](../Type/README.md) for the binding rules of a cast type.
 
 #### Optional parameters and defaults

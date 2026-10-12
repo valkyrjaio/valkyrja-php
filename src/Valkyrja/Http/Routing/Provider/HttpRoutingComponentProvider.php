@@ -15,6 +15,7 @@ namespace Valkyrja\Http\Routing\Provider;
 use Override;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Application\Provider\Contract\ComponentProviderContract;
+use Valkyrja\Type\Provider\TypeComponentProvider;
 
 class HttpRoutingComponentProvider implements ComponentProviderContract
 {
@@ -24,7 +25,9 @@ class HttpRoutingComponentProvider implements ComponentProviderContract
     #[Override]
     public function getComponentProviders(ApplicationContract $app): array
     {
-        return [];
+        return [
+            new TypeComponentProvider(),
+        ];
     }
 
     /**
