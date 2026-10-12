@@ -26,7 +26,7 @@ class ListenerCollection implements ListenerCollectionContract
     /**
      * The events.
      *
-     * @var array<class-string, string[]>
+     * @var array<class-string, array<string, string>>
      */
     protected array $events = [];
 

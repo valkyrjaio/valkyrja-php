@@ -20,8 +20,8 @@ readonly class EventData
     /**
      * The listeners.
      *
-     * @param array<class-string, string[]>             $events    The events
-     * @param array<string, Closure():ListenerContract> $listeners The listeners
+     * @param array<class-string, array<string, string>> $events    The events
+     * @param array<string, Closure():ListenerContract>  $listeners The listeners
      */
     public function __construct(
         public array $events = [],
