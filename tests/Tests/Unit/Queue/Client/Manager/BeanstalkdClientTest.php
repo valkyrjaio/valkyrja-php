@@ -14,6 +14,7 @@ namespace Valkyrja\Tests\Unit\Queue\Client\Manager;
 
 use Override;
 use Valkyrja\Queue\Client\Manager\BeanstalkdClient;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientRedeliveryNotSupportedException;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
@@ -135,12 +136,30 @@ final class BeanstalkdClientTest extends TestCase
         );
     }
 
-    public function testARetryPutsNothingBecauseTheProcessorOwnsRedelivery(): void
+    public function testARetryIsRefusedBecauseTheProcessorOwnsRedelivery(): void
     {
-        // The original job is still reserved; putting it would duplicate it
-        $this->client()->retry(new Job(name: self::NAME, attempts: 2), 5000);
+        $client = $this->client();
 
+        try {
+            $client->retry(new Job(name: self::NAME, attempts: 2), 5000);
+
+            self::fail('The client accepted a retry it cannot carry out.');
+        } catch (QueueClientRedeliveryNotSupportedException) {
+            // The original job is still reserved, so there is nothing here to
+            // hand back
+        }
+
+        // Putting it again would duplicate the job, and recording a handover
+        // that never happened would report a job this client no longer has
         self::assertSame([], $this->pheanstalk->getCalls('put'));
+        self::assertSame([], $client->getPushed());
+    }
+
+    public function testARequeueIsRefusedForTheSameReason(): void
+    {
+        $this->expectException(QueueClientRedeliveryNotSupportedException::class);
+
+        $this->client()->requeue(new Job(name: self::NAME, attempts: 2));
     }
 
     protected function client(): BeanstalkdClient

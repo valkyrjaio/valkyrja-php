@@ -15,9 +15,12 @@ namespace Valkyrja\Queue\Client\Manager;
 use JsonException;
 use Override;
 use Pheanstalk\Contract\PheanstalkPublisherInterface;
+use Pheanstalk\Pheanstalk;
 use Pheanstalk\Values\TubeName;
 use Valkyrja\Application\Constant\ApplicationInfo;
+use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientRedeliveryNotSupportedException;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -59,7 +62,15 @@ class BeanstalkdClient extends Client
     }
 
     /**
-     * Invert the job's priority into beanstalkd's scale.
+     * Build the connection the producer and the consumer both read.
+     */
+    public static function createPheanstalk(QueueBeanstalkdClientConfigContract $config): Pheanstalk
+    {
+        return Pheanstalk::create($config->queueBeanstalkdClientHost, $config->queueBeanstalkdClientPort);
+    }
+
+    /**
+     * Invert the envelope priority onto the beanstalkd scale.
      *
      * beanstalkd treats 0 as the most urgent, so a higher envelope priority
      * must map to a lower beanstalkd number. A publish and a release both read
@@ -94,6 +105,17 @@ class BeanstalkdClient extends Client
 
     /**
      * @inheritDoc
+     */
+    #[Override]
+    public function retry(JobContract $job, int $delayMs): void
+    {
+        throw new QueueClientRedeliveryNotSupportedException(
+            'Beanstalkd owns redelivery, so a job cannot be retried through this client'
+        );
+    }
+
+    /**
+     * @inheritDoc
      *
      * @throws JsonException
      */
@@ -108,13 +130,5 @@ class BeanstalkdClient extends Client
             self::getDelaySeconds($job->getDelayMs()),
             $this->timeToRelease,
         );
-    }
-
-    /**
-     * @inheritDoc
-     */
-    #[Override]
-    protected function republish(JobContract $job, int $delayMs): void
-    {
     }
 }
