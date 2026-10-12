@@ -18,7 +18,6 @@ use Valkyrja\Attribute\Trait\ReflectionAwareAttribute;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Http\Message\Enum\RequestMethod;
 use Valkyrja\Http\Message\Response\Contract\ResponseContract;
-use Valkyrja\Http\Message\Response\Response;
 use Valkyrja\Http\Middleware\Contract\ResponseSentMiddlewareContract;
 use Valkyrja\Http\Middleware\Contract\RouteDispatchedMiddlewareContract;
 use Valkyrja\Http\Middleware\Contract\RouteMatchedMiddlewareContract;
@@ -27,6 +26,7 @@ use Valkyrja\Http\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 use Valkyrja\Http\Routing\Data\Contract\ParameterContract;
 use Valkyrja\Http\Routing\Data\Contract\RouteContract;
 use Valkyrja\Http\Routing\Data\DynamicRoute as ParentRoute;
+use Valkyrja\Http\Routing\Support\NoRouteHandler;
 use Valkyrja\Http\Struct\Request\Contract\RequestStructContract;
 use Valkyrja\Http\Struct\Response\Contract\ResponseStructContract;
 
@@ -66,7 +66,7 @@ class DynamicRoute extends ParentRoute implements ReflectionAwareAttributeContra
             name: $name,
             regex: '',
             parameters: $parameters,
-            handler: $handler ?? static fn (ContainerContract $container, RouteContract $route): ResponseContract => new Response(),
+            handler: $handler ?? new NoRouteHandler(),
             requestMethods: $requestMethods,
             routeMatchedMiddleware: $routeMatchedMiddleware,
             routeDispatchedMiddleware: $routeDispatchedMiddleware,

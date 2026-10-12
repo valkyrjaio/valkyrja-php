@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Http\Routing\Collector\Contract;
 
 use Valkyrja\Http\Routing\Data\Contract\RouteContract;
+use Valkyrja\Http\Routing\Throwable\Exception\HttpRoutingNoRouteHandlerException;
 
 interface RouteCollectorContract
 {
@@ -20,6 +21,8 @@ interface RouteCollectorContract
      * Get route attributes.
      *
      * @param class-string ...$classes The classes
+     *
+     * @throws HttpRoutingNoRouteHandlerException
      *
      * @return RouteContract[]
      */
