@@ -19,6 +19,7 @@ use Valkyrja\Log\Provider\LogComponentProvider;
 use Valkyrja\Queue\Message\Provider\QueueMessageComponentProvider;
 use Valkyrja\Queue\Middleware\Provider\QueueMiddlewareComponentProvider;
 use Valkyrja\Queue\Routing\Provider\QueueRoutingComponentProvider;
+use Valkyrja\Queue\Server\Provider\QueueServerComponentProvider;
 
 class QueueApplicationComponentProvider implements ComponentProviderContract
 {
@@ -33,6 +34,7 @@ class QueueApplicationComponentProvider implements ComponentProviderContract
             new QueueMessageComponentProvider(),
             new QueueMiddlewareComponentProvider(),
             new QueueRoutingComponentProvider(),
+            new QueueServerComponentProvider(),
             new LogComponentProvider(),
         ];
     }

@@ -24,6 +24,8 @@ use Valkyrja\Queue\Middleware\Contract\RouteMatchedMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\RouteNotMatchedMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\SettlingResultMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\ThrowableCaughtMiddlewareContract;
+use Valkyrja\Queue\Server\Middleware\ThrowableCaught\LogThrowableCaughtMiddleware;
+use Valkyrja\Queue\Server\Middleware\ThrowableCaught\RetryPolicyThrowableCaughtMiddleware;
 
 class QueueConfig implements QueueConfigContract
 {
@@ -66,7 +68,10 @@ class QueueConfig implements QueueConfigContract
         public readonly array $routeMatchedMiddleware = [],
         public readonly array $routeNotMatchedMiddleware = [],
         public readonly array $routeDispatchedMiddleware = [],
-        public readonly array $throwableCaughtMiddleware = [],
+        public readonly array $throwableCaughtMiddleware = [
+            LogThrowableCaughtMiddleware::class,
+            RetryPolicyThrowableCaughtMiddleware::class,
+        ],
         public readonly array $settlingResultMiddleware = [],
         public readonly array $resultSettledMiddleware = [],
     ) {
