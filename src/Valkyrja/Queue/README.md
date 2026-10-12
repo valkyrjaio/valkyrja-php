@@ -439,6 +439,14 @@ An envelope no factory can read is parked on an unreadable list instead of being
 discarded. A broker that owns its own acknowledgement returns an unacknowledged
 delivery by itself, so only redis needs the list.
 
+Warning: an SQS redrive policy never sees a job the framework dead-letters.
+`SqsQueue` deletes the message on `FAIL` and on `DEAD_LETTER`, and SQS routes to
+a dead-letter queue on the receive count at receive time, so a message deleted
+here never reaches one. The attempt ceiling of the job is what ends the chain,
+and the entry leaves the rest to the queue rather than handing a job back that
+the framework already called dead. A deployment that needs the copy sets
+`maxReceiveCount` below the job's `max_attempts`, so SQS routes it first.
+
 Warning: `SqsQueue` deletes a body no factory can read rather than parking it.
 Nothing settles an unreadable body, so SQS would hand the same message back on
 every visibility timeout, and a queue with no redrive policy has nothing to end
