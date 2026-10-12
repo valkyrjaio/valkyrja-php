@@ -287,14 +287,14 @@ first taking the job as dispatched and the second the already incremented copy.
 `getPushed` returns the jobs handed to the client during one unit of work, and
 `clearPushed` ends that unit of work.
 
-A processor with no retry of its own settles through `requeue`. The client
-increments the attempt, stamps the modification time, and reads the hold from
-the job as dispatched. `requeue` calls `retry` with that hold already supplied.
-The framework reaches neither on a processor that owns redelivery, because that
-processor's entry answers the retry from its own settlement.
+`requeue` calls `retry` with the hold already supplied, and
+[Redelivery](#redelivery) covers where that hold comes from. The framework
+reaches neither on a processor that owns redelivery, because that processor's
+entry answers the retry from its own settlement.
 
-Both seams record the job in `getPushed`. The framework clears that record, and
-application code never does.
+Both seams record the job in `getPushed`. `PullQueue` clears that record after
+each job it runs. No other entry clears it, so an application that pushes
+through a client of its own ends each unit of work itself.
 
 ## Redelivery
 
@@ -387,9 +387,11 @@ push. It settles nothing, because the signal that settles an outcome belongs to
 a processor. `WorkerQueue` boots the application once and then gives each job a
 fresh child container, which is the shape a real broker worker loops over.
 
-Every job runs through an entry point, never through `JobHandler` directly. The
-entry gives the job an isolated container, so an in-process development run
-behaves the same as a standalone production worker.
+Every job runs through an entry point, never through `JobHandler` directly. An
+entry that extends `WorkerQueue` gives each job a fresh child container, so one
+job cannot reach what the job before it bound. `Queue` and `PushQueue` run their
+one job in the container of the application, because the process ends with the
+job.
 
 An application extends `InternalQueue` and returns its queue config from
 `getConfig()`. The client boots the queue application on the first job, and it
@@ -465,8 +467,8 @@ final class SendWelcomeEmailHandler
 collection, so a production boot reads the routes from a data class instead of
 gathering them again.
 
-The same route runs a job that arrives from an external broker, an in-process
-`sync` push, a `deferred` drain, or an `inmemory` test.
+The same route runs the job whatever client produced it, and whatever entry
+received it.
 
 ## Client Configuration
 
