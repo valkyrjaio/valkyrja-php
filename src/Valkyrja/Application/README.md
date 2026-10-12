@@ -249,7 +249,7 @@ abstract, because connecting, receiving, and settling are specific to one
 processor. An entry such as `Valkyrja\Application\Entry\Redis\RedisQueue` or
 `Valkyrja\Application\Entry\Amqp\AmqpQueue` implements `connect`, `receive`,
 `disconnect`, and `settle`, and inherits the loop. The Queue component's
-`README.md` lists every entry the framework ships.
+`README.md` has the entry points and what each one runs.
 
 The config of a redis worker extends `QueueConfig` for `QueueConfigContract`,
 and it implements `QueueRedisClientConfigContract` to name the server and this
