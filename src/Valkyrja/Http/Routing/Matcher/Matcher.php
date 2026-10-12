@@ -13,15 +13,16 @@ declare(strict_types=1);
 namespace Valkyrja\Http\Routing\Matcher;
 
 use Override;
+use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Http\Message\Enum\RequestMethod;
 use Valkyrja\Http\Routing\Collection\Contract\RouteCollectionContract;
-use Valkyrja\Http\Routing\Collection\RouteCollection;
 use Valkyrja\Http\Routing\Data\Contract\DynamicRouteContract;
 use Valkyrja\Http\Routing\Data\Contract\ParameterContract;
 use Valkyrja\Http\Routing\Data\Contract\RouteContract;
 use Valkyrja\Http\Routing\Matcher\Contract\MatcherContract;
 use Valkyrja\Http\Routing\Throwable\Exception\HttpRoutingInvalidRouteParameterException;
 use Valkyrja\Http\Routing\Throwable\Exception\HttpRoutingInvalidRoutePathException;
+use Valkyrja\Type\Constant\CastArgument;
 use Valkyrja\Type\Data\Cast;
 
 use function array_shift;
@@ -31,7 +32,8 @@ use function trim;
 class Matcher implements MatcherContract
 {
     public function __construct(
-        protected RouteCollectionContract $collection = new RouteCollection()
+        protected RouteCollectionContract $collection,
+        protected ContainerContract $container
     ) {
     }
 
@@ -166,7 +168,7 @@ class Matcher implements MatcherContract
         Cast $cast,
         array|string|int|bool|float|object $match
     ): array|string|int|bool|float|object|null {
-        $type = $cast->type::fromValue($match);
+        $type = $this->container->getService($cast->type, [CastArgument::VALUE => $match]);
 
         if ($cast->convert) {
             /** @var array<scalar|object>|scalar|object|null $type */
