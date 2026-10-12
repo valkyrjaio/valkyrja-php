@@ -30,10 +30,14 @@ use App\Notification\Contract\NotifierContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
+use Valkyrja\Queue\Routing\Attribute\Route;
+use Valkyrja\Queue\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 
 final class SendWelcomeNotificationHandler
 {
+    #[Route(name: 'SendWelcomeNotification', description: 'Send the welcome notification')]
+    #[RouteHandler([self::class, 'handle'])]
     public static function handle(ContainerContract $container, RouteContract $route): JobResult
     {
         $payload = $container->getSingleton(JobContract::class)->getPayload();
@@ -80,6 +84,28 @@ final class AppQueueRouteProvider implements QueueRouteProviderContract
     }
 }
 ```
+
+A component provider gives the route provider to the application.
+`QueueApplicationComponentProvider` registers the queue components, and an
+application extends it to return its own route providers:
+
+```php
+use Override;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Application\Provider\QueueApplicationComponentProvider;
+
+final class AppQueueComponentProvider extends QueueApplicationComponentProvider
+{
+    #[Override]
+    public function getQueueProviders(ApplicationContract $app): array
+    {
+        return [new AppQueueRouteProvider()];
+    }
+}
+```
+
+The application config names that component provider, as the next section
+shows.
 
 ## Returning an Outcome
 
@@ -161,31 +187,32 @@ final class RequireTenantAttributeMiddleware implements JobReceivedMiddlewareCon
 `Valkyrja\Application\Data\Contract\QueueConfigContract` is the application
 config a queue consumer boots from. It adds one middleware array for each stage
 to the properties every application config carries. Each array holds the class
-name of a middleware for that stage:
+name of a middleware for that stage.
+
+`Valkyrja\Application\Data\QueueConfig` implements that contract, and an
+application config extends it and passes only the settings it changes:
 
 ```php
-use Valkyrja\Application\Data\Config;
-use Valkyrja\Application\Data\Contract\QueueConfigContract;
+use Valkyrja\Application\Data\QueueConfig;
 
-final class AppQueueConfig extends Config implements QueueConfigContract
+final class AppQueueConfig extends QueueConfig
 {
-    public array $jobReceivedMiddleware = [RequireTenantAttributeMiddleware::class];
-
-    public array $routeMatchedMiddleware = [];
-
-    public array $routeNotMatchedMiddleware = [];
-
-    public array $routeDispatchedMiddleware = [];
-
-    public array $throwableCaughtMiddleware = [];
-
-    public array $settlingResultMiddleware = [];
-
-    public array $resultSettledMiddleware = [];
+    public function __construct()
+    {
+        parent::__construct(
+            providers: [new AppQueueComponentProvider()],
+            jobReceivedMiddleware: [RequireTenantAttributeMiddleware::class],
+        );
+    }
 }
 ```
 
-`Config` carries the shared properties, and the
+A property the constructor does not name keeps its default.
+`throwableCaughtMiddleware` defaults to `LogThrowableCaughtMiddleware` and
+`RetryPolicyThrowableCaughtMiddleware`, so an application that names that
+property replaces both and the retry policy stops running.
+
+`QueueConfig` carries the shared properties, and the
 [Application README](../Application/README.md#configuration) covers each one.
 
 ## The Job
