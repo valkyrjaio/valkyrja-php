@@ -383,6 +383,9 @@ and the client has nothing to hand back.
 same reason: the queue still holds the delivery, so the entry answers a retry by
 changing its visibility rather than by publishing again.
 
+`BeanstalkdClient` refuses both as well. The job stays reserved, so the entry
+answers a retry by releasing it with a priority and a hold.
+
 `AmqpClient` publishes without a hold. AMQP carries no per-message delay, and
 giving it one needs a delay queue and a dead-letter exchange that the broker
 owner declares rather than the client. A job pushed with `delay_ms` is therefore
@@ -393,6 +396,15 @@ enqueue.
 delay at all and the job is consumable at once. A retry hold rounds the other
 way: `SqsQueue` raises a sub-second hold to one second, because a visibility of
 zero would return the delivery with no hold.
+
+`BeanstalkdClient` rounds a sub-second hold up to one second instead, on the
+publish and on the release alike, so a beanstalkd job never loses a hold the
+producer asked for.
+
+beanstalkd counts priority the other way around from the job: 0 is the most
+urgent and a larger number is less urgent, so the client subtracts the job's
+priority from 1024. A job priority is clamped to 1024 first, so every priority
+of 1024 or more arrives as the most urgent one.
 
 `AmqpClient` carries the job's priority onto the message, and a classic queue
 orders by it only when the broker gave the queue a priority bound. The framework
@@ -449,6 +461,11 @@ here never reaches one. The attempt ceiling of the job is what ends the chain,
 and the entry leaves the rest to the queue rather than handing a job back that
 the framework already called dead. A deployment that needs the copy sets
 `maxReceiveCount` below the job's `max_attempts`, so SQS routes it first.
+
+Warning: `BeanstalkdQueue` buries a body no factory can read. A buried job
+stays on the tube for inspection, so nothing is lost, but nothing in the
+framework kicks or deletes it either: a producer that emits bad bytes
+accumulates buried jobs until an operator kicks or deletes them.
 
 Warning: `SqsQueue` deletes a body no factory can read rather than parking it.
 Nothing settles an unreadable body, so SQS would hand the same message back on
@@ -662,12 +679,24 @@ visibility timeout above the longest job it carries.
 
 #### `QueueBeanstalkdClientConfigContract`
 
-| Property                             | Default       | Description                                                    |
-| :----------------------------------- | :------------ | :------------------------------------------------------------- |
-| `queueBeanstalkdClientHost`          | `'127.0.0.1'` | The host to connect to                                         |
-| `queueBeanstalkdClientPort`          | `11300`       | The port to connect to                                         |
-| `queueBeanstalkdClientTube`          | `'default'`   | The tube that jobs are put on                                  |
-| `queueBeanstalkdClientTimeToRelease` | `60`          | The seconds a worker holds a job before beanstalkd releases it |
+| Property                              | Default       | Description                                                  |
+| :------------------------------------ | :------------ | :----------------------------------------------------------- |
+| `queueBeanstalkdClientHost`           | `'127.0.0.1'` | The host to connect to                                       |
+| `queueBeanstalkdClientPort`           | `11300`       | The port to connect to                                       |
+| `queueBeanstalkdClientTube`           | `'default'`   | The tube that jobs are put on                                |
+| `queueBeanstalkdClientTimeToRelease`  | `60`          | The seconds a producer gives a worker before the job returns |
+| `queueBeanstalkdClientReserveTimeout` | `1`           | The seconds a reserve waits for a job                        |
+
+Warning: the time-to-release travels with the job from the producer, so a worker
+deployment cannot change it. A job that runs longer than it loses its
+reservation: beanstalkd gives the same job to a second worker while the first
+still runs, and the first worker's settlement then answers
+`JobNotFoundException`. Set it above the longest job the tube carries. The entry
+does not extend it, so a long job needs the producer to publish a longer one.
+
+Warning: the reserve timeout is also how long a worker can overrun `maxSeconds`,
+because the loop reads its bounds only between reserves. Lower it when a worker
+has to stop promptly, and pay for the extra reserves.
 
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not

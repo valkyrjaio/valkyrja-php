@@ -161,7 +161,7 @@ class BeanstalkdQueue extends PullQueue
      * @throws JobNotFoundException
      */
     protected static function apply(
-        PheanstalkManagerInterface $pheanstalk,
+        PheanstalkSubscriberInterface $pheanstalk,
         Job $reserved,
         JobContract $job,
         JobResult $result,
