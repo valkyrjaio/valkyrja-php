@@ -32,4 +32,9 @@ interface QueueBeanstalkdClientConfigContract
     public int $queueBeanstalkdClientTimeToRelease {
         get;
     }
+
+    /** @var int<1, max> */
+    public int $queueBeanstalkdClientReserveTimeout {
+        get;
+    }
 }

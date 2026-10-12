@@ -50,6 +50,7 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param non-empty-string             $queueBeanstalkdClientHost
      * @param non-empty-string             $queueBeanstalkdClientTube
      * @param int<0, max>                  $queueBeanstalkdClientTimeToRelease
+     * @param int<1, max>                  $queueBeanstalkdClientReserveTimeout
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -77,6 +78,7 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public int $queueBeanstalkdClientPort = 11301,
         public string $queueBeanstalkdClientTube = 'jobs',
         public int $queueBeanstalkdClientTimeToRelease = 90,
+        public int $queueBeanstalkdClientReserveTimeout = 3,
     ) {
         parent::__construct(
             applicationName: 'host',
