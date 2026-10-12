@@ -40,12 +40,12 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param non-empty-string             $queueAmqpClientUser
      * @param non-empty-string             $queueAmqpClientVhost
      * @param non-empty-string             $queueAmqpClientQueue
-     * @param non-empty-string             $sqsRegion
-     * @param non-empty-string|null        $sqsEndpoint
-     * @param non-empty-string|null        $sqsAccessKeyId
-     * @param non-empty-string|null        $sqsAccessKeySecret
-     * @param non-empty-string             $sqsQueueUrl
-     * @param int<1, 20>                   $sqsWaitTimeSeconds
+     * @param non-empty-string             $queueSqsClientRegion
+     * @param non-empty-string|null        $queueSqsClientEndpoint
+     * @param non-empty-string|null        $queueSqsClientAccessKeyId
+     * @param non-empty-string|null        $queueSqsClientAccessKeySecret
+     * @param non-empty-string             $queueSqsClientQueueUrl
+     * @param int<1, 20>                   $queueSqsClientWaitTimeSeconds
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -63,12 +63,12 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public string $queueAmqpClientVhost = '/jobs',
         public string $queueAmqpClientQueue = 'queues.test',
         public string $queueAmqpClientExchange = 'jobs',
-        public string $sqsRegion = 'eu-west-1',
-        public string|null $sqsEndpoint = 'http://sqs.test',
-        public string|null $sqsAccessKeyId = 'key',
-        public string|null $sqsAccessKeySecret = 'secret',
-        public string $sqsQueueUrl = 'http://sqs.test/000000000000/test',
-        public int $sqsWaitTimeSeconds = 20,
+        public string $queueSqsClientRegion = 'eu-west-1',
+        public string|null $queueSqsClientEndpoint = 'http://sqs.test',
+        public string|null $queueSqsClientAccessKeyId = 'key',
+        public string|null $queueSqsClientAccessKeySecret = 'secret',
+        public string $queueSqsClientQueueUrl = 'http://sqs.test/000000000000/test',
+        public int $queueSqsClientWaitTimeSeconds = 20,
     ) {
         parent::__construct(
             applicationName: 'host',

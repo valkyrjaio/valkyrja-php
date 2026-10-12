@@ -101,8 +101,8 @@ final class SqsQueueTest extends TestCase
         // The wait the entry polls with is the one `connect()` read, so a test
         // that asserts the fixture's own default pins nothing
         SqsQueueFixture::connect($this->application(new QueueSqsClientConfig(
-            sqsQueueUrl: self::QUEUE_URL,
-            sqsWaitTimeSeconds: 7,
+            queueSqsClientQueueUrl: self::QUEUE_URL,
+            queueSqsClientWaitTimeSeconds: 7,
         )));
 
         SqsQueueFixture::receive();

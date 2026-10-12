@@ -75,8 +75,8 @@ class SqsQueue extends PullQueue
     {
         $config = $app->getContainer()->getSingleton(QueueSqsClientConfigContract::class);
 
-        static::$queueUrl        = $config->sqsQueueUrl;
-        static::$waitTimeSeconds = $config->sqsWaitTimeSeconds;
+        static::$queueUrl        = $config->queueSqsClientQueueUrl;
+        static::$waitTimeSeconds = $config->queueSqsClientWaitTimeSeconds;
         static::$sqs             = static::getSqs($config);
     }
 

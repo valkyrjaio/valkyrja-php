@@ -27,30 +27,30 @@ final class QueueSqsClientConfigTest extends TestCase
     {
         $config = new QueueSqsClientConfig();
 
-        self::assertSame('us-east-1', $config->sqsRegion);
-        self::assertNull($config->sqsEndpoint);
-        self::assertNull($config->sqsAccessKeyId);
-        self::assertNull($config->sqsAccessKeySecret);
-        self::assertSame('https://sqs.us-east-1.amazonaws.com/000000000000/default', $config->sqsQueueUrl);
-        self::assertSame(20, $config->sqsWaitTimeSeconds);
+        self::assertSame('us-east-1', $config->queueSqsClientRegion);
+        self::assertNull($config->queueSqsClientEndpoint);
+        self::assertNull($config->queueSqsClientAccessKeyId);
+        self::assertNull($config->queueSqsClientAccessKeySecret);
+        self::assertSame('https://sqs.us-east-1.amazonaws.com/000000000000/default', $config->queueSqsClientQueueUrl);
+        self::assertSame(20, $config->queueSqsClientWaitTimeSeconds);
     }
 
     public function testCustomValuesAreStored(): void
     {
         $config = new QueueSqsClientConfig(
-            sqsRegion: 'eu-west-1',
-            sqsEndpoint: 'http://sqs.test',
-            sqsAccessKeyId: 'key',
-            sqsAccessKeySecret: 'secret',
-            sqsQueueUrl: 'http://sqs.test/000000000000/test',
-            sqsWaitTimeSeconds: 5,
+            queueSqsClientRegion: 'eu-west-1',
+            queueSqsClientEndpoint: 'http://sqs.test',
+            queueSqsClientAccessKeyId: 'key',
+            queueSqsClientAccessKeySecret: 'secret',
+            queueSqsClientQueueUrl: 'http://sqs.test/000000000000/test',
+            queueSqsClientWaitTimeSeconds: 5,
         );
 
-        self::assertSame('eu-west-1', $config->sqsRegion);
-        self::assertSame('http://sqs.test', $config->sqsEndpoint);
-        self::assertSame('key', $config->sqsAccessKeyId);
-        self::assertSame('secret', $config->sqsAccessKeySecret);
-        self::assertSame('http://sqs.test/000000000000/test', $config->sqsQueueUrl);
-        self::assertSame(5, $config->sqsWaitTimeSeconds);
+        self::assertSame('eu-west-1', $config->queueSqsClientRegion);
+        self::assertSame('http://sqs.test', $config->queueSqsClientEndpoint);
+        self::assertSame('key', $config->queueSqsClientAccessKeyId);
+        self::assertSame('secret', $config->queueSqsClientAccessKeySecret);
+        self::assertSame('http://sqs.test/000000000000/test', $config->queueSqsClientQueueUrl);
+        self::assertSame(5, $config->queueSqsClientWaitTimeSeconds);
     }
 }

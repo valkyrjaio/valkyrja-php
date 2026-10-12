@@ -30,20 +30,20 @@ final class SqsWorkerConfigFixture extends QueueConfig implements QueueClientCon
     public string $defaultQueueClient = SqsClient::class;
 
     /**
-     * @param non-empty-string      $sqsRegion          The region of the endpoint under test
-     * @param non-empty-string|null $sqsEndpoint        The endpoint, when it is not the real one
-     * @param non-empty-string|null $sqsAccessKeyId     The access key
-     * @param non-empty-string|null $sqsAccessKeySecret The access secret
-     * @param non-empty-string      $sqsQueueUrl        The queue jobs are published to
-     * @param int<1, 20>            $sqsWaitTimeSeconds The long-poll wait; 1 keeps the suite quick
+     * @param non-empty-string      $queueSqsClientRegion          The region of the endpoint under test
+     * @param non-empty-string|null $queueSqsClientEndpoint        The endpoint, when it is not the real one
+     * @param non-empty-string|null $queueSqsClientAccessKeyId     The access key
+     * @param non-empty-string|null $queueSqsClientAccessKeySecret The access secret
+     * @param non-empty-string      $queueSqsClientQueueUrl        The queue jobs are published to
+     * @param int<1, 20>            $queueSqsClientWaitTimeSeconds The long-poll wait; 1 keeps the suite quick
      */
     public function __construct(
-        public string $sqsQueueUrl = 'http://localhost:9325/000000000000/valkyrja-test',
-        public string $sqsRegion = 'us-east-1',
-        public string|null $sqsEndpoint = null,
-        public string|null $sqsAccessKeyId = 'key',
-        public string|null $sqsAccessKeySecret = 'secret',
-        public int $sqsWaitTimeSeconds = 1,
+        public string $queueSqsClientQueueUrl = 'http://localhost:9325/000000000000/valkyrja-test',
+        public string $queueSqsClientRegion = 'us-east-1',
+        public string|null $queueSqsClientEndpoint = null,
+        public string|null $queueSqsClientAccessKeyId = 'key',
+        public string|null $queueSqsClientAccessKeySecret = 'secret',
+        public int $queueSqsClientWaitTimeSeconds = 1,
     ) {
         parent::__construct(
             dir: Directory::$basePath,

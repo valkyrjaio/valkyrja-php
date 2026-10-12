@@ -17,20 +17,20 @@ use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 class QueueSqsClientConfig implements QueueSqsClientConfigContract
 {
     /**
-     * @param non-empty-string      $sqsRegion          The AWS region
-     * @param non-empty-string|null $sqsEndpoint        The endpoint to send to; null for the AWS endpoint of the region
-     * @param non-empty-string|null $sqsAccessKeyId     The access key id; null for the AWS credential chain
-     * @param non-empty-string|null $sqsAccessKeySecret The access key secret; null for the AWS credential chain
-     * @param non-empty-string      $sqsQueueUrl        The URL of the queue that jobs are sent to
-     * @param int<1, 20>            $sqsWaitTimeSeconds The long-poll wait; 20 is the longest and cheapest
+     * @param non-empty-string      $queueSqsClientRegion          The AWS region
+     * @param non-empty-string|null $queueSqsClientEndpoint        The endpoint to send to; null for the AWS endpoint of the region
+     * @param non-empty-string|null $queueSqsClientAccessKeyId     The access key id; null for the AWS credential chain
+     * @param non-empty-string|null $queueSqsClientAccessKeySecret The access key secret; null for the AWS credential chain
+     * @param non-empty-string      $queueSqsClientQueueUrl        The URL of the queue that jobs are sent to
+     * @param int<1, 20>            $queueSqsClientWaitTimeSeconds The long-poll wait; 20 is the longest and cheapest
      */
     public function __construct(
-        public readonly string $sqsRegion = 'us-east-1',
-        public readonly string|null $sqsEndpoint = null,
-        public readonly string|null $sqsAccessKeyId = null,
-        public readonly string|null $sqsAccessKeySecret = null,
-        public readonly string $sqsQueueUrl = 'https://sqs.us-east-1.amazonaws.com/000000000000/default',
-        public readonly int $sqsWaitTimeSeconds = 20,
+        public readonly string $queueSqsClientRegion = 'us-east-1',
+        public readonly string|null $queueSqsClientEndpoint = null,
+        public readonly string|null $queueSqsClientAccessKeyId = null,
+        public readonly string|null $queueSqsClientAccessKeySecret = null,
+        public readonly string $queueSqsClientQueueUrl = 'https://sqs.us-east-1.amazonaws.com/000000000000/default',
+        public readonly int $queueSqsClientWaitTimeSeconds = 20,
     ) {
     }
 }

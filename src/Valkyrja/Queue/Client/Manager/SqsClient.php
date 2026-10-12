@@ -66,10 +66,10 @@ class SqsClient extends Client
         return new Sqs(
             array_filter(
                 [
-                    'region'          => $config->sqsRegion,
-                    'endpoint'        => $config->sqsEndpoint,
-                    'accessKeyId'     => $config->sqsAccessKeyId,
-                    'accessKeySecret' => $config->sqsAccessKeySecret,
+                    'region'          => $config->queueSqsClientRegion,
+                    'endpoint'        => $config->queueSqsClientEndpoint,
+                    'accessKeyId'     => $config->queueSqsClientAccessKeyId,
+                    'accessKeySecret' => $config->queueSqsClientAccessKeySecret,
                 ],
                 static fn (string|null $value): bool => $value !== null
             )

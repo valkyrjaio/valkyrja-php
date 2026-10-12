@@ -15,27 +15,27 @@ namespace Valkyrja\Queue\Client\Data\Contract;
 interface QueueSqsClientConfigContract
 {
     /** @var non-empty-string */
-    public string $sqsRegion {
+    public string $queueSqsClientRegion {
         get;
     }
 
     /** @var non-empty-string|null */
-    public string|null $sqsEndpoint {
+    public string|null $queueSqsClientEndpoint {
         get;
     }
 
     /** @var non-empty-string|null */
-    public string|null $sqsAccessKeyId {
+    public string|null $queueSqsClientAccessKeyId {
         get;
     }
 
     /** @var non-empty-string|null */
-    public string|null $sqsAccessKeySecret {
+    public string|null $queueSqsClientAccessKeySecret {
         get;
     }
 
     /** @var non-empty-string */
-    public string $sqsQueueUrl {
+    public string $queueSqsClientQueueUrl {
         get;
     }
 
@@ -47,7 +47,7 @@ interface QueueSqsClientConfigContract
      *
      * @var int<1, 20>
      */
-    public int $sqsWaitTimeSeconds {
+    public int $queueSqsClientWaitTimeSeconds {
         get;
     }
 }

@@ -288,7 +288,7 @@ class QueueClientServiceProvider implements ServiceProviderContract
             SqsClient::class,
             new SqsClient(
                 sqs: SqsClient::createSqs($config),
-                queueUrl: $config->sqsQueueUrl,
+                queueUrl: $config->queueSqsClientQueueUrl,
                 applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
             )
         );

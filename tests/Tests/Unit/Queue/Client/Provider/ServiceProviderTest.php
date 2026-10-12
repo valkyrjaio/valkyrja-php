@@ -307,8 +307,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueueSqsClientConfigContract::class);
 
-        self::assertSame('us-east-1', $config->sqsRegion);
-        self::assertSame('https://sqs.us-east-1.amazonaws.com/000000000000/default', $config->sqsQueueUrl);
+        self::assertSame('us-east-1', $config->queueSqsClientRegion);
+        self::assertSame('https://sqs.us-east-1.amazonaws.com/000000000000/default', $config->queueSqsClientQueueUrl);
     }
 
     public function testPublishSqsConfigWithApplicationConfig(): void
@@ -319,8 +319,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueueSqsClientConfigContract::class);
 
-        self::assertSame('eu-west-1', $config->sqsRegion);
-        self::assertSame('http://sqs.test/000000000000/test', $config->sqsQueueUrl);
+        self::assertSame('eu-west-1', $config->queueSqsClientRegion);
+        self::assertSame('http://sqs.test/000000000000/test', $config->queueSqsClientQueueUrl);
     }
 
     public function testPublishSqsClient(): void

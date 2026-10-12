@@ -188,8 +188,8 @@ final class SqsIntegrationTest extends TestCase
     private function config(): QueueConfigContract
     {
         return new SqsWorkerConfigFixture(
-            sqsQueueUrl: $this->queueUrl,
-            sqsEndpoint: $this->endpoint,
+            queueSqsClientQueueUrl: $this->queueUrl,
+            queueSqsClientEndpoint: $this->endpoint,
         );
     }
 
