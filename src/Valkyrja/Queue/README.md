@@ -333,6 +333,11 @@ dead-letters on a nack that does not requeue, on a message TTL, or on a length
 overflow, and a retry answers with a nack that does requeue. A `max_attempts` of
 2 also holds, because the second attempt is the one a classic queue can report.
 
+Warning: the default of `max_attempts` is 5, and a classic queue reports an
+attempt count of 2 at most, so a job that always fails on a classic queue
+retries until something else stops it, with no hold between attempts. Push to a
+quorum queue, or give the job a `max_attempts` of 2.
+
 ## Clients
 
 | Client           | Broker | Redelivery |
@@ -361,6 +366,11 @@ difference between the clients.
 from the terminate stage of its host. Nothing in the framework calls `drain()`,
 so a buffer that nobody drains never runs. It is not durable, and it needs a
 host runtime that can keep working after the response.
+
+`AmqpClient` refuses `retry` and `requeue` with
+`QueueClientRedeliveryNotSupportedException`. The broker still holds the
+unacknowledged delivery, so the entry answers a retry from its own settlement
+and the client has nothing to hand back.
 
 `AmqpClient` publishes without a hold. AMQP carries no per-message delay, and
 giving it one needs a delay queue and a dead-letter exchange that the broker
