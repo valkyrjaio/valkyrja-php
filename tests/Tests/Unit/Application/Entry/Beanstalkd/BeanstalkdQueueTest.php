@@ -104,6 +104,39 @@ final class BeanstalkdQueueTest extends TestCase
         self::assertSame([[self::TUBE]], $this->pheanstalk->getCalls('watch'));
     }
 
+    public function testASettlementWhoseReservationLapsedDoesNotEndTheLoop(): void
+    {
+        $this->reserved();
+
+        // The time-to-release ran out mid-job, so beanstalkd gave the job to
+        // another worker and refuses every settlement on this reservation
+        $this->pheanstalk->throwNotFound = true;
+
+        BeanstalkdQueueFixture::settle(
+            new JobFactory()->create(self::NAME),
+            JobResult::ACK,
+            new InMemoryClient(),
+        );
+
+        // The settlement was attempted and refused, and nothing escaped: the
+        // stage that reports the outcome still runs
+        self::assertSame([[(string) self::JOB_ID]], $this->pheanstalk->getCalls('delete'));
+    }
+
+    public function testADisconnectWhoseReleaseIsRefusedStillTearsDown(): void
+    {
+        $this->reserved();
+
+        $this->pheanstalk->throwNotFound = true;
+
+        BeanstalkdQueueFixture::disconnect();
+
+        // A connection left behind would be reserved on by the next run
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        BeanstalkdQueueFixture::receive();
+    }
+
     public function testDisconnectDropsTheConnectionItHeld(): void
     {
         BeanstalkdQueueFixture::connect($this->application());

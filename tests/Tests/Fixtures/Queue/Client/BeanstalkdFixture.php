@@ -17,6 +17,7 @@ use Pheanstalk\Contract\JobIdInterface;
 use Pheanstalk\Contract\PheanstalkManagerInterface;
 use Pheanstalk\Contract\PheanstalkPublisherInterface;
 use Pheanstalk\Contract\PheanstalkSubscriberInterface;
+use Pheanstalk\Exception\JobNotFoundException;
 use Pheanstalk\Values\Job;
 use Pheanstalk\Values\JobId;
 use Pheanstalk\Values\JobState;
@@ -49,6 +50,9 @@ final class BeanstalkdFixture implements PheanstalkManagerInterface, PheanstalkP
     public Job|null $next = null;
 
     public bool $disconnected = false;
+
+    /** @var bool Whether a settlement answers that the reservation lapsed */
+    public bool $throwNotFound = false;
 
     /**
      * Get the arguments of every call to a connection method.
@@ -134,6 +138,10 @@ final class BeanstalkdFixture implements PheanstalkManagerInterface, PheanstalkP
     public function delete(JobIdInterface $job): void
     {
         $this->calls[] = ['delete', [$job->getId()]];
+
+        if ($this->throwNotFound) {
+            throw new JobNotFoundException();
+        }
     }
 
     /**
@@ -146,6 +154,10 @@ final class BeanstalkdFixture implements PheanstalkManagerInterface, PheanstalkP
         int $delay = PheanstalkPublisherInterface::DEFAULT_DELAY
     ): void {
         $this->calls[] = ['release', [$job->getId(), $priority, $delay]];
+
+        if ($this->throwNotFound) {
+            throw new JobNotFoundException();
+        }
     }
 
     /**
@@ -155,6 +167,10 @@ final class BeanstalkdFixture implements PheanstalkManagerInterface, PheanstalkP
     public function bury(JobIdInterface $job, int $priority = PheanstalkPublisherInterface::DEFAULT_PRIORITY): void
     {
         $this->calls[] = ['bury', [$job->getId(), $priority]];
+
+        if ($this->throwNotFound) {
+            throw new JobNotFoundException();
+        }
     }
 
     /**
