@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Application\Entry\Amqp;
 
 use Override;
+use PhpAmqpLib\Exception\AMQPChannelClosedException;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 use Valkyrja\Application\Entry\Amqp\AmqpQueue;
@@ -64,13 +65,65 @@ final class AmqpQueueTest extends TestCase
 
         // Durable, because the client publishes persistent: a producer and a
         // consumer that disagree on durability cannot share the queue
+        // No queue argument and no nowait: the readme rests on both, because
+        // an x-queue-type here would collide with an operator's own quorum
+        // declaration, and a nowait would drop the round-trip that reports it
         self::assertSame(
-            [['queues.configured', false, true, false, false]],
+            [['queues.configured', false, true, false, false, false, [], null]],
             $this->channel->getCalls('queue_declare')
         );
         // Set for the day the entry registers a consumer; the broker ignores it
         // for the basic_get this entry fetches with
         self::assertSame([[0, 1, false]], $this->channel->getCalls('basic_qos'));
+    }
+
+    public function testConnectDropsADeliveryHeldFromAnEarlierChannel(): void
+    {
+        $this->receiveOne();
+
+        // The entry reconnects without settling, which is what a worker that
+        // loops does. The held tag belongs to the channel just discarded, so
+        // settling it afterwards would acknowledge whatever the broker has
+        // since given that tag to.
+        AmqpQueueFixture::connect($this->application());
+
+        AmqpQueueFixture::settle(new JobFactory()->create('x'), JobResult::ACK, new InMemoryClient());
+
+        self::assertSame([], $this->channel->getCalls('basic_ack'));
+    }
+
+    public function testDisconnectDropsTheStateWhenACloseFails(): void
+    {
+        $this->channel->throwOnClose = true;
+
+        try {
+            AmqpQueueFixture::disconnect();
+        } catch (AMQPChannelClosedException) {
+            // The close failure is the caller's to see; what matters here is
+            // that the entry kept none of the state behind it
+        }
+
+        // A channel that stayed behind would be polled by the next run
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        AmqpQueueFixture::receive();
+    }
+
+    public function testDisconnectClosesTheChannelEvenWhenTheReleaseFails(): void
+    {
+        $this->receiveOne();
+
+        $this->channel->throwOnNack = true;
+
+        try {
+            AmqpQueueFixture::disconnect();
+        } catch (AMQPChannelClosedException) {
+            // The release failure is the caller's to see
+        }
+
+        // The connection reference is dropped either way, so a close skipped
+        // here leaks a socket that nothing can reach afterwards
+        self::assertCount(1, $this->channel->getCalls('close'));
     }
 
     public function testAPollFetchesFromTheConfiguredQueue(): void

@@ -28,6 +28,12 @@ final class AmqpChannelFixture extends AMQPChannel
 
     public bool $closed = false;
 
+    /** @var bool Whether `close` raises, as it does on a broker that went away */
+    public bool $throwOnClose = false;
+
+    /** @var bool Whether `basic_nack` raises, as it does on a broker that went away */
+    public bool $throwOnNack = false;
+
     /**
      * @noinspection PhpMissingParentConstructorInspection
      */
@@ -67,7 +73,7 @@ final class AmqpChannelFixture extends AMQPChannel
         $arguments = [],
         $ticket = null
     ) {
-        $this->calls[] = ['queue_declare', [$queue, $passive, $durable, $exclusive, $auto_delete]];
+        $this->calls[] = ['queue_declare', [$queue, $passive, $durable, $exclusive, $auto_delete, $nowait, $arguments, $ticket]];
 
         return [$queue, 0, 0];
     }
@@ -134,7 +140,7 @@ final class AmqpChannelFixture extends AMQPChannel
     #[Override]
     public function basic_nack($delivery_tag, $multiple = false, $requeue = false): void
     {
-        if ($this->closed) {
+        if ($this->closed || $this->throwOnNack) {
             throw new AMQPChannelClosedException('The channel is closed.');
         }
 
@@ -150,6 +156,10 @@ final class AmqpChannelFixture extends AMQPChannel
         $this->calls[] = ['close', []];
 
         $this->closed = true;
+
+        if ($this->throwOnClose) {
+            throw new AMQPChannelClosedException('The channel could not be closed.');
+        }
     }
 
     /**
