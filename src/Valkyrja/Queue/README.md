@@ -584,3 +584,7 @@ A broker adapter needs its own package, and the framework does not require one:
 | Adapter | Package         |
 | ------- | --------------- |
 | Redis   | `predis/predis` |
+
+`RedisQueue` moves an envelope between two lists in one step with `BLMOVE` and
+`LMOVE`, so a redis server of 6.2 or newer is required to consume. `RedisClient`
+publishes with `RPUSH` and `ZADD` alone, so a producer has no such floor.
