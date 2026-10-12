@@ -10,7 +10,7 @@ covers each in turn:
 
 - [Entry Points](#entry-points) — HTTP, CLI, and the persistent worker
   runtimes
-- [Configuration](#configuration) — the three config classes, environment
+- [Configuration](#configuration) — the config classes, environment
   sourcing, your own config class, and callbacks
 - [The Bootstrap Sequence](#the-bootstrap-sequence) — what `run()` does, step
   by step
@@ -637,9 +637,9 @@ list.
 
 ## Built-in Component Providers
 
-The framework ships five aggregators in `Valkyrja\Application\Provider`. Each
-declares framework components through `getComponentProviders()` and returns
-`[]` from the other five methods.
+The framework ships the following aggregators in
+`Valkyrja\Application\Provider`. Each declares framework components through
+`getComponentProviders()` and returns `[]` from every other method.
 
 | Provider                                  | Composition                                                                                         | Default for   |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------- |
@@ -661,6 +661,8 @@ Choose by application shape:
   a console entry is the common case.
 - `HttpApplicationComponentProvider` serves a web application; it has no CLI
   components.
+- `QueueApplicationComponentProvider` serves a queue consumer, which runs jobs
+  and carries neither an HTTP nor a CLI surface.
 
 List an aggregator alongside your own provider:
 
