@@ -377,11 +377,20 @@ host runtime that can keep working after the response.
 unacknowledged delivery, so the entry answers a retry from its own settlement
 and the client has nothing to hand back.
 
+`SqsClient` refuses `retry` and `requeue` with the same throwable, and for the
+same reason: the queue still holds the delivery, so the entry answers a retry by
+changing its visibility rather than by publishing again.
+
 `AmqpClient` publishes without a hold. AMQP carries no per-message delay, and
 giving it one needs a delay queue and a dead-letter exchange that the broker
 owner declares rather than the client. A job pushed with `delay_ms` is therefore
 consumable as soon as it lands. Every other broker client applies the hold at
 enqueue.
+
+`SqsClient` takes whole seconds, so a `delay_ms` below one second becomes no
+delay at all and the job is consumable at once. A retry hold rounds the other
+way: `SqsQueue` raises a sub-second hold to one second, because a visibility of
+zero would return the delivery with no hold.
 
 `AmqpClient` carries the job's priority onto the message, and a classic queue
 orders by it only when the broker gave the queue a priority bound. The framework
@@ -427,8 +436,13 @@ window itself: a receive moves the envelope onto an in-flight list in the same
 step that takes it off the ready list, and a settlement removes it from there
 last, so an interrupted settlement leaves a duplicate delivery rather than none.
 An envelope no factory can read is parked on an unreadable list instead of being
-discarded. Every other processor has the broker return an unacknowledged
-delivery on its own.
+discarded. A broker that owns its own acknowledgement returns an unacknowledged
+delivery by itself, so only redis needs the list.
+
+Warning: `SqsQueue` deletes a body no factory can read rather than parking it.
+Nothing settles an unreadable body, so SQS would hand the same message back on
+every visibility timeout, and a queue with no redrive policy has nothing to end
+that. Give the queue a redrive policy to keep a copy of what was deleted.
 
 The in-flight list belongs to one worker slot, named by
 `queueRedisClientWorkerName`. That
@@ -628,6 +642,12 @@ itself.
 Warning: the long-poll wait is also how long a worker can overrun `maxSeconds`,
 because the loop reads its bounds only between receives. Lower it when a worker
 has to stop promptly, and pay for the extra receives.
+
+Warning: the receive sends no visibility timeout, because the queue's own
+setting belongs to the operator. The SQS default is 30 seconds, so a job that
+runs longer than that loses its delivery: SQS hands the same message to a second
+worker while the first still runs, and both settle it. Set the queue's
+visibility timeout above the longest job it carries.
 
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
