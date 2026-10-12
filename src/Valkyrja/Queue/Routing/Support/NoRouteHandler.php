@@ -20,12 +20,7 @@ use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingNoRouteHandlerExcepti
 final class NoRouteHandler
 {
     /**
-     * Stand in for a handler the author did not supply.
-     *
-     * A route cannot be built without a handler, and the collector rejects a
-     * route that still carries this one, so reaching it means a route was
-     * built by hand with none. It throws rather than acknowledging, because
-     * an acknowledgement destroys the job it was given.
+     * Throw instead of acknowledging, because a route built without a handler must not destroy the job.
      *
      * @throws QueueRoutingNoRouteHandlerException
      */

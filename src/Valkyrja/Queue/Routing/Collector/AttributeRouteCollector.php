@@ -86,12 +86,9 @@ class AttributeRouteCollector implements RouteCollectorContract
 
         $handler = $routeHandler->handler ?? null;
 
-        // A route with no handler would otherwise keep the attribute's
-        // sentinel and fail only once a job reaches it, so the collection
-        // rejects it at boot, where the class and the method are still known
+        // Reject a handlerless route at boot, because the sentinel would otherwise fail only when a job arrives.
         if ($handler === null) {
-            // The route name is not final here, because updateName runs after
-            // this, so the class and the method are what identify the site
+            // updateName runs after this, so the route name is not final yet.
             throw new QueueRoutingNoRouteHandlerException(
                 $class . '::' . $method . ' carries no ' . RouteHandler::class . ' attribute'
             );

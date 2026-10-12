@@ -35,10 +35,7 @@ final class RouteTest extends TestCase
 
         $handler = $route->getHandler();
 
-        // The collector rejects a route that still carries the sentinel, so
-        // reaching it means a route was built by hand with no handler. It
-        // throws rather than acknowledging, because an acknowledgement
-        // destroys the job it was given
+        // Reaching the sentinel means a route was built by hand with no handler.
         $this->expectException(QueueRoutingNoRouteHandlerException::class);
         $this->expectExceptionMessage('Route `' . self::NAME . '` carries no handler');
 
