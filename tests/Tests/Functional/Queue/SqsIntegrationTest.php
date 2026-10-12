@@ -146,9 +146,8 @@ final class SqsIntegrationTest extends TestCase
         );
 
         self::assertSame([JobResult::RETRY], ResultLogMiddlewareFixture::getResults($job->getId()));
-        // A processor-owned retry is not a re-publish, so the client is untouched
-        self::assertCount(1, $client->getPushed());
-        // The queue made it visible again rather than dropping it
+        // What only a live queue can show: the broker made the delivery visible
+        // again off a zero visibility timeout, rather than dropping it
         self::assertNotNull($this->poll());
     }
 
@@ -227,7 +226,7 @@ final class SqsIntegrationTest extends TestCase
                     $this->sqs->deleteMessage([
                         'QueueUrl'      => $this->queueUrl,
                         'ReceiptHandle' => $handle,
-                    ]);
+                    ])->resolve();
 
                     $deleted++;
                 }
