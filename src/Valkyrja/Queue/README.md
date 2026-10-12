@@ -113,14 +113,16 @@ A component provider returns its queue route providers from its
 `getQueueProviders()` method.
 
 A controller declares a route with `Valkyrja\Queue\Routing\Attribute\Route`
-on a method. The attribute takes the job name and a description.
-`Route\RouteHandler` names the callable that runs, `Route\Name` prefixes the
-job name, and `Route\Middleware` adds middleware to one stage.
+on a method. The attribute takes the job name, a description, and the handler.
+The modifier attributes carry the same settings on their own line, which keeps
+a route with several of them readable: `Route\RouteHandler` names the handler,
+`Route\Name` prefixes the job name, and `Route\Middleware` adds middleware to
+one stage.
 
-Each route needs its own `RouteHandler`. The collection rejects a route that
-names no handler, and the failure names the class and the method, so a
-forgotten `RouteHandler` stops the boot rather than acknowledging each job it
-receives.
+A route names its handler with `Route\RouteHandler` or with the `handler`
+argument of `Route`. The collector rejects a route that names neither, and the
+failure names the class and the method, so a forgotten handler stops the boot
+rather than acknowledging each job it receives.
 
 ```php
 #[Name('acme')]
