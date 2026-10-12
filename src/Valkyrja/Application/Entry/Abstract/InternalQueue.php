@@ -103,12 +103,6 @@ abstract class InternalQueue extends WorkerQueue
 
     /**
      * @inheritDoc
-     *
-     * The outcome is capped before the settling stage reads it. A broker answers
-     * a worker shutdown by handing the job to another worker, so the retry
-     * policy spends no attempt on it and the handler leaves the ceiling alone.
-     * There is no other worker in process, so this entry ends the chain itself
-     * rather than dropping the job with a retry as its last word.
      */
     #[Override]
     public static function handleJob(
