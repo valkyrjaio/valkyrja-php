@@ -249,9 +249,9 @@ processor. An entry such as `Valkyrja\Application\Entry\Redis\RedisQueue`
 implements `connect`, `receive`, `disconnect`, and `settle`, and inherits the
 loop.
 
-The config of a redis worker satisfies two contracts. It extends `QueueConfig`
-for `QueueConfigContract`, and it implements `QueueRedisClientConfigContract` to
-name the server and this worker's own slot:
+The config of a redis worker extends `QueueConfig` for `QueueConfigContract`,
+and it implements `QueueRedisClientConfigContract` to name the server and this
+worker's own slot:
 
 ```php
 // app/src/Queue/WorkerConfig.php
@@ -262,6 +262,12 @@ use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
 
 final class WorkerConfig extends QueueConfig implements QueueRedisClientConfigContract
 {
+    /**
+     * @param non-empty-string $dir                        The base path of the application
+     * @param non-empty-string $queueRedisClientWorkerName The name of this worker's slot
+     * @param non-empty-string $queueRedisClientHost       The host to connect to
+     * @param non-empty-string $queueRedisClientQueue      The list key jobs are pushed onto
+     */
     public function __construct(
         string $dir,
         public string $queueRedisClientWorkerName = 'default',
