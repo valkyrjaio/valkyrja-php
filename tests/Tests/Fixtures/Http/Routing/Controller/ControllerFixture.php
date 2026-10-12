@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Fixtures\Http\Routing\Controller;
 
+use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Http\Message\Response\Contract\ResponseContract;
 use Valkyrja\Http\Message\Response\Factory\Contract\ResponseFactoryContract;
 use Valkyrja\Http\Message\Response\Response;
@@ -26,6 +27,7 @@ use Valkyrja\Http\Routing\Attribute\Route\RequestStruct;
 use Valkyrja\Http\Routing\Attribute\Route\ResponseStruct;
 use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Http\Routing\Constant\Regex;
+use Valkyrja\Http\Routing\Data\Contract\RouteContract;
 use Valkyrja\Tests\Fixtures\Http\Middleware\ResponseSentMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Http\Middleware\RouteDispatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Http\Middleware\RouteMatchedMiddlewareFixture;
@@ -61,6 +63,11 @@ final class ControllerFixture
     /** @var non-empty-string */
     public const string DYNAMIC_PARAMETER_NAME2 = 'bar';
 
+    public static function handler(ContainerContract $container, RouteContract $route): ResponseContract
+    {
+        return Response::create('handled');
+    }
+
     #[DynamicRoute(
         path: self::DYNAMIC_PATH,
         name: self::DYNAMIC_NAME,
@@ -68,6 +75,7 @@ final class ControllerFixture
             new Parameter(name: self::DYNAMIC_PARAMETER_NAME, regex: Regex::ALPHA, cast: new Cast(TypeContract::class)),
         ]
     )]
+    #[RouteHandler([self::class, 'handler'])]
     #[Middleware(RouteDispatchedMiddlewareFixture::class)]
     #[Middleware(RouteMatchedMiddlewareFixture::class)]
     #[Middleware(SendingResponseMiddlewareFixture::class)]
@@ -87,6 +95,7 @@ final class ControllerFixture
     }
 
     #[Route(path: self::WELCOME_PATH, name: self::WELCOME_NAME)]
+    #[RouteHandler([self::class, 'handler'])]
     public function welcome(): ResponseContract
     {
         return Response::create('welcome');

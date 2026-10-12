@@ -12,10 +12,9 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Unit\Http\Routing\Attribute;
 
-use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Http\Message\Enum\RequestMethod;
-use Valkyrja\Http\Message\Response\Contract\ResponseContract;
 use Valkyrja\Http\Routing\Attribute\Route;
+use Valkyrja\Http\Routing\Support\NoRouteHandler;
 use Valkyrja\Tests\Fixtures\Http\Middleware\ResponseSentMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Http\Middleware\RouteDispatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Http\Middleware\RouteMatchedMiddlewareFixture;
@@ -50,14 +49,13 @@ final class RouteTest extends TestCase
         self::assertNotContains(RequestMethod::CONNECT, $route->getRequestMethods());
     }
 
-    public function testDefaultHandlerReturnsResponse(): void
+    public function testTheDefaultHandlerIsRecognizable(): void
     {
         $route = new Route(path: '/', name: 'test');
 
-        $handler  = $route->getHandler();
-        $response = $handler(self::createStub(ContainerContract::class), $route);
-
-        self::assertInstanceOf(ResponseContract::class, $response);
+        // A closure cannot be told apart from any other, so the stand-in is an
+        // object a caller can test for
+        self::assertInstanceOf(NoRouteHandler::class, $route->getHandler());
     }
 
     public function testPath(): void

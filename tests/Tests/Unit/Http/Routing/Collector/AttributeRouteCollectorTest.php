@@ -15,6 +15,7 @@ namespace Valkyrja\Tests\Unit\Http\Routing\Collector;
 use ReflectionException;
 use Valkyrja\Http\Routing\Collector\AttributeRouteCollector;
 use Valkyrja\Http\Routing\Data\Contract\DynamicRouteContract;
+use Valkyrja\Http\Routing\Throwable\Exception\HttpRoutingNoRouteHandlerException;
 use Valkyrja\Tests\Fixtures\Http\Middleware\AllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Http\Middleware\ResponseSentMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Http\Middleware\RouteDispatchedMiddlewareFixture;
@@ -23,6 +24,8 @@ use Valkyrja\Tests\Fixtures\Http\Middleware\SendingResponseMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Http\Middleware\ThrowableCaughtMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Http\Routing\Controller\ControllerAttributedFixture;
 use Valkyrja\Tests\Fixtures\Http\Routing\Controller\ControllerFixture;
+use Valkyrja\Tests\Fixtures\Http\Routing\Controller\ControllerMissingHandlerFixture;
+use Valkyrja\Tests\Fixtures\Http\Routing\Controller\ControllerPartialHandlerFixture;
 use Valkyrja\Tests\Fixtures\Http\Routing\Controller\ControllerWithAllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Http\Routing\Controller\RoutingCombinationsControllerFixture;
 use Valkyrja\Tests\Fixtures\Http\Routing\Provider\RouteProviderFixture;
@@ -87,6 +90,34 @@ final class AttributeRouteCollectorTest extends TestCase
         self::assertSame(ControllerFixture::DYNAMIC_PARAMETER_NAME2, $dynamicRoute->getParameters()[1]->getName());
     }
 
+    public function testRejectsARouteThatNamesNoHandler(): void
+    {
+        // Without this the route would keep the attribute's stand-in and fail
+        // only once a request reached it, long after the author could act on it
+        $this->expectException(HttpRoutingNoRouteHandlerException::class);
+        $this->expectExceptionMessage(
+            'Route `no-handler` on ' . ControllerMissingHandlerFixture::class . '::noHandler names no handler'
+        );
+
+        new AttributeRouteCollector()->getRoutes(ControllerMissingHandlerFixture::class);
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    public function testNamesTheRejectedRouteWhenTheMethodRepeatsTheAttribute(): void
+    {
+        // One method declares a route for each attribute it repeats, so the class
+        // and the method alone would not say which of them names no handler
+        $this->expectException(HttpRoutingNoRouteHandlerException::class);
+        $this->expectExceptionMessage(
+            'Route `' . ControllerPartialHandlerFixture::BARE_NAME . '` on '
+            . ControllerPartialHandlerFixture::class . '::repeated names no handler'
+        );
+
+        new AttributeRouteCollector()->getRoutes(ControllerPartialHandlerFixture::class);
+    }
+
     /**
      * @throws ReflectionException
      */
@@ -94,13 +125,21 @@ final class AttributeRouteCollectorTest extends TestCase
     {
         $routes = new AttributeRouteCollector()->getRoutes(ControllerAttributedFixture::class);
 
-        self::assertCount(1, $routes);
+        self::assertCount(2, $routes);
 
         $welcomeRoute = $routes[0];
 
         self::assertSame('/controller/welcome/path', $welcomeRoute->getPath());
         self::assertSame('controller.' . ControllerAttributedFixture::WELCOME_NAME . '.name', $welcomeRoute->getName());
+        // Each route names its handler through the attribute's own argument and
+        // carries no RouteHandler attribute, so the collector keeps both
         self::assertSame([ControllerAttributedFixture::class, 'welcomeHandler'], $welcomeRoute->getHandler());
+
+        $showRoute = $routes[1];
+
+        self::assertInstanceOf(DynamicRouteContract::class, $showRoute);
+        self::assertSame('/controller/show/{id}', $showRoute->getPath());
+        self::assertSame([ControllerAttributedFixture::class, 'showHandler'], $showRoute->getHandler());
     }
 
     /**
