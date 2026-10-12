@@ -18,6 +18,7 @@ use Override;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientRedeliveryNotSupportedException;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -79,6 +80,19 @@ class SqsClient extends Client
     /**
      * @inheritDoc
      *
+     * @throws QueueClientRedeliveryNotSupportedException
+     */
+    #[Override]
+    public function retry(JobContract $job, int $delayMs): void
+    {
+        throw new QueueClientRedeliveryNotSupportedException(
+            'The SQS queue owns redelivery, so a job cannot be retried through this client'
+        );
+    }
+
+    /**
+     * @inheritDoc
+     *
      * @throws JsonException
      */
     #[Override]
@@ -92,14 +106,6 @@ class SqsClient extends Client
             'MessageBody'  => $this->factory->toJson($job),
             'DelaySeconds' => $this->getDelaySeconds($job->getDelayMs()),
         ])->resolve();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    #[Override]
-    protected function republish(JobContract $job, int $delayMs): void
-    {
     }
 
     /**
