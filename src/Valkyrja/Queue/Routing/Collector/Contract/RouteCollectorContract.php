@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Queue\Routing\Collector\Contract;
 
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
+use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingNoRouteHandlerException;
 
 interface RouteCollectorContract
 {
@@ -20,6 +21,8 @@ interface RouteCollectorContract
      * Get the routes declared by the given handler classes.
      *
      * @param class-string ...$classes The classes
+     *
+     * @throws QueueRoutingNoRouteHandlerException
      *
      * @return RouteContract[]
      */

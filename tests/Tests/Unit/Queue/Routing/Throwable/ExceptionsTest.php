@@ -16,6 +16,9 @@ use Throwable;
 use Valkyrja\Queue\Routing\Throwable\Contract\QueueRoutingThrowable;
 use Valkyrja\Queue\Routing\Throwable\Exception\Abstract\QueueRoutingInvalidArgumentException;
 use Valkyrja\Queue\Routing\Throwable\Exception\Abstract\QueueRoutingRuntimeException;
+use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingInvalidRouteNameException;
+use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingNoRouteHandlerException;
+use Valkyrja\Queue\Throwable\Contract\QueueNonRetryableThrowable;
 use Valkyrja\Queue\Throwable\Contract\QueueThrowable;
 use Valkyrja\Queue\Throwable\Exception\Abstract\QueueInvalidArgumentException;
 use Valkyrja\Queue\Throwable\Exception\Abstract\QueueRuntimeException;
@@ -39,5 +42,16 @@ final class ExceptionsTest extends TestCase
     {
         self::isA(QueueRoutingThrowable::class, QueueRoutingRuntimeException::class);
         self::isA(QueueRuntimeException::class, QueueRoutingRuntimeException::class);
+    }
+
+    public function testInvalidRouteNameException(): void
+    {
+        self::isA(QueueRoutingInvalidArgumentException::class, QueueRoutingInvalidRouteNameException::class);
+    }
+
+    public function testNoRouteHandlerException(): void
+    {
+        self::isA(QueueRoutingRuntimeException::class, QueueRoutingNoRouteHandlerException::class);
+        self::isA(QueueNonRetryableThrowable::class, QueueRoutingNoRouteHandlerException::class);
     }
 }

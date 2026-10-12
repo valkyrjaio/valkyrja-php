@@ -112,6 +112,42 @@ application names those classes and contributes routes in code.
 A component provider returns its queue route providers from its
 `getQueueProviders()` method.
 
+A controller declares a route with `Valkyrja\Queue\Routing\Attribute\Route`
+on a method. The attribute takes the job name, a description, the handler, and
+a middleware array for each stage a route supports. `JobReceived` runs before
+routing and `RouteNotMatched` runs when there is no route, so those two take
+their middleware from the application config instead.
+
+Three modifier attributes keep a route with several settings readable, each on
+its own line. `Route\RouteHandler` names the handler. `Route\Middleware` adds
+a middleware class to every stage whose contract that class implements.
+`Route\Name` on the class prefixes the job name, and on the method it
+suffixes it.
+
+A route names its handler with `Route\RouteHandler` or with the `handler`
+argument of `Route`. A `RouteHandler` wins when a route carries both. The
+collector rejects a route that names neither, and the failure names the class
+and the method, so a forgotten handler stops the boot rather than acknowledging
+each job it receives.
+
+```php
+#[Name('acme')]
+final class SendWelcomeEmailHandler
+{
+    public static function handle(ContainerContract $container, RouteContract $route): JobResult
+    {
+        return JobResult::ACK;
+    }
+
+    #[Route(name: 'SendWelcomeEmail', description: 'Send the welcome email')]
+    #[RouteHandler([self::class, 'handle'])]
+    public function sendWelcomeEmail(): JobResult
+    {
+        return JobResult::ACK;
+    }
+}
+```
+
 `Valkyrja\Queue\Routing\Data\QueueRoutingData` is the generated cache of that
 collection, so a production boot reads the routes from a data class instead of
 gathering them again.

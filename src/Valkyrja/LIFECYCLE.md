@@ -107,7 +107,7 @@ through the component providers listed in your configuration's `providers`
 array. Each component provider is asked for its container service providers,
 which are registered into the container's deferred service map. Routes and
 events are loaded the same way via `getHttpProviders()`, `getCliProviders()`,
-and `getEventProviders()`.
+`getQueueProviders()`, and `getEventProviders()`.
 
 No services are instantiated at this stage — the container only builds a map of
 what exists and how to create it. Services are resolved lazily, on first access.

@@ -14,9 +14,10 @@ namespace Valkyrja\Tests\Fixtures\Application\Provider;
 
 use Override;
 use Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract;
+use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\JobControllerFixture;
 
 /**
- * A queue route provider that contributes no controllers and no routes.
+ * A queue route provider that contributes one controller and no routes.
  */
 final class QueueRouteProviderFixture implements QueueRouteProviderContract
 {
@@ -26,7 +27,9 @@ final class QueueRouteProviderFixture implements QueueRouteProviderContract
     #[Override]
     public function getControllerClasses(): array
     {
-        return [];
+        return [
+            JobControllerFixture::class,
+        ];
     }
 
     /**
