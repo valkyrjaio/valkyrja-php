@@ -836,6 +836,32 @@ wrapped in their `Valkyrja\Type` objects instead of converting to native
 values. For a parameter that holds no cast, `getCastValues()` returns the raw
 strings, and `ParameterContract::getValues()` returns them without a caster.
 
+An application that casts to its own type binds that type under the key the cast
+names. The factory reads the raw value under `CastArgument::VALUE`, and it
+returns a `TypeContract`, which the application type implements:
+
+```php
+use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Type\Constant\CastArgument;
+use Valkyrja\Type\Throwable\Exception\TypeMissingCastArgumentException;
+
+$container->bind(
+    Slug::class,
+    static fn (ContainerContract $container, array $arguments): Slug => Slug::fromValue(
+        $arguments[CastArgument::VALUE]
+            ?? throw new TypeMissingCastArgumentException('A slug takes a value')
+    )
+);
+```
+
+Warning: a factory that reads the argument without a guard builds the type from
+`null`, because PHP yields `null` for a missing key. PHP also raises an
+`Undefined array key` warning, which an error handler turns into an exception at
+a place that names neither the cast nor the key. The framework raises
+`TypeMissingCastArgumentException` for its own types, and a binding of an
+application type guards it too. The `??` above raises for a `null` that the
+caller passed on purpose, where the framework's own guard accepts one.
+
 See [the type component](../Type/README.md) for the binding rules of a cast
 type.
 
