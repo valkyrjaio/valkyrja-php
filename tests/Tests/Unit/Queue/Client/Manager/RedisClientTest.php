@@ -100,9 +100,9 @@ final class RedisClientTest extends TestCase
 
     public function testRetryAppliesTheSuppliedHoldRatherThanDerivingOne(): void
     {
-        // The re-queuer owns the ramp, so the client must not read the job's own
-        // retry fields — deriving from these would give 750, and the producer's
-        // delay is intent recorded at first publish that must not re-fire
+        // requeue() derives the hold and hands it over, so retry() must apply
+        // what it was given — deriving from these would give 750, and the
+        // producer's delay is intent at first publish that must not re-fire
         $job = new Job(
             name: self::NAME,
             attempts: 3,
