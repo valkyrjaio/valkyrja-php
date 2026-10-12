@@ -114,10 +114,13 @@ A component provider returns its queue route providers from its
 
 A controller declares a route with `Valkyrja\Queue\Routing\Attribute\Route`
 on a method. The attribute takes the job name, a description, the handler, and
-a middleware array for each stage. Each modifier attribute puts one of those on
-its own line, which keeps a route with several of them readable.
-`Route\RouteHandler` names the handler, and `Route\Middleware` adds a
-middleware class to every stage whose contract that class implements.
+a middleware array for each stage a route supports. `JobReceived` runs before
+routing and `RouteNotMatched` runs when there is no route, so those two take
+their middleware from the application config instead. Each modifier attribute
+puts one of those settings on its own line, which keeps a route with several
+of them readable. `Route\RouteHandler` names the handler, and
+`Route\Middleware` adds a middleware class to every stage whose contract that
+class implements.
 `Route\Name` is the one modifier that sets nothing on its own: on the class it
 prefixes the job name, and on the method it suffixes it.
 
