@@ -181,9 +181,9 @@ class SqsQueue extends PullQueue
             return;
         }
 
-        // A dead letter is terminal here as well. SQS moves a message to the
-        // dead-letter queue through the redrive policy, on the receive count,
-        // so the framework deleting it is what stops the chain.
+        // A dead letter is terminal here as well, and the delete is what ends
+        // the chain. SQS routes to a dead-letter queue on the receive count, at
+        // receive time, so a message deleted here never reaches one.
         static::delete($handle);
     }
 
