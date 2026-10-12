@@ -661,6 +661,8 @@ Choose by application shape:
   a console entry is the common case.
 - `HttpApplicationComponentProvider` serves a web application; it has no CLI
   components.
+- `QueueApplicationComponentProvider` serves a queue consumer, which runs jobs
+  and carries neither an HTTP nor a CLI surface.
 
 List an aggregator alongside your own provider:
 
