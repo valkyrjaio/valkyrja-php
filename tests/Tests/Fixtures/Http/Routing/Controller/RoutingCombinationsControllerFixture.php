@@ -12,11 +12,14 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Fixtures\Http\Routing\Controller;
 
+use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Http\Message\Response\Contract\ResponseContract;
 use Valkyrja\Http\Message\Response\Response;
 use Valkyrja\Http\Routing\Attribute\DynamicRoute;
 use Valkyrja\Http\Routing\Attribute\Parameter;
+use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Http\Routing\Constant\Regex;
+use Valkyrja\Http\Routing\Data\Contract\RouteContract;
 
 /**
  * Exercises a matrix of attribute-defined dynamic routes against direct construction.
@@ -58,6 +61,11 @@ final class RoutingCombinationsControllerFixture
     /** @var non-empty-string */
     public const string MULTI_REGEX = '/^\/multi\/(?<x>\d+)\/(?<y>[a-zA-Z]+)$/';
 
+    public static function handler(ContainerContract $container, RouteContract $route): ResponseContract
+    {
+        return Response::create('handled');
+    }
+
     #[DynamicRoute(
         path: self::NUM_PATH,
         name: self::NUM_NAME,
@@ -65,6 +73,7 @@ final class RoutingCombinationsControllerFixture
             new Parameter(name: 'id', regex: Regex::NUM),
         ]
     )]
+    #[RouteHandler([self::class, 'handler'])]
     public function num(): ResponseContract
     {
         return Response::create('num');
@@ -77,6 +86,7 @@ final class RoutingCombinationsControllerFixture
             new Parameter(name: 'slug', regex: Regex::SLUG),
         ]
     )]
+    #[RouteHandler([self::class, 'handler'])]
     public function slug(): ResponseContract
     {
         return Response::create('slug');
@@ -89,6 +99,7 @@ final class RoutingCombinationsControllerFixture
             new Parameter(name: 'opt', regex: Regex::ALPHA, isOptional: true),
         ]
     )]
+    #[RouteHandler([self::class, 'handler'])]
     public function optional(): ResponseContract
     {
         return Response::create('optional');
@@ -101,6 +112,7 @@ final class RoutingCombinationsControllerFixture
             new Parameter(name: 'nc', regex: Regex::ALPHA, shouldCapture: false),
         ]
     )]
+    #[RouteHandler([self::class, 'handler'])]
     public function nonCapture(): ResponseContract
     {
         return Response::create('nonCapture');
@@ -114,6 +126,7 @@ final class RoutingCombinationsControllerFixture
             new Parameter(name: 'y', regex: Regex::ALPHA),
         ]
     )]
+    #[RouteHandler([self::class, 'handler'])]
     public function multi(): ResponseContract
     {
         return Response::create('multi');

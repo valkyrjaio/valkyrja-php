@@ -21,6 +21,7 @@ use Valkyrja\Http\Routing\Throwable\Exception\HttpRoutingInvalidParameterRegexEx
 use Valkyrja\Http\Routing\Throwable\Exception\HttpRoutingInvalidRouteNameException;
 use Valkyrja\Http\Routing\Throwable\Exception\HttpRoutingInvalidRouteParameterException;
 use Valkyrja\Http\Routing\Throwable\Exception\HttpRoutingInvalidRoutePathException;
+use Valkyrja\Http\Routing\Throwable\Exception\HttpRoutingNoRouteHandlerException;
 use Valkyrja\Http\Throwable\Contract\HttpThrowable;
 use Valkyrja\Http\Throwable\Exception\Abstract\HttpRuntimeException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -68,5 +69,10 @@ final class ExceptionsTest extends TestCase
     public function testInvalidRoutePathException(): void
     {
         self::isA(HttpRoutingInvalidArgumentException::class, HttpRoutingInvalidRoutePathException::class);
+    }
+
+    public function testNoRouteHandlerException(): void
+    {
+        self::isA(HttpRoutingRuntimeException::class, HttpRoutingNoRouteHandlerException::class);
     }
 }

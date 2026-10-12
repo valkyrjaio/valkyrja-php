@@ -313,10 +313,11 @@ class UserController
 ```
 
 The attribute declares the route. It does not make the framework call the
-routed method. The route's [handler](#route-handlers) makes that call. A
-route without a handler returns an empty `Response`. Wire the handler with
-`#[RouteHandler]`, as every routed method in this README does. The named
-handlers follow the `indexHandler` and `showHandler` pattern from
+routed method. The route's [handler](#route-handlers) makes that call. Each
+route needs its own handler. The collector rejects an attributed route that
+names none. Wire the handler with `#[RouteHandler]`, as every routed method
+in this README does. The named handlers follow the `indexHandler` and
+`showHandler` pattern from
 [pre-built routes](#pre-built-routes-from-getroutes). A handler reads the
 matched values from the route and calls the routed method with them.
 
@@ -341,14 +342,18 @@ arguments.
 
 Every route has a handler with the signature
 `callable(ContainerContract $container, RouteContract $route): ResponseContract`.
-The handler resolves the controller with `ContainerContract::get()` and calls
-it. `get()` returns the registered service, and it throws
+An attribute takes the handler as a `[$class, $method]` pair, and PHP accepts
+that pair as a `callable` only for a public static method, so a handler named
+in an attribute is public and static. The handler resolves the controller with
+`ContainerContract::get()` and calls it. `get()` returns the registered service, and it throws
 `ContainerInvalidReferenceException` when nothing registered the id, so every
 controller that a handler resolves needs a service registration.
 [Pre-built routes](#pre-built-routes-from-getroutes) shows the provider that
-binds `UserController`. A route without a handler returns an empty `Response`.
-Wire a handler with `#[RouteHandler([UserRouteProvider::class, 'showHandler'])]`
-on the routed method, or pass the `handler` argument of `#[Route]` directly:
+binds `UserController`. Each route needs its own handler. The collector
+throws `HttpRoutingNoRouteHandlerException` for an attributed route that
+names none, and the message names the class and the method. Wire a handler
+with `#[RouteHandler([UserRouteProvider::class, 'showHandler'])]` on the
+routed method, or pass the `handler` argument of `#[Route]` directly:
 
 ```php
 use Valkyrja\Http\Routing\Attribute\Route;

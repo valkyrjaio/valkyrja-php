@@ -41,6 +41,8 @@ use Valkyrja\Http\Routing\Data\Route;
 use Valkyrja\Http\Routing\Factory\RouteFactory;
 use Valkyrja\Http\Routing\Processor\Contract\ProcessorContract;
 use Valkyrja\Http\Routing\Processor\Processor;
+use Valkyrja\Http\Routing\Support\NoRouteHandler;
+use Valkyrja\Http\Routing\Throwable\Exception\HttpRoutingNoRouteHandlerException;
 use Valkyrja\Http\Struct\Request\Contract\RequestStructContract;
 use Valkyrja\Http\Struct\Response\Contract\ResponseStructContract;
 use Valkyrja\Reflection\Reflector\Contract\ReflectorContract;
@@ -177,6 +179,7 @@ class AttributeRouteCollector implements RouteCollectorContract
      * @param non-empty-string $method The method name
      *
      * @throws ReflectionException
+     * @throws HttpRoutingNoRouteHandlerException
      */
     protected function updateHandler(Route $route, string $class, string $method): Route
     {
@@ -184,10 +187,17 @@ class AttributeRouteCollector implements RouteCollectorContract
         $routeHandlers = $this->attributes->forMethod($class, $method, RouteHandler::class);
         $routeHandler  = $routeHandlers[0] ?? null;
 
-        $handler = $routeHandler->handler ?? null;
+        // The route attribute's own handler argument supplies a handler too, so
+        // the route carries one already unless the author named none
+        $handler = $routeHandler->handler ?? $route->getHandler();
 
-        if ($handler === null) {
-            return $route;
+        // A route that keeps the stand-in fails only when a request reaches it,
+        // so the collector rejects it here
+        if ($handler instanceof NoRouteHandler) {
+            throw new HttpRoutingNoRouteHandlerException(
+                'Route `' . $route->getName() . '` on ' . $class . '::' . $method
+                . ' names no handler'
+            );
         }
 
         return $route->withHandler($handler);
