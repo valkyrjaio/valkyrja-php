@@ -17,6 +17,7 @@ use Valkyrja\Queue\Client\Throwable\Contract\QueueClientThrowable;
 use Valkyrja\Queue\Client\Throwable\Exception\Abstract\QueueClientInvalidArgumentException;
 use Valkyrja\Queue\Client\Throwable\Exception\Abstract\QueueClientRuntimeException;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientConfigNotFoundException;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientRedeliveryNotSupportedException;
 use Valkyrja\Queue\Client\Throwable\Exception\QueueClientSyncJobFailedException;
 use Valkyrja\Queue\Throwable\Contract\QueueThrowable;
 use Valkyrja\Queue\Throwable\Exception\Abstract\QueueInvalidArgumentException;
@@ -51,5 +52,10 @@ final class ExceptionsTest extends TestCase
     public function testConfigNotFoundException(): void
     {
         self::isA(QueueClientRuntimeException::class, QueueClientConfigNotFoundException::class);
+    }
+
+    public function testRedeliveryNotSupportedException(): void
+    {
+        self::isA(QueueClientRuntimeException::class, QueueClientRedeliveryNotSupportedException::class);
     }
 }

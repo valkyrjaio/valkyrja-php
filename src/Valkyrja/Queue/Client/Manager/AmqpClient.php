@@ -19,6 +19,7 @@ use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientRedeliveryNotSupportedException;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -61,6 +62,19 @@ class AmqpClient extends Client
     /**
      * @inheritDoc
      *
+     * @throws QueueClientRedeliveryNotSupportedException
+     */
+    #[Override]
+    public function retry(JobContract $job, int $delayMs): void
+    {
+        throw new QueueClientRedeliveryNotSupportedException(
+            'The AMQP broker owns redelivery, so a job cannot be retried through this client'
+        );
+    }
+
+    /**
+     * @inheritDoc
+     *
      * @throws JsonException
      */
     #[Override]
@@ -77,14 +91,6 @@ class AmqpClient extends Client
         );
 
         $this->getChannel()->basic_publish($message, $this->exchange, $this->queue);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    #[Override]
-    protected function republish(JobContract $job, int $delayMs): void
-    {
     }
 
     /**

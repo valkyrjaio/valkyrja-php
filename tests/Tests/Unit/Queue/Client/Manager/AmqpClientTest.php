@@ -15,6 +15,7 @@ namespace Valkyrja\Tests\Unit\Queue\Client\Manager;
 use Override;
 use PhpAmqpLib\Message\AMQPMessage;
 use Valkyrja\Queue\Client\Manager\AmqpClient;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientRedeliveryNotSupportedException;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
@@ -137,21 +138,30 @@ final class AmqpClientTest extends TestCase
         self::assertSame(255, $this->channel->getCalls('basic_publish')[0][0]->get('priority'));
     }
 
-    public function testRetryPublishesNothing(): void
-    {
-        $this->client()->retry(new Job(name: self::NAME, attempts: 2), 0);
-
-        // The broker still holds the unacknowledged delivery, so publishing
-        // again would duplicate the job rather than retry it
-        self::assertSame([], $this->channel->getCalls('basic_publish'));
-    }
-
-    public function testRetryStillRecordsTheHandover(): void
+    public function testRetryIsRefusedBecauseTheBrokerOwnsRedelivery(): void
     {
         $client = $this->client();
-        $client->retry(new Job(name: self::NAME, attempts: 2), 0);
 
-        self::assertCount(1, $client->getPushed());
+        try {
+            $client->retry(new Job(name: self::NAME, attempts: 2), 0);
+
+            self::fail('The client accepted a retry it cannot carry out.');
+        } catch (QueueClientRedeliveryNotSupportedException) {
+            // The broker still holds the unacknowledged delivery, so there is
+            // nothing here to hand back
+        }
+
+        // Publishing again would duplicate the job, and recording a handover
+        // that never happened would report a job this client no longer has
+        self::assertSame([], $this->channel->getCalls('basic_publish'));
+        self::assertSame([], $client->getPushed());
+    }
+
+    public function testRequeueIsRefusedForTheSameReason(): void
+    {
+        $this->expectException(QueueClientRedeliveryNotSupportedException::class);
+
+        $this->client()->requeue(new Job(name: self::NAME, attempts: 2));
     }
 
     protected function client(): AmqpClient
