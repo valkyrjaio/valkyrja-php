@@ -13,7 +13,6 @@ declare(strict_types=1);
 namespace Valkyrja\Queue\Client\Provider;
 
 use Override;
-use Pheanstalk\Pheanstalk;
 use PhpAmqpLib\Connection\AMQPLazyConnection;
 use Predis\Client;
 use Valkyrja\Application\Data\Contract\ConfigContract;
@@ -327,7 +326,7 @@ class QueueClientServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             BeanstalkdClient::class,
             new BeanstalkdClient(
-                pheanstalk: Pheanstalk::create($config->queueBeanstalkdClientHost, $config->queueBeanstalkdClientPort),
+                pheanstalk: BeanstalkdClient::createPheanstalk($config),
                 tube: $config->queueBeanstalkdClientTube,
                 timeToRelease: $config->queueBeanstalkdClientTimeToRelease,
                 applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
