@@ -12,9 +12,9 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Unit\Cli\Routing\Attribute;
 
-use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Container\Manager\Contract\ContainerContract;
+use Valkyrja\Cli\Routing\Support\NoRouteHandler;
+use Valkyrja\Tests\Fixtures\Cli\Routing\Command\CommandFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 /**
@@ -30,13 +30,21 @@ final class RouteTest extends TestCase
         self::assertSame('A test command', $route->getDescription());
     }
 
-    public function testDefaultHandlerReturnsOutput(): void
+    public function testTheStandInIsRecognizable(): void
     {
         $route = new Route(name: 'test', description: 'A test command');
 
-        $handler  = $route->getHandler();
-        $response = $handler(self::createStub(ContainerContract::class), $route);
+        // Each route would build a fresh closure, leaving the collector no
+        // shared instance to compare against, so the stand-in is a named type
+        self::assertInstanceOf(NoRouteHandler::class, $route->getHandler());
+    }
 
-        self::assertInstanceOf(OutputContract::class, $response);
+    public function testAnExplicitHandlerIsKept(): void
+    {
+        $handler = [CommandFixture::class, 'handler'];
+
+        $route = new Route(name: 'test', description: 'A test command', handler: $handler);
+
+        self::assertSame($handler, $route->getHandler());
     }
 }

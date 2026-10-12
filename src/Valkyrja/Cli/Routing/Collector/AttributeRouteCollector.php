@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Cli\Routing\Collector;
 
 use Override;
+use ReflectionException;
 use ReflectionMethod;
 use Valkyrja\Attribute\Collector\Contract\CollectorContract;
 use Valkyrja\Cli\Middleware\Contract\ProcessExitingMiddlewareContract;
@@ -32,6 +33,8 @@ use Valkyrja\Cli\Routing\Data\Contract\OptionParameterContract;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Routing\Data\OptionParameter;
 use Valkyrja\Cli\Routing\Data\Route;
+use Valkyrja\Cli\Routing\Support\NoRouteHandler;
+use Valkyrja\Cli\Routing\Throwable\Exception\CliRoutingNoRouteHandlerException;
 use Valkyrja\Reflection\Reflector\Contract\ReflectorContract;
 
 use function array_column;
@@ -46,11 +49,9 @@ class AttributeRouteCollector implements RouteCollectorContract
     }
 
     /**
-     * Get the routes.
+     * @inheritDoc
      *
-     * @param class-string ...$classes The classes
-     *
-     * @return RouteContract[]
+     * @throws ReflectionException
      */
     #[Override]
     public function getRoutes(string ...$classes): array
@@ -87,6 +88,9 @@ class AttributeRouteCollector implements RouteCollectorContract
      *
      * @param class-string     $class  The class name
      * @param non-empty-string $method The method name
+     *
+     * @throws CliRoutingNoRouteHandlerException
+     * @throws ReflectionException
      */
     protected function updateHandler(Route $route, string $class, string $method): Route
     {
@@ -94,10 +98,17 @@ class AttributeRouteCollector implements RouteCollectorContract
         $routeHandlers = $this->attributes->forMethod($class, $method, RouteHandler::class);
         $routeHandler  = $routeHandlers[0] ?? null;
 
-        $handler = $routeHandler->handler ?? null;
+        // The route attribute's own handler argument supplies a handler too, so
+        // the route carries one already unless the author named none
+        $handler = $routeHandler->handler ?? $route->getHandler();
 
-        if ($handler === null) {
-            return $route;
+        // A route that keeps the stand-in fails only once the command is
+        // invoked, so the collector rejects it here instead
+        if ($handler instanceof NoRouteHandler) {
+            throw new CliRoutingNoRouteHandlerException(
+                'Route `' . $route->getName() . '` on ' . $class . '::' . $method
+                . ' names no handler'
+            );
         }
 
         return $route->withHandler($handler);

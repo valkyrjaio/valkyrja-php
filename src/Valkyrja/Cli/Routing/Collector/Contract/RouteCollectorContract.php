@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Cli\Routing\Collector\Contract;
 
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
+use Valkyrja\Cli\Routing\Throwable\Exception\CliRoutingNoRouteHandlerException;
 
 interface RouteCollectorContract
 {
@@ -20,6 +21,8 @@ interface RouteCollectorContract
      * Get the commands.
      *
      * @param class-string ...$classes The classes
+     *
+     * @throws CliRoutingNoRouteHandlerException
      *
      * @return RouteContract[]
      */
