@@ -34,6 +34,7 @@ use Valkyrja\Http\Middleware\Handler\RouteMatchedHandler;
 use Valkyrja\Http\Middleware\Handler\RouteNotMatchedHandler;
 use Valkyrja\Http\Middleware\Handler\SendingResponseHandler;
 use Valkyrja\Http\Middleware\Handler\ThrowableCaughtHandler;
+use Valkyrja\Http\Routing\Collection\RouteCollection;
 use Valkyrja\Http\Routing\Data\Contract\RouteContract;
 use Valkyrja\Http\Routing\Dispatcher\Contract\RouterContract;
 use Valkyrja\Http\Routing\Matcher\Contract\MatcherContract;
@@ -43,9 +44,11 @@ use function rawurldecode;
 
 class Router implements RouterContract
 {
+    protected MatcherContract $matcher;
+
     public function __construct(
         protected ContainerContract $container = new Container(),
-        protected MatcherContract $matcher = new Matcher(),
+        MatcherContract|null $matcher = null,
         protected ResponseFactoryContract $responseFactory = new ResponseFactory(),
         protected ThrowableCaughtHandlerContract $throwableCaughtHandler = new ThrowableCaughtHandler(),
         protected RouteMatchedHandlerContract $routeMatchedHandler = new RouteMatchedHandler(),
@@ -54,6 +57,10 @@ class Router implements RouterContract
         protected SendingResponseHandlerContract $sendingResponseHandler = new SendingResponseHandler(),
         protected ResponseSentHandlerContract $responseSentHandler = new ResponseSentHandler()
     ) {
+        $this->matcher = $matcher ?? new Matcher(
+            collection: new RouteCollection(),
+            container: $container
+        );
     }
 
     /**

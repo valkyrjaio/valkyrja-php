@@ -108,7 +108,7 @@ final class ApplicationTest extends TestCase
         self::assertSame($config->timezone, date_default_timezone_get());
 
         $providers = $application->getProviders();
-        self::assertCount(17, $providers);
+        self::assertCount(18, $providers);
         self::assertInstanceOf(ContainerComponentProvider::class, $providers[0]);
         self::assertInstanceOf(EventComponentProvider::class, $providers[1]);
         self::assertInstanceOf(ApplicationComponentProvider::class, $providers[2]);
@@ -121,11 +121,12 @@ final class ApplicationTest extends TestCase
         self::assertInstanceOf(CliApplicationComponentProvider::class, $providers[9]);
         self::assertInstanceOf(HttpMessageComponentProvider::class, $providers[10]);
         self::assertInstanceOf(HttpMiddlewareComponentProvider::class, $providers[11]);
-        self::assertInstanceOf(HttpRoutingComponentProvider::class, $providers[12]);
-        self::assertInstanceOf(HttpRoutingCliComponentProvider::class, $providers[13]);
-        self::assertInstanceOf(HttpServerComponentProvider::class, $providers[14]);
-        self::assertInstanceOf(CliWithHttpApplicationComponentProvider::class, $providers[15]);
-        self::assertInstanceOf(CliComponentProviderFixture::class, $providers[16]);
+        self::assertInstanceOf(TypeComponentProvider::class, $providers[12]);
+        self::assertInstanceOf(HttpRoutingComponentProvider::class, $providers[13]);
+        self::assertInstanceOf(HttpRoutingCliComponentProvider::class, $providers[14]);
+        self::assertInstanceOf(HttpServerComponentProvider::class, $providers[15]);
+        self::assertInstanceOf(CliWithHttpApplicationComponentProvider::class, $providers[16]);
+        self::assertInstanceOf(CliComponentProviderFixture::class, $providers[17]);
     }
 
     /**
