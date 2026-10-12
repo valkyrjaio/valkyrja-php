@@ -130,9 +130,9 @@ class ArgumentParameter extends Parameter implements ArgumentParameterContract
      * @inheritDoc
      */
     #[Override]
-    public function getCastValues(): array
+    public function getValues(): array
     {
-        return $this->getCastValuesForParameters($this->arguments);
+        return $this->getValuesOfParameters($this->arguments);
     }
 
     /**

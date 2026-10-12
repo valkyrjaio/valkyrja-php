@@ -290,9 +290,9 @@ class OptionParameter extends Parameter implements OptionParameterContract
      * @inheritDoc
      */
     #[Override]
-    public function getCastValues(): array
+    public function getValues(): array
     {
-        return $this->getCastValuesForParameters($this->options);
+        return $this->getValuesOfParameters($this->options);
     }
 
     /**

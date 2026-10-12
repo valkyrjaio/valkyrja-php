@@ -350,6 +350,40 @@ READMEs. `Valkyrja\Type\Uid` holds the shared base: `UidFactory` (with
 `isValid()`, `validate()`, and the permissive `\w+` regex) and the `Uid`
 value object.
 
+## Casts
+
+`Valkyrja\Type\Data\Cast` records the type to convert a value to, and how to
+return the result. `Cast::$type` is a `class-string`, and PHP holds a class
+string as a container binding key, so a reader of a cast resolves the type
+through the container or calls the named constructor of the type.
+
+`Valkyrja\Type\Enum\CastType` names a type for each primitive that this
+component ships. `Valkyrja\Type\Provider\TypeServiceProvider` binds every one
+of them, and `TypeComponentProvider` returns that service provider. An
+application that resolves a cast type through the container registers that
+component provider.
+
+`Valkyrja\Type\Constant\CastArgument::VALUE` names the argument that carries
+the raw value. A binding of a cast type reads the value under that key.
+
+Warning: register a cast type with `bind`. A reader that resolves a cast type
+calls `getService()`, which reads only a service binding, so an alias and an
+instance that `setSingleton` holds each raise
+`ContainerInvalidReferenceException`.
+
+`getService()` also skips the singleton cache, so the container builds one type
+for each value. That is not the lifetime that `bindSingleton` states, which is
+the second reason a cast type takes `bind`.
+
+Warning: a binding of a cast type takes the raw value under
+`CastArgument::VALUE`. A call that passes no such argument raises
+`TypeMissingCastArgumentException`, because a type built from a value the caller
+never gave hides the mistake.
+
+Warning: a binding of a cast type returns a `TypeContract`. A reader calls
+`asValue()` on the object that the container builds, and an object without that
+method raises an `Error`.
+
 ## Exceptions
 
 Every exception in the component implements

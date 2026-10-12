@@ -134,39 +134,21 @@ abstract class Parameter implements ParameterContract
      * @inheritDoc
      */
     #[Override]
-    abstract public function getCastValues(): array;
+    abstract public function getValues(): array;
 
     /**
-     * Get all the values cast with the cast (if one is present).
+     * Get the raw value of each parameter.
      *
      * @param array<ArgumentContract|OptionContract> $parameters The parameters
      *
-     * @return array<array-key, mixed>
+     * @return array<array-key, string>
      */
-    protected function getCastValuesForParameters(array $parameters): array
+    protected function getValuesOfParameters(array $parameters): array
     {
-        $values   = [];
-        $cast     = $this->cast;
-        $castType = $cast->type ?? null;
+        $values = [];
 
-        foreach ($parameters as $argument) {
-            $parameterValue = $argument->getValue();
-
-            if ($cast === null || $castType === null) {
-                $values[] = $parameterValue;
-
-                continue;
-            }
-
-            $value = $castType::fromValue($parameterValue);
-
-            if ($cast->convert) {
-                $values[] = $value->asValue();
-
-                continue;
-            }
-
-            $values[] = $value;
+        foreach ($parameters as $parameter) {
+            $values[] = $parameter->getValue();
         }
 
         return $values;

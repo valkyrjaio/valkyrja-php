@@ -21,6 +21,8 @@ use Valkyrja\Cli\Middleware\Handler\Contract\RouteDispatchedHandlerContract;
 use Valkyrja\Cli\Middleware\Handler\Contract\RouteMatchedHandlerContract;
 use Valkyrja\Cli\Middleware\Handler\Contract\RouteNotMatchedHandlerContract;
 use Valkyrja\Cli\Middleware\Handler\Contract\ThrowableCaughtHandlerContract;
+use Valkyrja\Cli\Routing\Caster\Caster;
+use Valkyrja\Cli\Routing\Caster\Contract\CasterContract;
 use Valkyrja\Cli\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Cli\Routing\Collection\RouteCollection;
 use Valkyrja\Cli\Routing\Collector\AttributeRouteCollector;
@@ -30,6 +32,7 @@ use Valkyrja\Cli\Routing\Data\Route;
 use Valkyrja\Cli\Routing\Dispatcher\Contract\RouterContract;
 use Valkyrja\Cli\Routing\Dispatcher\Router;
 use Valkyrja\Cli\Routing\Provider\CliRoutingServiceProvider;
+use Valkyrja\Container\Manager\Container;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
 use Valkyrja\Reflection\Reflector\Contract\ReflectorContract;
 use Valkyrja\Tests\Fixtures\Cli\Routing\Provider\RouteProviderFixture;
@@ -48,6 +51,16 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(RouterContract::class, new CliRoutingServiceProvider()->publishers());
         self::assertArrayHasKey(RouteCollectionContract::class, new CliRoutingServiceProvider()->publishers());
         self::assertArrayHasKey(CliRoutingData::class, new CliRoutingServiceProvider()->publishers());
+        self::assertArrayHasKey(CasterContract::class, new CliRoutingServiceProvider()->publishers());
+    }
+
+    public function testPublishCaster(): void
+    {
+        $container = new Container();
+
+        CliRoutingServiceProvider::publishCaster($container);
+
+        self::assertInstanceOf(Caster::class, $container->getSingleton(CasterContract::class));
     }
 
     /**

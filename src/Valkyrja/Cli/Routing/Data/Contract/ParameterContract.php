@@ -67,11 +67,11 @@ interface ParameterContract
     public function withDescription(string $description): static;
 
     /**
-     * Get all the values cast with the cast (if one is present).
+     * Get each raw value that the invocation gave the parameter.
      *
-     * @return array<array-key, mixed>
+     * @return array<array-key, string>
      */
-    public function getCastValues(): array;
+    public function getValues(): array;
 
     /**
      * Determine if the input provided the parameter, with or without a value.

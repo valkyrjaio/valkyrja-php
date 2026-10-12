@@ -787,15 +787,34 @@ you can add to a route's `options` array.
 
 ### Value Casting
 
-Every parsed value is a string. Pass a `Cast` to a parameter to convert
-values, then read them with `getCastValues()`:
+Every parsed value is a string. A parameter holds the cast and converts nothing,
+and `Valkyrja\Cli\Routing\Caster\Caster` applies it. The caster holds the
+container, which is why the parameter needs none.
+
+Warning: register a cast type with `bind`. The caster calls `getService()`,
+which reads only a service binding, so an alias and an instance that
+`setSingleton` holds each raise `ContainerInvalidReferenceException`.
+`Valkyrja\Type\Provider\TypeServiceProvider` binds every type that `CastType`
+names, and `CliRoutingComponentProvider` returns the type component, so a
+`CastType` cast needs no further registration.
+
+Pass a `Cast` to a parameter, then ask the caster for the values:
 
 ```php
+use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
 use Valkyrja\Cli\Routing\Attribute\ArgumentParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
+use Valkyrja\Cli\Routing\Caster\Contract\CasterContract;
+use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Routing\Enum\ArgumentMode;
 use Valkyrja\Type\Data\Cast;
 use Valkyrja\Type\Enum\CastType;
+
+public function __construct(
+    protected RouteContract $route,
+    protected CasterContract $caster,
+) {
+}
 
 #[Route(name: 'queue:work', description: 'Work the queue')]
 #[ArgumentParameter(
@@ -807,14 +826,18 @@ use Valkyrja\Type\Enum\CastType;
 public function run(): OutputContract
 {
     // php myapp queue:work 4
-    [$workers] = $this->route->getArgument('workers')->getCastValues(); // int(4)
+    [$workers] = $this->caster->getCastValues($this->route->getArgument('workers')); // int(4)
 }
 ```
 
 `CastType` covers `string`, `int`, `float`, `bool`, `array`, `json`, and
 more. With `new Cast(CastType::int, convert: false)` the cast values stay
 wrapped in their `Valkyrja\Type` objects instead of converting to native
-values. Without a cast, `getCastValues()` returns the raw strings.
+values. For a parameter that holds no cast, `getCastValues()` returns the raw
+strings, and `ParameterContract::getValues()` returns them without a caster.
+
+See [the type component](../Type/README.md) for the binding rules of a cast
+type.
 
 ### Help Text
 

@@ -48,6 +48,7 @@ use Valkyrja\Tests\Fixtures\Application\Provider\QueueRouteComponentProviderFixt
 use Valkyrja\Tests\Fixtures\Application\Provider\QueueRouteProviderFixture;
 use Valkyrja\Tests\Fixtures\Event\Provider\ListenerProviderFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
+use Valkyrja\Type\Provider\TypeComponentProvider;
 
 use function date_default_timezone_get;
 
@@ -107,23 +108,24 @@ final class ApplicationTest extends TestCase
         self::assertSame($config->timezone, date_default_timezone_get());
 
         $providers = $application->getProviders();
-        self::assertCount(16, $providers);
+        self::assertCount(17, $providers);
         self::assertInstanceOf(ContainerComponentProvider::class, $providers[0]);
         self::assertInstanceOf(EventComponentProvider::class, $providers[1]);
         self::assertInstanceOf(ApplicationComponentProvider::class, $providers[2]);
         self::assertInstanceOf(CliInteractionComponentProvider::class, $providers[3]);
         self::assertInstanceOf(CliMiddlewareComponentProvider::class, $providers[4]);
-        self::assertInstanceOf(CliRoutingComponentProvider::class, $providers[5]);
-        self::assertInstanceOf(CliServerComponentProvider::class, $providers[6]);
-        self::assertInstanceOf(LogComponentProvider::class, $providers[7]);
-        self::assertInstanceOf(CliApplicationComponentProvider::class, $providers[8]);
-        self::assertInstanceOf(HttpMessageComponentProvider::class, $providers[9]);
-        self::assertInstanceOf(HttpMiddlewareComponentProvider::class, $providers[10]);
-        self::assertInstanceOf(HttpRoutingComponentProvider::class, $providers[11]);
-        self::assertInstanceOf(HttpRoutingCliComponentProvider::class, $providers[12]);
-        self::assertInstanceOf(HttpServerComponentProvider::class, $providers[13]);
-        self::assertInstanceOf(CliWithHttpApplicationComponentProvider::class, $providers[14]);
-        self::assertInstanceOf(CliComponentProviderFixture::class, $providers[15]);
+        self::assertInstanceOf(TypeComponentProvider::class, $providers[5]);
+        self::assertInstanceOf(CliRoutingComponentProvider::class, $providers[6]);
+        self::assertInstanceOf(CliServerComponentProvider::class, $providers[7]);
+        self::assertInstanceOf(LogComponentProvider::class, $providers[8]);
+        self::assertInstanceOf(CliApplicationComponentProvider::class, $providers[9]);
+        self::assertInstanceOf(HttpMessageComponentProvider::class, $providers[10]);
+        self::assertInstanceOf(HttpMiddlewareComponentProvider::class, $providers[11]);
+        self::assertInstanceOf(HttpRoutingComponentProvider::class, $providers[12]);
+        self::assertInstanceOf(HttpRoutingCliComponentProvider::class, $providers[13]);
+        self::assertInstanceOf(HttpServerComponentProvider::class, $providers[14]);
+        self::assertInstanceOf(CliWithHttpApplicationComponentProvider::class, $providers[15]);
+        self::assertInstanceOf(CliComponentProviderFixture::class, $providers[16]);
     }
 
     /**
