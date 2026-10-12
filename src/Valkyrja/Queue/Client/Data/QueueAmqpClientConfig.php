@@ -17,22 +17,22 @@ use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
 class QueueAmqpClientConfig implements QueueAmqpClientConfigContract
 {
     /**
-     * @param non-empty-string $amqpHost     The host to connect to
-     * @param int              $amqpPort     The port to connect to
-     * @param non-empty-string $amqpUser     The user to connect as
-     * @param string           $amqpPassword The password of the user
-     * @param non-empty-string $amqpVhost    The virtual host to connect to
-     * @param non-empty-string $amqpQueue    The queue jobs are published to
-     * @param string           $amqpExchange The exchange to publish through; empty for the default
+     * @param non-empty-string $queueAmqpClientHost     The host to connect to
+     * @param int              $queueAmqpClientPort     The port to connect to
+     * @param non-empty-string $queueAmqpClientUser     The user to connect as
+     * @param string           $queueAmqpClientPassword The password of the user
+     * @param non-empty-string $queueAmqpClientVhost    The virtual host to connect to
+     * @param non-empty-string $queueAmqpClientQueue    The queue jobs are published to
+     * @param string           $queueAmqpClientExchange The exchange to publish through; empty for the default
      */
     public function __construct(
-        public readonly string $amqpHost = '127.0.0.1',
-        public readonly int $amqpPort = 5672,
-        public readonly string $amqpUser = 'guest',
-        public readonly string $amqpPassword = 'guest',
-        public readonly string $amqpVhost = '/',
-        public readonly string $amqpQueue = 'queues.default',
-        public readonly string $amqpExchange = '',
+        public readonly string $queueAmqpClientHost = '127.0.0.1',
+        public readonly int $queueAmqpClientPort = 5672,
+        public readonly string $queueAmqpClientUser = 'guest',
+        public readonly string $queueAmqpClientPassword = 'guest',
+        public readonly string $queueAmqpClientVhost = '/',
+        public readonly string $queueAmqpClientQueue = 'queues.default',
+        public readonly string $queueAmqpClientExchange = '',
     ) {
     }
 }

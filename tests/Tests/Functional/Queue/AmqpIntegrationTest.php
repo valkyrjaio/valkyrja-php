@@ -246,12 +246,12 @@ final class AmqpIntegrationTest extends TestCase
     private function config(): QueueConfigContract
     {
         return new AmqpWorkerConfigFixture(
-            amqpHost: $this->amqpHost,
-            amqpPort: $this->amqpPort,
-            amqpUser: $this->amqpUser,
-            amqpPassword: $this->amqpPassword,
-            amqpVhost: $this->amqpVhost,
-            amqpQueue: self::QUEUE,
+            queueAmqpClientHost: $this->amqpHost,
+            queueAmqpClientPort: $this->amqpPort,
+            queueAmqpClientUser: $this->amqpUser,
+            queueAmqpClientPassword: $this->amqpPassword,
+            queueAmqpClientVhost: $this->amqpVhost,
+            queueAmqpClientQueue: self::QUEUE,
         );
     }
 

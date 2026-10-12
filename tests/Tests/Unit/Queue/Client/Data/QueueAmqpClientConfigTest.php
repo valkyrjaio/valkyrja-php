@@ -27,33 +27,33 @@ final class QueueAmqpClientConfigTest extends TestCase
     {
         $config = new QueueAmqpClientConfig();
 
-        self::assertSame('127.0.0.1', $config->amqpHost);
-        self::assertSame(5672, $config->amqpPort);
-        self::assertSame('guest', $config->amqpUser);
-        self::assertSame('guest', $config->amqpPassword);
-        self::assertSame('/', $config->amqpVhost);
-        self::assertSame('queues.default', $config->amqpQueue);
-        self::assertSame('', $config->amqpExchange);
+        self::assertSame('127.0.0.1', $config->queueAmqpClientHost);
+        self::assertSame(5672, $config->queueAmqpClientPort);
+        self::assertSame('guest', $config->queueAmqpClientUser);
+        self::assertSame('guest', $config->queueAmqpClientPassword);
+        self::assertSame('/', $config->queueAmqpClientVhost);
+        self::assertSame('queues.default', $config->queueAmqpClientQueue);
+        self::assertSame('', $config->queueAmqpClientExchange);
     }
 
     public function testCustomValuesAreStored(): void
     {
         $config = new QueueAmqpClientConfig(
-            amqpHost: 'amqp.test',
-            amqpPort: 5673,
-            amqpUser: 'worker',
-            amqpPassword: 'secret',
-            amqpVhost: '/jobs',
-            amqpQueue: 'queues.test',
-            amqpExchange: 'jobs',
+            queueAmqpClientHost: 'amqp.test',
+            queueAmqpClientPort: 5673,
+            queueAmqpClientUser: 'worker',
+            queueAmqpClientPassword: 'secret',
+            queueAmqpClientVhost: '/jobs',
+            queueAmqpClientQueue: 'queues.test',
+            queueAmqpClientExchange: 'jobs',
         );
 
-        self::assertSame('amqp.test', $config->amqpHost);
-        self::assertSame(5673, $config->amqpPort);
-        self::assertSame('worker', $config->amqpUser);
-        self::assertSame('secret', $config->amqpPassword);
-        self::assertSame('/jobs', $config->amqpVhost);
-        self::assertSame('queues.test', $config->amqpQueue);
-        self::assertSame('jobs', $config->amqpExchange);
+        self::assertSame('amqp.test', $config->queueAmqpClientHost);
+        self::assertSame(5673, $config->queueAmqpClientPort);
+        self::assertSame('worker', $config->queueAmqpClientUser);
+        self::assertSame('secret', $config->queueAmqpClientPassword);
+        self::assertSame('/jobs', $config->queueAmqpClientVhost);
+        self::assertSame('queues.test', $config->queueAmqpClientQueue);
+        self::assertSame('jobs', $config->queueAmqpClientExchange);
     }
 }

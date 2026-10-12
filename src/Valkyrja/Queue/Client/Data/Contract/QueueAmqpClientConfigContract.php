@@ -15,34 +15,34 @@ namespace Valkyrja\Queue\Client\Data\Contract;
 interface QueueAmqpClientConfigContract
 {
     /** @var non-empty-string */
-    public string $amqpHost {
+    public string $queueAmqpClientHost {
         get;
     }
 
-    public int $amqpPort {
-        get;
-    }
-
-    /** @var non-empty-string */
-    public string $amqpUser {
-        get;
-    }
-
-    public string $amqpPassword {
+    public int $queueAmqpClientPort {
         get;
     }
 
     /** @var non-empty-string */
-    public string $amqpVhost {
+    public string $queueAmqpClientUser {
+        get;
+    }
+
+    public string $queueAmqpClientPassword {
         get;
     }
 
     /** @var non-empty-string */
-    public string $amqpQueue {
+    public string $queueAmqpClientVhost {
         get;
     }
 
-    public string $amqpExchange {
+    /** @var non-empty-string */
+    public string $queueAmqpClientQueue {
+        get;
+    }
+
+    public string $queueAmqpClientExchange {
         get;
     }
 }

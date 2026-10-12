@@ -35,10 +35,10 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param non-empty-string             $queueRedisClientHost
      * @param non-empty-string             $queueRedisClientQueue
      * @param non-empty-string             $queueRedisClientWorkerName
-     * @param non-empty-string             $amqpHost
-     * @param non-empty-string             $amqpUser
-     * @param non-empty-string             $amqpVhost
-     * @param non-empty-string             $amqpQueue
+     * @param non-empty-string             $queueAmqpClientHost
+     * @param non-empty-string             $queueAmqpClientUser
+     * @param non-empty-string             $queueAmqpClientVhost
+     * @param non-empty-string             $queueAmqpClientQueue
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -49,13 +49,13 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public string $queueRedisClientPrefix = '',
         public string $queueRedisClientQueue = 'queues:test',
         public string $queueRedisClientWorkerName = 'worker.test',
-        public string $amqpHost = 'amqp.test',
-        public int $amqpPort = 5673,
-        public string $amqpUser = 'worker',
-        public string $amqpPassword = 'secret',
-        public string $amqpVhost = '/jobs',
-        public string $amqpQueue = 'queues.test',
-        public string $amqpExchange = 'jobs',
+        public string $queueAmqpClientHost = 'amqp.test',
+        public int $queueAmqpClientPort = 5673,
+        public string $queueAmqpClientUser = 'worker',
+        public string $queueAmqpClientPassword = 'secret',
+        public string $queueAmqpClientVhost = '/jobs',
+        public string $queueAmqpClientQueue = 'queues.test',
+        public string $queueAmqpClientExchange = 'jobs',
     ) {
         parent::__construct(
             applicationName: 'host',

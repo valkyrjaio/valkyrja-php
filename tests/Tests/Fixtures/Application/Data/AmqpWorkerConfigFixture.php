@@ -30,20 +30,20 @@ final class AmqpWorkerConfigFixture extends QueueConfig implements QueueClientCo
     public string $defaultQueueClient = AmqpClient::class;
 
     /**
-     * @param non-empty-string $amqpHost     The host of the broker under test
-     * @param non-empty-string $amqpUser     The broker user
-     * @param non-empty-string $amqpVhost    The broker virtual host
-     * @param non-empty-string $amqpQueue    The queue jobs are published to
-     * @param string           $amqpExchange The exchange jobs are published through; empty for the default
+     * @param non-empty-string $queueAmqpClientHost     The host of the broker under test
+     * @param non-empty-string $queueAmqpClientUser     The broker user
+     * @param non-empty-string $queueAmqpClientVhost    The broker virtual host
+     * @param non-empty-string $queueAmqpClientQueue    The queue jobs are published to
+     * @param string           $queueAmqpClientExchange The exchange jobs are published through; empty for the default
      */
     public function __construct(
-        public string $amqpHost = '127.0.0.1',
-        public int $amqpPort = 5672,
-        public string $amqpUser = 'guest',
-        public string $amqpPassword = 'guest',
-        public string $amqpVhost = '/',
-        public string $amqpQueue = 'valkyrja.tests.queue',
-        public string $amqpExchange = '',
+        public string $queueAmqpClientHost = '127.0.0.1',
+        public int $queueAmqpClientPort = 5672,
+        public string $queueAmqpClientUser = 'guest',
+        public string $queueAmqpClientPassword = 'guest',
+        public string $queueAmqpClientVhost = '/',
+        public string $queueAmqpClientQueue = 'valkyrja.tests.queue',
+        public string $queueAmqpClientExchange = '',
     ) {
         parent::__construct(
             dir: Directory::$basePath,

@@ -242,14 +242,14 @@ class QueueClientServiceProvider implements ServiceProviderContract
                 // A lazy connection waits for the first publish, so building the
                 // client never reaches the broker
                 connection: new AMQPLazyConnection(
-                    $config->amqpHost,
-                    $config->amqpPort,
-                    $config->amqpUser,
-                    $config->amqpPassword,
-                    $config->amqpVhost,
+                    $config->queueAmqpClientHost,
+                    $config->queueAmqpClientPort,
+                    $config->queueAmqpClientUser,
+                    $config->queueAmqpClientPassword,
+                    $config->queueAmqpClientVhost,
                 ),
-                queue: $config->amqpQueue,
-                exchange: $config->amqpExchange,
+                queue: $config->queueAmqpClientQueue,
+                exchange: $config->queueAmqpClientExchange,
                 applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
             )
         );

@@ -580,21 +580,21 @@ connection.
 
 #### `QueueAmqpClientConfigContract`
 
-| Property       | Default            | Description                                            |
-| :------------- | :----------------- | :----------------------------------------------------- |
-| `amqpHost`     | `'127.0.0.1'`      | AMQP host                                              |
-| `amqpPort`     | `5672`             | AMQP port                                              |
-| `amqpUser`     | `'guest'`          | The user to connect as                                 |
-| `amqpPassword` | `'guest'`          | The password of the user                               |
-| `amqpVhost`    | `'/'`              | The virtual host to connect to                         |
-| `amqpQueue`    | `'queues.default'` | The queue jobs are published to                        |
-| `amqpExchange` | `''`               | The exchange to publish through; empty for the default |
+| Property                  | Default            | Description                                            |
+| :------------------------ | :----------------- | :----------------------------------------------------- |
+| `queueAmqpClientHost`     | `'127.0.0.1'`      | AMQP host                                              |
+| `queueAmqpClientPort`     | `5672`             | AMQP port                                              |
+| `queueAmqpClientUser`     | `'guest'`          | The user to connect as                                 |
+| `queueAmqpClientPassword` | `'guest'`          | The password of the user                               |
+| `queueAmqpClientVhost`    | `'/'`              | The virtual host to connect to                         |
+| `queueAmqpClientQueue`    | `'queues.default'` | The queue jobs are published to                        |
+| `queueAmqpClientExchange` | `''`               | The exchange to publish through; empty for the default |
 
 Warning: the worker declares the queue when it connects, and nothing declares
 an exchange or binds one to it. A producer that starts before any worker
 publishes to a queue the broker does not hold yet, and the broker discards the
 message while `push()` still returns. Call `AmqpClient::declareQueue()` first in
-that case. A non-empty `amqpExchange` with no binding for the queue's name has
+that case. A non-empty `queueAmqpClientExchange` with no binding for the queue's name has
 the same effect, so an application that sets it declares and binds the exchange
 itself.
 

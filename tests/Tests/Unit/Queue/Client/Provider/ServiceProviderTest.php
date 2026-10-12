@@ -188,9 +188,9 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueueAmqpClientConfigContract::class);
 
-        self::assertSame('127.0.0.1', $config->amqpHost);
-        self::assertSame(5672, $config->amqpPort);
-        self::assertSame('queues.default', $config->amqpQueue);
+        self::assertSame('127.0.0.1', $config->queueAmqpClientHost);
+        self::assertSame(5672, $config->queueAmqpClientPort);
+        self::assertSame('queues.default', $config->queueAmqpClientQueue);
     }
 
     public function testPublishAmqpConfigWithApplicationConfig(): void
@@ -201,9 +201,9 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueueAmqpClientConfigContract::class);
 
-        self::assertSame('amqp.test', $config->amqpHost);
-        self::assertSame(5673, $config->amqpPort);
-        self::assertSame('queues.test', $config->amqpQueue);
+        self::assertSame('amqp.test', $config->queueAmqpClientHost);
+        self::assertSame(5673, $config->queueAmqpClientPort);
+        self::assertSame('queues.test', $config->queueAmqpClientQueue);
     }
 
     /**
