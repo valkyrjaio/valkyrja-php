@@ -17,6 +17,7 @@ use Valkyrja\Queue\Server\Throwable\Contract\QueueServerThrowable;
 use Valkyrja\Queue\Server\Throwable\Exception\Abstract\QueueServerInvalidArgumentException;
 use Valkyrja\Queue\Server\Throwable\Exception\Abstract\QueueServerRuntimeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNonRetryableJobException;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerWorkerShutdownException;
 use Valkyrja\Queue\Throwable\Contract\QueueNonRetryableThrowable;
 use Valkyrja\Queue\Throwable\Contract\QueueThrowable;
@@ -55,5 +56,10 @@ final class ExceptionsTest extends TestCase
     public function testWorkerShutdownException(): void
     {
         self::isA(QueueServerRuntimeException::class, QueueServerWorkerShutdownException::class);
+    }
+
+    public function testNotConnectedException(): void
+    {
+        self::isA(QueueServerRuntimeException::class, QueueServerNotConnectedException::class);
     }
 }

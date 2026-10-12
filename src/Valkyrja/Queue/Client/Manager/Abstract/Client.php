@@ -1,0 +1,136 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the Valkyrja Framework package.
+ *
+ * Copyright (c) 2016-present Melech Mizrachi
+ *
+ * Released under the MIT License. See LICENSE.md for details.
+ */
+
+namespace Valkyrja\Queue\Client\Manager\Abstract;
+
+use Override;
+use Valkyrja\Application\Constant\ApplicationInfo;
+use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
+use Valkyrja\Queue\Message\Job\Contract\JobContract;
+use Valkyrja\Support\Time\Microtime;
+
+abstract class Client implements ClientContract
+{
+    /** @var non-empty-string */
+    public const string LANGUAGE = 'php';
+
+    /** @var JobContract[] */
+    protected array $pushed = [];
+
+    /**
+     * @param non-empty-string $applicationName The application name stamped into the provenance
+     * @param non-empty-string $version         The framework version stamped into the provenance
+     */
+    public function __construct(
+        protected string $applicationName = 'valkyrja',
+        protected string $version = ApplicationInfo::VERSION,
+    ) {
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function push(JobContract $job): void
+    {
+        $stamped = $this->stamp($job);
+
+        $this->pushed[] = $stamped;
+
+        $this->publish($stamped);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function retry(JobContract $job, int $delayMs): void
+    {
+        $this->pushed[] = $job;
+
+        $this->republish($job, $delayMs);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function requeue(JobContract $job): void
+    {
+        // The hold is read from the dispatched job, before the increment: the
+        // ramp is keyed to the attempt that just failed, so taking it from the
+        // incremented copy would make every hold one step too long
+        $this->retry(
+            $job
+                ->withAttempts($job->getAttempts() + 1)
+                ->withModifiedAtMs(Microtime::getMilliseconds()),
+            $job->getRetryDelayForAttemptMs(),
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getPushed(): array
+    {
+        return $this->pushed;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function clearPushed(): void
+    {
+        $this->pushed = [];
+    }
+
+    /**
+     * Hand an already incremented job back to the processor for redelivery.
+     *
+     * @param int<0, max> $delayMs The hold before the job becomes eligible again
+     */
+    protected function republish(JobContract $job, int $delayMs): void
+    {
+        // An in-process client has no durable place to hold a job, so the hold
+        // is dropped: only the timing differs from production, never the count
+        $this->publish($job);
+    }
+
+    /**
+     * Stamp the fields the framework owns on a fresh enqueue.
+     */
+    protected function stamp(JobContract $job): JobContract
+    {
+        $now = Microtime::getMilliseconds();
+
+        return $job
+            ->withProducer($this->getProducer())
+            ->withAttempts(1)
+            ->withEnqueuedAtMs($now)
+            ->withModifiedAtMs($now);
+    }
+
+    /**
+     * Get the provenance, `AppName lang/version`.
+     */
+    protected function getProducer(): string
+    {
+        return $this->applicationName . ' ' . static::LANGUAGE . '/' . $this->version;
+    }
+
+    /**
+     * Hand a freshly stamped job to the processor.
+     */
+    abstract protected function publish(JobContract $job): void;
+}

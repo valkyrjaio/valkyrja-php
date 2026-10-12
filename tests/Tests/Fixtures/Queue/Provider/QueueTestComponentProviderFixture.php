@@ -1,0 +1,85 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the Valkyrja Framework package.
+ *
+ * Copyright (c) 2016-present Melech Mizrachi
+ *
+ * Released under the MIT License. See LICENSE.md for details.
+ */
+
+namespace Valkyrja\Tests\Fixtures\Queue\Provider;
+
+use Override;
+use Valkyrja\Application\Kernel\Contract\ApplicationContract;
+use Valkyrja\Application\Provider\Contract\ComponentProviderContract;
+use Valkyrja\Application\Provider\QueueApplicationComponentProvider;
+use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
+
+/**
+ * Boots the whole queue stack plus the fixture routes.
+ */
+final class QueueTestComponentProviderFixture implements ComponentProviderContract
+{
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getComponentProviders(ApplicationContract $app): array
+    {
+        return [
+            new QueueApplicationComponentProvider(),
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getContainerProviders(ApplicationContract $app): array
+    {
+        return [
+            new QueueTestServiceProviderFixture(),
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getEventProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getCliProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getHttpProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getQueueProviders(ApplicationContract $app): array
+    {
+        return [
+            new QueueRoutingProviderFixture(),
+        ];
+    }
+}
