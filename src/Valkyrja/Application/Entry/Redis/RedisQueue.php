@@ -231,10 +231,10 @@ class RedisQueue extends PullQueue
     /**
      * Read an envelope off the list, or nothing when it cannot be read.
      *
-     * The shape guard above tolerates every other way a move goes wrong, so a
-     * body that is a string but not a readable envelope is tolerated the same
-     * way, and the caller parks it rather than throwing and taking the worker
-     * down with it.
+     * The shape guard in `receive()` tolerates every other way a move goes
+     * wrong, so a body that is a string but not a readable envelope is
+     * tolerated the same way, and the caller parks it rather than throwing and
+     * taking the worker down with it.
      */
     protected static function decode(string $envelope): JobContract|null
     {
