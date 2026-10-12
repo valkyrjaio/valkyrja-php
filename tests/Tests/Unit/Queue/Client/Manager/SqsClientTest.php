@@ -14,6 +14,7 @@ namespace Valkyrja\Tests\Unit\Queue\Client\Manager;
 
 use Override;
 use Valkyrja\Queue\Client\Manager\SqsClient;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientRedeliveryNotSupportedException;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
@@ -84,17 +85,35 @@ final class SqsClientTest extends TestCase
         $this->client()->push(new Job(name: self::NAME, delayMs: 3_600_000));
 
         self::assertSame(
-            SqsClient::MAX_DELAY_SECONDS,
+            900,
             $this->sqs->getCalls('sendMessage')[0]['DelaySeconds']
         );
     }
 
-    public function testARetrySendsNothingBecauseTheProcessorOwnsRedelivery(): void
+    public function testARetryIsRefusedBecauseTheQueueOwnsRedelivery(): void
     {
-        // The original delivery is still in flight; publishing would duplicate it
-        $this->client()->retry(new Job(name: self::NAME, attempts: 2), 5000);
+        $client = $this->client();
 
+        try {
+            $client->retry(new Job(name: self::NAME, attempts: 2), 5000);
+
+            self::fail('The client accepted a retry it cannot carry out.');
+        } catch (QueueClientRedeliveryNotSupportedException) {
+            // The original delivery is still in flight, so there is nothing
+            // here to hand back
+        }
+
+        // Publishing would duplicate the delivery, and recording a handover
+        // that never happened would report a job this client no longer has
         self::assertSame([], $this->sqs->getCalls('sendMessage'));
+        self::assertSame([], $client->getPushed());
+    }
+
+    public function testARequeueIsRefusedForTheSameReason(): void
+    {
+        $this->expectException(QueueClientRedeliveryNotSupportedException::class);
+
+        $this->client()->requeue(new Job(name: self::NAME, attempts: 2));
     }
 
     protected function client(): SqsClient

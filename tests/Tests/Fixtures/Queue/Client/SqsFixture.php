@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Fixtures\Queue\Client;
 
+use AsyncAws\Core\Exception\Http\ClientException;
 use AsyncAws\Core\Exception\Http\NetworkException;
 use AsyncAws\Core\Result;
 use AsyncAws\Core\Test\ResultMockFactory;
@@ -20,13 +21,9 @@ use AsyncAws\Sqs\Result\SendMessageResult;
 use AsyncAws\Sqs\SqsClient;
 use AsyncAws\Sqs\ValueObject\Message;
 use Override;
+use Symfony\Component\HttpClient\Response\MockResponse;
 
-/**
- * A recording stand-in for the SQS client.
- *
- * The constructor is bypassed on purpose: a real client resolves credentials
- * and builds an HTTP client, which is exactly what a unit test must not need.
- */
+/** A recording stand-in for the SQS client. */
 final class SqsFixture extends SqsClient
 {
     /** @var array<int, array{0: string, 1: mixed}> */
@@ -37,6 +34,12 @@ final class SqsFixture extends SqsClient
 
     /** Whether the next visibility change answers with a network error */
     public bool $failVisibility = false;
+
+    /** Whether the next visibility change answers with an HTTP error */
+    public bool $failVisibilityHttp = false;
+
+    /** Whether every answer carries an error status, as a refused request does */
+    public bool $failEveryAnswer = false;
 
     /**
      * @noinspection PhpMissingParentConstructorInspection
@@ -71,6 +74,10 @@ final class SqsFixture extends SqsClient
     {
         $this->calls[] = ['sendMessage', $input];
 
+        if ($this->failEveryAnswer) {
+            return ResultMockFactory::createFailing(SendMessageResult::class, 403);
+        }
+
         return ResultMockFactory::create(SendMessageResult::class);
     }
 
@@ -97,6 +104,10 @@ final class SqsFixture extends SqsClient
     {
         $this->calls[] = ['deleteMessage', $input];
 
+        if ($this->failEveryAnswer) {
+            return ResultMockFactory::createFailing(Result::class, 403);
+        }
+
         return ResultMockFactory::create(Result::class);
     }
 
@@ -110,6 +121,18 @@ final class SqsFixture extends SqsClient
 
         if ($this->failVisibility) {
             throw new NetworkException('The endpoint could not be reached.');
+        }
+
+        if ($this->failVisibilityHttp) {
+            // What a lapsed visibility window really answers with
+            throw new ClientException(new MockResponse('', [
+                'http_code' => 400,
+                'url'       => 'https://sqs.test/',
+            ]));
+        }
+
+        if ($this->failEveryAnswer) {
+            return ResultMockFactory::createFailing(Result::class, 403);
         }
 
         return ResultMockFactory::create(Result::class);

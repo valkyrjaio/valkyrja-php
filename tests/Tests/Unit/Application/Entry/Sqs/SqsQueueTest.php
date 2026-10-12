@@ -12,10 +12,10 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Unit\Application\Entry\Sqs;
 
+use AsyncAws\Core\Exception\Http\HttpException;
 use AsyncAws\Sqs\ValueObject\Message;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Valkyrja\Application\Entry\Sqs\SqsQueue;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Client\Data\QueueSqsClientConfig;
@@ -94,6 +94,55 @@ final class SqsQueueTest extends TestCase
         self::assertSame(1, $input['MaxNumberOfMessages']);
         // The queue's own ownership window stands, so the receive names none
         self::assertArrayNotHasKey('VisibilityTimeout', $input);
+    }
+
+    public function testReceiveUsesTheQueueUrlTheConfigSupplied(): void
+    {
+        // The injected url and the config's differ, so the receive can only
+        // carry this one if connect read the config
+        SqsQueueFixture::connect($this->application(new QueueSqsClientConfig(
+            queueSqsClientQueueUrl: 'https://sqs.test/000000000000/configured',
+        )));
+
+        SqsQueueFixture::receive();
+
+        self::assertSame(
+            'https://sqs.test/000000000000/configured',
+            $this->sqs->getCalls('receiveMessage')[0]['QueueUrl']
+        );
+    }
+
+    public function testADeleteThatTheEndpointRefusesSurfaces(): void
+    {
+        $this->seed(new JobFactory()->create(self::NAME));
+
+        $job = SqsQueueFixture::receive();
+
+        self::assertNotNull($job);
+
+        // A refused delete must not pass as a settled job. This does not pin
+        // the explicit resolve: an unresolved answer throws from its own
+        // destructor, so the resolve buys the call site rather than the throw
+        $this->sqs->failEveryAnswer = true;
+
+        $this->expectException(HttpException::class);
+
+        SqsQueueFixture::settle($job, JobResult::ACK, new InMemoryClient());
+    }
+
+    public function testAVisibilityWindowThatLapsedDoesNotEndTheShutdown(): void
+    {
+        $this->seed(new JobFactory()->create(self::NAME));
+
+        self::assertNotNull(SqsQueueFixture::receive());
+
+        // A handle whose window ran out answers with an HTTP status rather than
+        // a network error, and a shutdown still has to finish
+        $this->sqs->failVisibilityHttp = true;
+
+        SqsQueueFixture::disconnect();
+
+        self::assertCount(1, $this->sqs->getCalls('changeMessageVisibility'));
     }
 
     public function testReceiveLongPollsWithTheWaitTheConfigSupplied(): void
@@ -288,7 +337,7 @@ final class SqsQueueTest extends TestCase
         // The ceiling is twelve hours from the receive, so a frozen clock leaves
         // the whole of it available
         self::assertSame(
-            SqsQueue::MAX_VISIBILITY_TIMEOUT,
+            43_200,
             $this->sqs->getCalls('changeMessageVisibility')[0]['VisibilityTimeout']
         );
     }
@@ -308,7 +357,7 @@ final class SqsQueueTest extends TestCase
         SqsQueueFixture::settle($job, JobResult::RETRY, new InMemoryClient());
 
         self::assertSame(
-            SqsQueue::MAX_VISIBILITY_TIMEOUT - 30,
+            43_200 - 30,
             $this->sqs->getCalls('changeMessageVisibility')[0]['VisibilityTimeout']
         );
     }
