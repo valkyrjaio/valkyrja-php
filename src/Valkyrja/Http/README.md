@@ -470,6 +470,17 @@ so the handler drops its own `(int)` conversion. `CastType` has cases for
 with `convert: false` returns the framework's type wrapper object instead of
 the raw value.
 
+`Matcher` asks the container for the type that `Cast::$type` names, so the
+matcher takes the container. `HttpRoutingServiceProvider` passes it, and a
+`Router` that builds its own matcher passes the container it holds.
+
+Warning: register a cast type with `bind`. The matcher calls `getService()`,
+which reads only a service binding, so an alias and an instance that
+`setSingleton` holds each raise `ContainerInvalidReferenceException` out of
+`match()`. `TypeServiceProvider` binds every type that `CastType` names, so a
+`CastType` cast needs no further registration. See
+[the type component](../Type/README.md) for the binding rules of a cast type.
+
 #### Optional parameters and defaults
 
 Mark the segment with `?` and the parameter with `isOptional: true`. The
