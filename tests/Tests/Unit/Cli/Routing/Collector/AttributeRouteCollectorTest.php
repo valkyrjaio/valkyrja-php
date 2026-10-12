@@ -14,6 +14,7 @@ namespace Valkyrja\Tests\Unit\Cli\Routing\Collector;
 
 use ReflectionException;
 use Valkyrja\Attribute\Collector\Collector;
+use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Cli\Routing\Collector\AttributeRouteCollector;
 use Valkyrja\Cli\Routing\Data\ArgumentParameter;
 use Valkyrja\Cli\Routing\Data\OptionParameter;
@@ -22,6 +23,7 @@ use Valkyrja\Cli\Routing\Enum\ArgumentMode;
 use Valkyrja\Cli\Routing\Enum\ArgumentValueMode;
 use Valkyrja\Cli\Routing\Enum\OptionMode;
 use Valkyrja\Cli\Routing\Enum\OptionValueMode;
+use Valkyrja\Cli\Routing\Throwable\Exception\CliRoutingNoRouteHandlerException;
 use Valkyrja\Reflection\Reflector\Reflector;
 use Valkyrja\Tests\Fixtures\Cli\Middleware\AllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Cli\Middleware\ProcessExitingMiddlewareFixture;
@@ -29,6 +31,7 @@ use Valkyrja\Tests\Fixtures\Cli\Middleware\RouteDispatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Cli\Middleware\RouteMatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Cli\Middleware\ThrowableCaughtMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Cli\Routing\Command\CommandFixture;
+use Valkyrja\Tests\Fixtures\Cli\Routing\Command\CommandMissingHandlerFixture;
 use Valkyrja\Tests\Fixtures\Cli\Routing\Command\CommandWithAllAttributesFixture;
 use Valkyrja\Tests\Fixtures\Cli\Routing\Command\CommandWithAllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Cli\Routing\Command\CommandWithParameterCombinationsFixture;
@@ -76,6 +79,41 @@ final class AttributeRouteCollectorTest extends TestCase
         self::assertNotEmpty($command->getArguments());
         self::assertInstanceOf(ArgumentParameter::class, $argument = $command->getArguments()[0]);
         self::assertFalse($argument->hasCast());
+    }
+
+    public function testRejectsARouteThatNamesNoHandler(): void
+    {
+        $collector = new AttributeRouteCollector(
+            attributes: new Collector(),
+            reflection: new Reflector()
+        );
+
+        // Without this the route would keep the stand-in and fail only once
+        // the command was invoked, long after the author could act on it
+        $this->expectException(CliRoutingNoRouteHandlerException::class);
+        $this->expectExceptionMessage(
+            'Route `' . CommandMissingHandlerFixture::NAME . '` on '
+            . CommandMissingHandlerFixture::class . '::run names no handler'
+        );
+
+        $collector->getRoutes(CommandMissingHandlerFixture::class);
+    }
+
+    public function testKeepsAHandlerTheRouteAttributeNamesItself(): void
+    {
+        $attributes = new Collector();
+        $collector  = new AttributeRouteCollector(
+            attributes: $attributes,
+            reflection: new Reflector()
+        );
+
+        // Were this fixture to gain a RouteHandler anywhere, the rejection
+        // above would pass against a guard that tests the attribute instead
+        self::assertSame([], $attributes->forClassMembers(CommandFixture::class, RouteHandler::class));
+
+        $commands = $collector->getRoutes(CommandFixture::class);
+
+        self::assertSame([CommandFixture::class, 'handler'], $commands[0]->getHandler());
     }
 
     public function testGetCommandsWithMoreAttributes(): void
