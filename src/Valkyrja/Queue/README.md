@@ -292,9 +292,10 @@ first taking the job as dispatched and the second the already incremented copy.
 reaches neither on a processor that owns redelivery, because that processor's
 entry answers the retry from its own settlement.
 
-Both seams record the job in `getPushed`. `PullQueue` clears that record after
-each job it runs. No other entry clears it, so an application that pushes
-through a client of its own ends each unit of work itself.
+Both seams record the job in `getPushed`. `PullQueue` clears that record
+before each job, so the record of the last job stays readable once the loop
+exits. No other entry clears it, so an application that pushes through a client
+of its own ends each unit of work itself.
 
 ## Redelivery
 
@@ -303,9 +304,10 @@ redelivery. A broker with a native retry loop translates the outcome into its
 own signal. Redis and a database have no native retry, so their entry calls
 `ClientContract::requeue()` instead.
 
-`requeue()` builds a new job with the attempt incremented and publishes it. The
-hold comes from the job that was dispatched, read before the increment, so the
-ramp is keyed to the attempt that just failed.
+`requeue()` builds a new job with the attempt incremented and the modification
+time stamped, then publishes it. The hold comes from the job that was
+dispatched, read before the increment, so the ramp is keyed to the attempt that
+just failed.
 
 ## Clients
 
@@ -390,8 +392,8 @@ fresh child container, which is the shape a real broker worker loops over.
 Every job runs through an entry point, never through `JobHandler` directly. An
 entry that extends `WorkerQueue` gives each job a fresh child container, so one
 job cannot reach what the job before it bound. `Queue` and `PushQueue` run their
-one job in the container of the application, because the process ends with the
-job.
+one job in the container of the application, because each call builds a fresh
+application and a fresh container of its own.
 
 An application extends `InternalQueue` and returns its queue config from
 `getConfig()`. The client boots the queue application on the first job, and it
