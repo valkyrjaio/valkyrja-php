@@ -75,8 +75,9 @@ class AmqpQueue extends PullQueue
     {
         $config = $app->getContainer()->getSingleton(QueueAmqpClientConfigContract::class);
 
-        static::$queue   = $config->amqpQueue;
+        static::$queue   = $config->queueAmqpClientQueue;
         static::$channel = static::getChannel($config);
+        static::$current = null;
 
         $channel = static::getConnection();
 
@@ -120,21 +121,26 @@ class AmqpQueue extends PullQueue
     #[Override]
     public static function disconnect(): void
     {
-        // Anything still in flight was not completed, so hand it back rather
-        // than letting it wait out the broker's own timeout
-        static::releaseCurrent();
+        try {
+            // Anything still in flight was not completed, so hand it back
+            // rather than letting it wait out the broker's own timeout
+            static::releaseCurrent();
 
-        static::getConnection()->close();
+            static::getConnection()->close();
 
-        // `close()` on a channel sends `channel.close` and leaves the socket
-        // open, so a process that runs the loop twice would hold a second
-        // broker connection. The connection is what owns the socket, and this
-        // closes only the one this entry opened: a caller that handed over a
-        // channel still needs the connection under it.
-        static::$connection?->close();
-
-        static::$channel    = null;
-        static::$connection = null;
+            // `close()` on a channel sends `channel.close` and leaves the
+            // socket open, so a process that runs the loop twice would hold a
+            // second broker connection. The connection is what owns the
+            // socket, and this closes only the one this entry opened: a caller
+            // that handed over a channel still needs the connection under it.
+            static::$connection?->close();
+        } finally {
+            // A close that throws must not leave this entry holding a channel
+            // a later run would try to settle on
+            static::$current    = null;
+            static::$channel    = null;
+            static::$connection = null;
+        }
     }
 
     /**
@@ -259,11 +265,11 @@ class AmqpQueue extends PullQueue
     protected static function getChannel(QueueAmqpClientConfigContract $config): AMQPChannel
     {
         static::$connection = new AMQPStreamConnection(
-            $config->amqpHost,
-            $config->amqpPort,
-            $config->amqpUser,
-            $config->amqpPassword,
-            $config->amqpVhost,
+            $config->queueAmqpClientHost,
+            $config->queueAmqpClientPort,
+            $config->queueAmqpClientUser,
+            $config->queueAmqpClientPassword,
+            $config->queueAmqpClientVhost,
         );
 
         return static::$connection->channel();
