@@ -29,6 +29,9 @@ use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\JobControllerMissingHandler
 use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\UnnamedJobControllerFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
+use function array_filter;
+use function array_values;
+
 final class AttributeRouteCollectorTest extends TestCase
 {
     protected AttributeRouteCollector $collector;
@@ -66,9 +69,25 @@ final class AttributeRouteCollectorTest extends TestCase
         // The route attribute takes a handler of its own, so a route that
         // names one there needs no RouteHandler attribute
         $routes = $this->collector->getRoutes(JobControllerInlineHandlerFixture::class);
+        $inline = array_values(array_filter(
+            $routes,
+            static fn (RouteContract $route): bool => $route->getName() === 'Inline',
+        ));
 
-        self::assertCount(1, $routes);
-        self::assertSame([JobControllerInlineHandlerFixture::class, 'handle'], $routes[0]->getHandler());
+        self::assertCount(1, $inline);
+        self::assertSame([JobControllerInlineHandlerFixture::class, 'handle'], $inline[0]->getHandler());
+    }
+
+    public function testTheRouteHandlerAttributeWinsOverTheRouteArgument(): void
+    {
+        $routes = $this->collector->getRoutes(JobControllerInlineHandlerFixture::class);
+        $both   = array_values(array_filter(
+            $routes,
+            static fn (RouteContract $route): bool => $route->getName() === 'Both',
+        ));
+
+        self::assertCount(1, $both);
+        self::assertSame([JobControllerInlineHandlerFixture::class, 'viaAttribute'], $both[0]->getHandler());
     }
 
     public function testCollectsNothingForNoClasses(): void
