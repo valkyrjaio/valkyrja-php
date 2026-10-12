@@ -354,76 +354,35 @@ value object.
 
 `Valkyrja\Type\Data\Cast` records the type to convert a value to, and how to
 return the result. `Cast::$type` is a `class-string`, and PHP holds a class
-string as a container binding key, so the CLI caster reads the field as one.
-
-The CLI caster asks the container for the type. A model casting, an ORM entity,
-and the HTTP matcher each call the named constructor of the type, so none of
-them needs a binding. The ORM route middleware reads `type` as a class name
-only, and it builds no type.
+string as a container binding key, so a reader of a cast resolves the type
+through the container or calls the named constructor of the type.
 
 `Valkyrja\Type\Enum\CastType` names a type for each primitive that this
 component ships. `Valkyrja\Type\Provider\TypeServiceProvider` binds every one
-of them, and `TypeComponentProvider` returns that service provider.
+of them, and `TypeComponentProvider` returns that service provider. An
+application that resolves a cast type through the container registers that
+component provider.
 
-The CLI routing component returns `TypeComponentProvider`, so a CLI application
-resolves a cast that `CastType` names with no further registration. An
-application that resolves a cast type anywhere else registers
-`TypeComponentProvider` itself.
+`Valkyrja\Type\Constant\CastArgument::VALUE` names the argument that carries
+the raw value. A binding of a cast type reads the value under that key.
 
-An application binds its own type under the key that the cast names, and the
-factory reads the raw value under `Valkyrja\Type\Constant\CastArgument::VALUE`:
-
-```php
-use Valkyrja\Container\Manager\Contract\ContainerContract;
-use Valkyrja\Type\Constant\CastArgument;
-use Valkyrja\Type\Data\Cast;
-
-$container->bind(
-    Slug::class,
-    static fn(ContainerContract $container, array $arguments): Slug => Slug::fromValue(
-        $arguments[CastArgument::VALUE] ?? null
-    )
-);
-
-$cast = new Cast(type: Slug::class);
-```
-
-Warning: register a cast type for the CLI caster with `bind`. The caster calls
-`getService()`, which reads only a service binding, so an alias and an instance
-that `setSingleton` holds each raise `ContainerInvalidReferenceException`.
-
-Warning: the factory takes the raw value under `CastArgument::VALUE`. A call
-that passes no such argument raises `TypeMissingCastArgumentException`, because
-a type built from a value the caller never gave hides the mistake.
-
-Warning: the factory returns a `TypeContract`. The caster calls `asValue()` on
-the object that the container builds, and an object without that method raises
-an `Error`.
-
-A binding also reaches an argument that a named constructor takes beyond the
-value. `SerializedObject::fromValue()` takes the classes that `unserialize`
-allows, and a binding passes them:
-
-```php
-use Valkyrja\Container\Manager\Contract\ContainerContract;
-use Valkyrja\Type\Constant\CastArgument;
-use Valkyrja\Type\Object\SerializedObject;
-
-$container->bind(
-    SerializedObject::class,
-    static fn (ContainerContract $container, array $arguments): SerializedObject => SerializedObject::fromValue(
-        $arguments[CastArgument::VALUE] ?? null,
-        [Slug::class]
-    )
-);
-```
+Warning: register a cast type with `bind`. A reader that resolves a cast type
+calls `getService()`, which reads only a service binding, so an alias and an
+instance that `setSingleton` holds each raise
+`ContainerInvalidReferenceException`.
 
 `getService()` also skips the singleton cache, so the container builds one type
 for each value. That is not the lifetime that `bindSingleton` states, which is
 the second reason a cast type takes `bind`.
 
-The [cli component](../Cli/README.md) describes the caster that applies a cast
-to a command parameter.
+Warning: a binding of a cast type takes the raw value under
+`CastArgument::VALUE`. A call that passes no such argument raises
+`TypeMissingCastArgumentException`, because a type built from a value the caller
+never gave hides the mistake.
+
+Warning: a binding of a cast type returns a `TypeContract`. A reader calls
+`asValue()` on the object that the container builds, and an object without that
+method raises an `Error`.
 
 ## Exceptions
 
