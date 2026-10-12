@@ -191,9 +191,8 @@ class AttributeRouteCollector implements RouteCollectorContract
         // the route carries one already unless the author named none
         $handler = $routeHandler->handler ?? $route->getHandler();
 
-        // A route that keeps the stand-in fails only once a request reaches it,
-        // so the collector rejects it here. The name identifies which route, because
-        // one method declares a route for each route attribute it repeats
+        // A route that keeps the stand-in fails only when a request reaches it,
+        // so the collector rejects it here
         if ($handler instanceof NoRouteHandler) {
             throw new HttpRoutingNoRouteHandlerException(
                 'Route `' . $route->getName() . '` on ' . $class . '::' . $method
