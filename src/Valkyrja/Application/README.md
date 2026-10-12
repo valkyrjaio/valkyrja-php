@@ -10,7 +10,7 @@ covers each in turn:
 
 - [Entry Points](#entry-points) — HTTP, CLI, and the persistent worker
   runtimes
-- [Configuration](#configuration) — the three config classes, environment
+- [Configuration](#configuration) — the config classes, environment
   sourcing, your own config class, and callbacks
 - [The Bootstrap Sequence](#the-bootstrap-sequence) — what `run()` does, step
   by step
@@ -639,7 +639,7 @@ list.
 
 The framework ships the following aggregators in
 `Valkyrja\Application\Provider`. Each declares framework components through
-`getComponentProviders()` and returns `[]` from every other hook.
+`getComponentProviders()` and returns `[]` from every other method.
 
 | Provider                                  | Composition                                                                                         | Default for   |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------- |
