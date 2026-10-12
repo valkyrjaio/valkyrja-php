@@ -637,9 +637,9 @@ list.
 
 ## Built-in Component Providers
 
-The framework ships five aggregators in `Valkyrja\Application\Provider`. Each
-declares framework components through `getComponentProviders()` and returns
-`[]` from the other five methods.
+The framework ships the following aggregators in
+`Valkyrja\Application\Provider`. Each declares framework components through
+`getComponentProviders()` and returns `[]` from every other hook.
 
 | Provider                                  | Composition                                                                                         | Default for   |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------- |
