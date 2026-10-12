@@ -249,6 +249,32 @@ processor. An entry such as `Valkyrja\Application\Entry\Redis\RedisQueue`
 implements `connect`, `receive`, `disconnect`, and `settle`, and inherits the
 loop.
 
+The config of a redis worker satisfies two contracts. It extends `QueueConfig`
+for `QueueConfigContract`, and it implements `QueueRedisClientConfigContract` to
+name the server and this worker's own slot:
+
+```php
+// app/src/Queue/WorkerConfig.php
+namespace App\Queue;
+
+use Valkyrja\Application\Data\QueueConfig;
+use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
+
+final class WorkerConfig extends QueueConfig implements QueueRedisClientConfigContract
+{
+    public function __construct(
+        string $dir,
+        public string $queueRedisClientWorkerName = 'default',
+        public string $queueRedisClientHost = '127.0.0.1',
+        public int $queueRedisClientPort = 6379,
+        public string $queueRedisClientPrefix = '',
+        public string $queueRedisClientQueue = 'queues:default',
+    ) {
+        parent::__construct(dir: $dir);
+    }
+}
+```
+
 ```php
 // app/bin/queue
 use App\Queue\WorkerConfig;
@@ -256,8 +282,7 @@ use Valkyrja\Application\Entry\Redis\RedisQueue;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-// The config implements QueueRedisClientConfigContract and names this worker's
-// own slot, which is what keeps one worker's in-flight list to itself
+// The slot name is what keeps one worker's in-flight list to itself
 RedisQueue::run(new WorkerConfig(
     dir: __DIR__ . '/..',
     queueRedisClientWorkerName: (string) ($_SERVER['WORKER_NAME'] ?? 'worker.1'),
