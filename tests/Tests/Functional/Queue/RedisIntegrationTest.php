@@ -274,6 +274,35 @@ final class RedisIntegrationTest extends TestCase
         self::assertSame(1, (int) $this->redis->llen(self::QUEUE));
     }
 
+    public function testAReclaimReturnsAHeldEnvelopeToTheTailRatherThanTheHead(): void
+    {
+        $held = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
+        $this->client()->push($held);
+
+        self::assertNotNull(RedisQueueFixture::receive());
+
+        // A second job reaches the ready list while the first is still held
+        $waiting = new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK);
+        $this->client()->push($waiting);
+
+        RedisQueueFixture::reset();
+        RedisQueueFixture::inject($this->redis, self::QUEUE);
+        RedisQueueFixture::connect($this->application());
+
+        /** @var string[] $ready */
+        $ready = $this->redis->lrange(self::QUEUE, 0, -1);
+
+        self::assertCount(2, $ready);
+
+        $factory = new JobFactory();
+
+        // The reclaim goes onto the tail, so the job that was already waiting
+        // keeps its place: at the head a job that kills its worker every time
+        // would hold up everything behind it
+        self::assertSame($waiting->getId(), $factory->fromJson($ready[0])->getId());
+        self::assertSame($held->getId(), $factory->fromJson($ready[1])->getId());
+    }
+
     public function testAnUnreadableEnvelopeIsParkedRatherThanDiscarded(): void
     {
         $this->redis->rpush(self::QUEUE, ['not an envelope']);
