@@ -327,9 +327,9 @@ class QueueClientServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             BeanstalkdClient::class,
             new BeanstalkdClient(
-                pheanstalk: Pheanstalk::create($config->beanstalkdHost, $config->beanstalkdPort),
-                tube: $config->beanstalkdTube,
-                timeToRelease: $config->beanstalkdTimeToRelease,
+                pheanstalk: Pheanstalk::create($config->queueBeanstalkdClientHost, $config->queueBeanstalkdClientPort),
+                tube: $config->queueBeanstalkdClientTube,
+                timeToRelease: $config->queueBeanstalkdClientTimeToRelease,
                 applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
             )
         );

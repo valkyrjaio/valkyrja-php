@@ -47,9 +47,9 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param non-empty-string|null        $queueSqsClientAccessKeySecret
      * @param non-empty-string             $queueSqsClientQueueUrl
      * @param int<1, 20>                   $queueSqsClientWaitTimeSeconds
-     * @param non-empty-string             $beanstalkdHost
-     * @param non-empty-string             $beanstalkdTube
-     * @param int<0, max>                  $beanstalkdTimeToRelease
+     * @param non-empty-string             $queueBeanstalkdClientHost
+     * @param non-empty-string             $queueBeanstalkdClientTube
+     * @param int<0, max>                  $queueBeanstalkdClientTimeToRelease
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -73,10 +73,10 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public string|null $queueSqsClientAccessKeySecret = 'secret',
         public string $queueSqsClientQueueUrl = 'http://sqs.test/000000000000/test',
         public int $queueSqsClientWaitTimeSeconds = 20,
-        public string $beanstalkdHost = 'beanstalkd.test',
-        public int $beanstalkdPort = 11301,
-        public string $beanstalkdTube = 'jobs',
-        public int $beanstalkdTimeToRelease = 90,
+        public string $queueBeanstalkdClientHost = 'beanstalkd.test',
+        public int $queueBeanstalkdClientPort = 11301,
+        public string $queueBeanstalkdClientTube = 'jobs',
+        public int $queueBeanstalkdClientTimeToRelease = 90,
     ) {
         parent::__construct(
             applicationName: 'host',

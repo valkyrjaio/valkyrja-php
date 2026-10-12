@@ -662,12 +662,12 @@ visibility timeout above the longest job it carries.
 
 #### `QueueBeanstalkdClientConfigContract`
 
-| Property                  | Default       | Description                                                    |
-| :------------------------ | :------------ | :------------------------------------------------------------- |
-| `beanstalkdHost`          | `'127.0.0.1'` | The host to connect to                                         |
-| `beanstalkdPort`          | `11300`       | The port to connect to                                         |
-| `beanstalkdTube`          | `'default'`   | The tube that jobs are put on                                  |
-| `beanstalkdTimeToRelease` | `60`          | The seconds a worker holds a job before beanstalkd releases it |
+| Property                             | Default       | Description                                                    |
+| :----------------------------------- | :------------ | :------------------------------------------------------------- |
+| `queueBeanstalkdClientHost`          | `'127.0.0.1'` | The host to connect to                                         |
+| `queueBeanstalkdClientPort`          | `11300`       | The port to connect to                                         |
+| `queueBeanstalkdClientTube`          | `'default'`   | The tube that jobs are put on                                  |
+| `queueBeanstalkdClientTimeToRelease` | `60`          | The seconds a worker holds a job before beanstalkd releases it |
 
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not

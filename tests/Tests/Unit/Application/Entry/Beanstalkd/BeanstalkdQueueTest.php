@@ -344,7 +344,7 @@ final class BeanstalkdQueueTest extends TestCase
     protected function application(string $tube = self::TUBE): ApplicationContract
     {
         $container = self::createStub(ContainerContract::class);
-        $container->method('getSingleton')->willReturn(new QueueBeanstalkdClientConfig(beanstalkdTube: $tube));
+        $container->method('getSingleton')->willReturn(new QueueBeanstalkdClientConfig(queueBeanstalkdClientTube: $tube));
 
         $app = self::createStub(ApplicationContract::class);
         $app->method('getContainer')->willReturn($container);

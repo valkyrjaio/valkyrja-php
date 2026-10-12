@@ -30,15 +30,15 @@ final class BeanstalkdWorkerConfigFixture extends QueueConfig implements QueueCl
     public string $defaultQueueClient = BeanstalkdClient::class;
 
     /**
-     * @param non-empty-string $beanstalkdHost          The host of the server under test
-     * @param non-empty-string $beanstalkdTube          The tube jobs are published to
-     * @param int<0, max>      $beanstalkdTimeToRelease The seconds a reserved job is held
+     * @param non-empty-string $queueBeanstalkdClientHost          The host of the server under test
+     * @param non-empty-string $queueBeanstalkdClientTube          The tube jobs are published to
+     * @param int<0, max>      $queueBeanstalkdClientTimeToRelease The seconds a reserved job is held
      */
     public function __construct(
-        public string $beanstalkdHost = '127.0.0.1',
-        public int $beanstalkdPort = 11300,
-        public string $beanstalkdTube = 'valkyrja',
-        public int $beanstalkdTimeToRelease = BeanstalkdClient::DEFAULT_TIME_TO_RELEASE,
+        public string $queueBeanstalkdClientHost = '127.0.0.1',
+        public int $queueBeanstalkdClientPort = 11300,
+        public string $queueBeanstalkdClientTube = 'valkyrja',
+        public int $queueBeanstalkdClientTimeToRelease = BeanstalkdClient::DEFAULT_TIME_TO_RELEASE,
     ) {
         parent::__construct(
             dir: Directory::$basePath,

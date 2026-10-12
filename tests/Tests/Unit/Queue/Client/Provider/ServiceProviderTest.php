@@ -352,8 +352,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueueBeanstalkdClientConfigContract::class);
 
-        self::assertSame('127.0.0.1', $config->beanstalkdHost);
-        self::assertSame(60, $config->beanstalkdTimeToRelease);
+        self::assertSame('127.0.0.1', $config->queueBeanstalkdClientHost);
+        self::assertSame(60, $config->queueBeanstalkdClientTimeToRelease);
     }
 
     public function testPublishBeanstalkdConfigWithApplicationConfig(): void
@@ -364,8 +364,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueueBeanstalkdClientConfigContract::class);
 
-        self::assertSame('beanstalkd.test', $config->beanstalkdHost);
-        self::assertSame(90, $config->beanstalkdTimeToRelease);
+        self::assertSame('beanstalkd.test', $config->queueBeanstalkdClientHost);
+        self::assertSame(90, $config->queueBeanstalkdClientTimeToRelease);
     }
 
     public function testPublishBeanstalkdClientDoesNotConnect(): void

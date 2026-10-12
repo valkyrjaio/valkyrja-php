@@ -27,24 +27,24 @@ final class QueueBeanstalkdClientConfigTest extends TestCase
     {
         $config = new QueueBeanstalkdClientConfig();
 
-        self::assertSame('127.0.0.1', $config->beanstalkdHost);
-        self::assertSame(11300, $config->beanstalkdPort);
-        self::assertSame('default', $config->beanstalkdTube);
-        self::assertSame(60, $config->beanstalkdTimeToRelease);
+        self::assertSame('127.0.0.1', $config->queueBeanstalkdClientHost);
+        self::assertSame(11300, $config->queueBeanstalkdClientPort);
+        self::assertSame('default', $config->queueBeanstalkdClientTube);
+        self::assertSame(60, $config->queueBeanstalkdClientTimeToRelease);
     }
 
     public function testCustomValuesAreStored(): void
     {
         $config = new QueueBeanstalkdClientConfig(
-            beanstalkdHost: 'beanstalkd.test',
-            beanstalkdPort: 11301,
-            beanstalkdTube: 'jobs',
-            beanstalkdTimeToRelease: 90,
+            queueBeanstalkdClientHost: 'beanstalkd.test',
+            queueBeanstalkdClientPort: 11301,
+            queueBeanstalkdClientTube: 'jobs',
+            queueBeanstalkdClientTimeToRelease: 90,
         );
 
-        self::assertSame('beanstalkd.test', $config->beanstalkdHost);
-        self::assertSame(11301, $config->beanstalkdPort);
-        self::assertSame('jobs', $config->beanstalkdTube);
-        self::assertSame(90, $config->beanstalkdTimeToRelease);
+        self::assertSame('beanstalkd.test', $config->queueBeanstalkdClientHost);
+        self::assertSame(11301, $config->queueBeanstalkdClientPort);
+        self::assertSame('jobs', $config->queueBeanstalkdClientTube);
+        self::assertSame(90, $config->queueBeanstalkdClientTimeToRelease);
     }
 }

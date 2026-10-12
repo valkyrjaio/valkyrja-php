@@ -15,21 +15,21 @@ namespace Valkyrja\Queue\Client\Data\Contract;
 interface QueueBeanstalkdClientConfigContract
 {
     /** @var non-empty-string */
-    public string $beanstalkdHost {
+    public string $queueBeanstalkdClientHost {
         get;
     }
 
-    public int $beanstalkdPort {
+    public int $queueBeanstalkdClientPort {
         get;
     }
 
     /** @var non-empty-string */
-    public string $beanstalkdTube {
+    public string $queueBeanstalkdClientTube {
         get;
     }
 
     /** @var int<0, max> */
-    public int $beanstalkdTimeToRelease {
+    public int $queueBeanstalkdClientTimeToRelease {
         get;
     }
 }

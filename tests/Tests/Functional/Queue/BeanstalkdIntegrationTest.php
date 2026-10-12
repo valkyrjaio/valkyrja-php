@@ -237,9 +237,9 @@ final class BeanstalkdIntegrationTest extends TestCase
     private function config(): QueueConfigContract
     {
         return new BeanstalkdWorkerConfigFixture(
-            beanstalkdHost: $this->host,
-            beanstalkdPort: $this->port,
-            beanstalkdTube: self::TUBE,
+            queueBeanstalkdClientHost: $this->host,
+            queueBeanstalkdClientPort: $this->port,
+            queueBeanstalkdClientTube: self::TUBE,
         );
     }
 

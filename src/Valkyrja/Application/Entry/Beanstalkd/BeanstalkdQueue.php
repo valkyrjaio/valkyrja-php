@@ -65,7 +65,7 @@ class BeanstalkdQueue extends PullQueue
     {
         $config = $app->getContainer()->getSingleton(QueueBeanstalkdClientConfigContract::class);
 
-        static::$tube       = $config->beanstalkdTube;
+        static::$tube       = $config->queueBeanstalkdClientTube;
         static::$pheanstalk = static::getPheanstalk($config);
 
         $pheanstalk = static::getConnection();
@@ -218,7 +218,7 @@ class BeanstalkdQueue extends PullQueue
      */
     protected static function getPheanstalk(QueueBeanstalkdClientConfigContract $config): PheanstalkManagerInterface&PheanstalkSubscriberInterface
     {
-        return Pheanstalk::create($config->beanstalkdHost, $config->beanstalkdPort);
+        return Pheanstalk::create($config->queueBeanstalkdClientHost, $config->queueBeanstalkdClientPort);
     }
 
     /**

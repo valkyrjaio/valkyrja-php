@@ -18,16 +18,16 @@ use Valkyrja\Queue\Client\Manager\BeanstalkdClient;
 class QueueBeanstalkdClientConfig implements QueueBeanstalkdClientConfigContract
 {
     /**
-     * @param non-empty-string $beanstalkdHost          The host to connect to
-     * @param int              $beanstalkdPort          The port to connect to
-     * @param non-empty-string $beanstalkdTube          The tube that jobs are put on
-     * @param int<0, max>      $beanstalkdTimeToRelease The seconds a worker holds a job before beanstalkd releases it
+     * @param non-empty-string $queueBeanstalkdClientHost          The host to connect to
+     * @param int              $queueBeanstalkdClientPort          The port to connect to
+     * @param non-empty-string $queueBeanstalkdClientTube          The tube that jobs are put on
+     * @param int<0, max>      $queueBeanstalkdClientTimeToRelease The seconds a worker holds a job before beanstalkd releases it
      */
     public function __construct(
-        public readonly string $beanstalkdHost = '127.0.0.1',
-        public readonly int $beanstalkdPort = 11300,
-        public readonly string $beanstalkdTube = 'default',
-        public readonly int $beanstalkdTimeToRelease = BeanstalkdClient::DEFAULT_TIME_TO_RELEASE,
+        public readonly string $queueBeanstalkdClientHost = '127.0.0.1',
+        public readonly int $queueBeanstalkdClientPort = 11300,
+        public readonly string $queueBeanstalkdClientTube = 'default',
+        public readonly int $queueBeanstalkdClientTimeToRelease = BeanstalkdClient::DEFAULT_TIME_TO_RELEASE,
     ) {
     }
 }
