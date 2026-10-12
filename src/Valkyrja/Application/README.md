@@ -234,8 +234,8 @@ use, and `getThrowableHandler()` returns the debug-mode throwable handler.
 
 ### Queue Entry Classes
 
-A queue has five entry classes, because a job reaches an application in
-several different ways.
+A job reaches an application in several different ways, and a queue has an
+entry class for each.
 
 `Queue` is single-shot. It builds an application, runs one job, and exits. Use
 it for a one-off dispatch and for a test. A host that pushes repeatedly pays a
