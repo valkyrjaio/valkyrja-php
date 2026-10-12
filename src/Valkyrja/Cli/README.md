@@ -836,6 +836,9 @@ wrapped in their `Valkyrja\Type` objects instead of converting to native
 values. For a parameter that holds no cast, `getCastValues()` returns the raw
 strings, and `ParameterContract::getValues()` returns them without a caster.
 
+See [the type component](../Type/README.md) for the binding rules of a cast
+type.
+
 ### Help Text
 
 `#[Route]` accepts a `helpText` callable that returns a `MessageContract`.
