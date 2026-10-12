@@ -317,9 +317,9 @@ final class MatcherTest extends TestCase
         self::assertInstanceOf(DynamicRouteContract::class, $route);
         self::assertTrue($route->hasParameter('dynamic1'));
         self::assertTrue($route->hasParameter('dynamic2'));
-        self::assertIsInt($route->getParameter('dynamic1')->getValue());
+        self::assertSame(2, $route->getParameter('dynamic1')->getValue());
         self::assertInstanceOf(IntT::class, $route->getParameter('dynamic2')->getValue());
-        self::assertIsInt($route->getParameter('dynamic2')->getValue()->asValue());
+        self::assertSame(235, $route->getParameter('dynamic2')->getValue()->asValue());
     }
 
     public function testCastTypeThatNoServiceHoldsRaises(): void

@@ -16,6 +16,7 @@ use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Http\Routing\Provider\HttpRoutingComponentProvider;
 use Valkyrja\Http\Routing\Provider\HttpRoutingServiceProvider;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
+use Valkyrja\Type\Provider\TypeComponentProvider;
 
 /**
  * Test the Component service.
@@ -26,7 +27,10 @@ final class ComponentProviderTest extends TestCase
     {
         $app = self::createStub(ApplicationContract::class);
 
-        self::assertEmpty(new HttpRoutingComponentProvider()->getComponentProviders($app));
+        $providers = new HttpRoutingComponentProvider()->getComponentProviders($app);
+
+        self::assertCount(1, $providers);
+        self::assertInstanceOf(TypeComponentProvider::class, $providers[0]);
     }
 
     public function testGetContainerProvider(): void
