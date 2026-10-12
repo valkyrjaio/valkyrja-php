@@ -102,6 +102,8 @@ abstract class Client implements ClientContract
      */
     protected function republish(JobContract $job, int $delayMs): void
     {
+        // An in-process client has no durable place to hold a job, so the hold
+        // is dropped: only the timing differs from production, never the count
         $this->publish($job);
     }
 
