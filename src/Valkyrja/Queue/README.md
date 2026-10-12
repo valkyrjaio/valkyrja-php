@@ -310,12 +310,16 @@ dispatched, read before the increment, so the ramp is keyed to the attempt that
 just failed.
 
 A broker that redelivers a job itself owns the retry counter instead. A retry is
-signaled by the consumer — a nack, a shortened visibility timeout, a release —
-and never by publishing the job again. Publishing again would duplicate the
-message, because the original delivery is still unacknowledged. The broker owns
-its own backoff, so the framework's ramp does not apply. The entry of such a
+signaled by the consumer — a nack, a new visibility timeout, a release — and
+never by publishing the job again. Publishing again would duplicate the message,
+because the original delivery is still unacknowledged. The entry of such a
 broker answers it directly from `settle`, and never calls
 `ClientContract::requeue()`.
+
+The entry still supplies the hold, where the broker accepts one. `SqsQueue` sets
+the visibility timeout from the ramp, so the hold is the job's own and not the
+queue's default. `AmqpQueue` passes none, because a nack gives the broker no
+place to put one, so that broker redelivers on its own schedule.
 
 Warning: the count such a broker reports has to reach the ceiling, or nothing
 dead-letters. A classic AMQP queue reports only that a delivery is a
@@ -347,6 +351,7 @@ quorum queue, or give the job a `max_attempts` of 2.
 | `InMemoryClient` | none   | framework  |
 | `RedisClient`    | Redis  | framework  |
 | `AmqpClient`     | AMQP   | processor  |
+| `SqsClient`      | SQS    | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -372,11 +377,20 @@ host runtime that can keep working after the response.
 unacknowledged delivery, so the entry answers a retry from its own settlement
 and the client has nothing to hand back.
 
+`SqsClient` refuses `retry` and `requeue` with the same throwable, and for the
+same reason: the queue still holds the delivery, so the entry answers a retry by
+changing its visibility rather than by publishing again.
+
 `AmqpClient` publishes without a hold. AMQP carries no per-message delay, and
 giving it one needs a delay queue and a dead-letter exchange that the broker
 owner declares rather than the client. A job pushed with `delay_ms` is therefore
 consumable as soon as it lands. Every other broker client applies the hold at
 enqueue.
+
+`SqsClient` takes whole seconds, so a `delay_ms` below one second becomes no
+delay at all and the job is consumable at once. A retry hold rounds the other
+way: `SqsQueue` raises a sub-second hold to one second, because a visibility of
+zero would return the delivery with no hold.
 
 `AmqpClient` carries the job's priority onto the message, and a classic queue
 orders by it only when the broker gave the queue a priority bound. The framework
@@ -408,6 +422,7 @@ gives one request the deferred jobs of the request before it.
 | `PullQueue`     | the poll loop that a processor entry extends          |
 | `RedisQueue`    | a worker that takes jobs from a redis list            |
 | `AmqpQueue`     | a worker that consumes an AMQP queue                  |
+| `SqsQueue`      | a worker that long-polls an SQS queue                 |
 | `PushQueue`     | one job that a broker delivers over HTTP              |
 | `InternalQueue` | each job that `SyncClient` or `DeferredClient` pushes |
 
@@ -421,8 +436,21 @@ window itself: a receive moves the envelope onto an in-flight list in the same
 step that takes it off the ready list, and a settlement removes it from there
 last, so an interrupted settlement leaves a duplicate delivery rather than none.
 An envelope no factory can read is parked on an unreadable list instead of being
-discarded. Every other processor has the broker return an unacknowledged
-delivery on its own.
+discarded. A broker that owns its own acknowledgement returns an unacknowledged
+delivery by itself, so only redis needs the list.
+
+Warning: an SQS redrive policy never sees a job the framework dead-letters.
+`SqsQueue` deletes the message on `FAIL` and on `DEAD_LETTER`, and SQS routes to
+a dead-letter queue on the receive count at receive time, so a message deleted
+here never reaches one. The attempt ceiling of the job is what ends the chain,
+and the entry leaves the rest to the queue rather than handing a job back that
+the framework already called dead. A deployment that needs the copy sets
+`maxReceiveCount` below the job's `max_attempts`, so SQS routes it first.
+
+Warning: `SqsQueue` deletes a body no factory can read rather than parking it.
+Nothing settles an unreadable body, so SQS would hand the same message back on
+every visibility timeout, and a queue with no redrive policy has nothing to end
+that. Give the queue a redrive policy to keep a copy of what was deleted.
 
 The in-flight list belongs to one worker slot, named by
 `queueRedisClientWorkerName`. That
@@ -608,6 +636,27 @@ that case. A non-empty `queueAmqpClientExchange` with no binding for the queue's
 the same effect, so an application that sets it declares and binds the exchange
 itself.
 
+#### `QueueSqsClientConfigContract`
+
+| Property                        | Default                                                      | Description                                                                 |
+| :------------------------------ | :----------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| `queueSqsClientRegion`          | `'us-east-1'`                                                | The AWS region                                                              |
+| `queueSqsClientEndpoint`        | `null`                                                       | The endpoint to send to; null for the AWS endpoint of the region            |
+| `queueSqsClientAccessKeyId`     | `null`                                                       | The access key id; null for the AWS credential chain                        |
+| `queueSqsClientAccessKeySecret` | `null`                                                       | The access key secret; null for the AWS credential chain                    |
+| `queueSqsClientQueueUrl`        | `'https://sqs.us-east-1.amazonaws.com/000000000000/default'` | The URL of the queue that jobs are sent to                                  |
+| `queueSqsClientWaitTimeSeconds` | `20`                                                         | The long-poll wait in seconds, from 1 to 20; 20 is the longest and cheapest |
+
+Warning: the long-poll wait is also how long a worker can overrun `maxSeconds`,
+because the loop reads its bounds only between receives. Lower it when a worker
+has to stop promptly, and pay for the extra receives.
+
+Warning: the receive sends no visibility timeout, because the queue's own
+setting belongs to the operator. The SQS default is 30 seconds, so a job that
+runs longer than that loses its delivery: SQS hands the same message to a second
+worker while the first still runs, and both settle it. Set the queue's
+visibility timeout above the longest job it carries.
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
@@ -665,6 +714,7 @@ A broker adapter needs its own package, and the framework does not require one:
 | ------- | ------------------------- |
 | Redis   | `predis/predis`           |
 | AMQP    | `php-amqplib/php-amqplib` |
+| SQS     | `async-aws/sqs`           |
 
 `RedisQueue` moves an envelope between two lists in one step with `BLMOVE` and
 `LMOVE`, so a redis server of 6.2 or newer is required to consume. `RedisClient`

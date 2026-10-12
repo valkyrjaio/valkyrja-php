@@ -18,6 +18,7 @@ use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
 use Valkyrja\Queue\Client\Manager\SyncClient;
@@ -26,7 +27,7 @@ use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 /**
  * An application config that implements every queue client config contract.
  */
-final class QueueClientConfigFixture extends Config implements QueueClientConfigContract, QueueSyncClientConfigContract, QueueDeferredClientConfigContract, QueueRedisClientConfigContract, QueueAmqpClientConfigContract
+final class QueueClientConfigFixture extends Config implements QueueClientConfigContract, QueueSyncClientConfigContract, QueueDeferredClientConfigContract, QueueRedisClientConfigContract, QueueAmqpClientConfigContract, QueueSqsClientConfigContract
 {
     /**
      * @param class-string<ClientContract> $defaultQueueClient
@@ -39,6 +40,12 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param non-empty-string             $queueAmqpClientUser
      * @param non-empty-string             $queueAmqpClientVhost
      * @param non-empty-string             $queueAmqpClientQueue
+     * @param non-empty-string             $queueSqsClientRegion
+     * @param non-empty-string|null        $queueSqsClientEndpoint
+     * @param non-empty-string|null        $queueSqsClientAccessKeyId
+     * @param non-empty-string|null        $queueSqsClientAccessKeySecret
+     * @param non-empty-string             $queueSqsClientQueueUrl
+     * @param int<1, 20>                   $queueSqsClientWaitTimeSeconds
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -56,6 +63,12 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public string $queueAmqpClientVhost = '/jobs',
         public string $queueAmqpClientQueue = 'queues.test',
         public string $queueAmqpClientExchange = 'jobs',
+        public string $queueSqsClientRegion = 'eu-west-1',
+        public string|null $queueSqsClientEndpoint = 'http://sqs.test',
+        public string|null $queueSqsClientAccessKeyId = 'key',
+        public string|null $queueSqsClientAccessKeySecret = 'secret',
+        public string $queueSqsClientQueueUrl = 'http://sqs.test/000000000000/test',
+        public int $queueSqsClientWaitTimeSeconds = 20,
     ) {
         parent::__construct(
             applicationName: 'host',
