@@ -14,7 +14,6 @@ namespace Valkyrja\Tests\Unit\Queue\Routing\Collector;
 
 use Override;
 use Valkyrja\Attribute\Collector\Collector;
-use Valkyrja\Queue\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Queue\Routing\Collector\AttributeRouteCollector;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingNoRouteHandlerException;
@@ -25,6 +24,7 @@ use Valkyrja\Tests\Fixtures\Queue\Middleware\RouteMatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\SettlingResultMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ThrowableCaughtMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\JobControllerFixture;
+use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\JobControllerInlineHandlerFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\JobControllerMissingHandlerFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Controller\UnnamedJobControllerFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
@@ -56,11 +56,19 @@ final class AttributeRouteCollectorTest extends TestCase
         // Without this the route would keep the attribute's sentinel and fail
         // only once a job reached it, long after the author could act on it
         $this->expectException(QueueRoutingNoRouteHandlerException::class);
-        $this->expectExceptionMessage(
-            JobControllerMissingHandlerFixture::class . '::noHandler carries no ' . RouteHandler::class . ' attribute'
-        );
+        $this->expectExceptionMessage(JobControllerMissingHandlerFixture::class . '::noHandler names no handler');
 
         $this->collector->getRoutes(JobControllerMissingHandlerFixture::class);
+    }
+
+    public function testKeepsAHandlerNamedOnTheRouteAttribute(): void
+    {
+        // The route attribute takes a handler of its own, so a route that
+        // names one there needs no RouteHandler attribute
+        $routes = $this->collector->getRoutes(JobControllerInlineHandlerFixture::class);
+
+        self::assertCount(1, $routes);
+        self::assertSame([JobControllerInlineHandlerFixture::class, 'handle'], $routes[0]->getHandler());
     }
 
     public function testCollectsNothingForNoClasses(): void

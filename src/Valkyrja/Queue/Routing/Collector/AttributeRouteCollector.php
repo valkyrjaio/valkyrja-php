@@ -27,6 +27,7 @@ use Valkyrja\Queue\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Queue\Routing\Collector\Contract\RouteCollectorContract;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 use Valkyrja\Queue\Routing\Data\Route;
+use Valkyrja\Queue\Routing\Support\NoRouteHandler;
 use Valkyrja\Queue\Routing\Throwable\Exception\QueueRoutingNoRouteHandlerException;
 use Valkyrja\Reflection\Reflector\Contract\ReflectorContract;
 use Valkyrja\Reflection\Reflector\Reflector;
@@ -86,12 +87,14 @@ class AttributeRouteCollector implements RouteCollectorContract
 
         $handler = $routeHandler->handler ?? null;
 
-        // Reject a handlerless route at boot, because the sentinel would otherwise fail only when a job arrives.
         if ($handler === null) {
-            // updateName runs after this, so the route name is not final yet.
-            throw new QueueRoutingNoRouteHandlerException(
-                $class . '::' . $method . ' carries no ' . RouteHandler::class . ' attribute'
-            );
+            // The route attribute takes a handler too, so only the sentinel means none was given.
+            if ($route->getHandler() instanceof NoRouteHandler) {
+                // updateName runs after this, so the message names the class and the method.
+                throw new QueueRoutingNoRouteHandlerException($class . '::' . $method . ' names no handler');
+            }
+
+            return $route;
         }
 
         return $route->withHandler($handler);
