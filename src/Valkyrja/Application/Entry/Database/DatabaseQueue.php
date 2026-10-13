@@ -77,6 +77,9 @@ class DatabaseQueue extends PullQueue
      */
     protected static int|string|null $current = null;
 
+    /** @var int|null The stamp this worker wrote when it claimed the row */
+    protected static int|null $claimedAtMs = null;
+
     /**
      * @inheritDoc
      */
@@ -86,9 +89,11 @@ class DatabaseQueue extends PullQueue
         $container = $app->getContainer();
         $config    = $container->getSingleton(QueueDatabaseClientConfigContract::class);
 
-        static::$queue   = $config->queueDatabaseClientQueue;
-        static::$table   = $config->queueDatabaseClientTable;
-        static::$manager = static::getManager($container);
+        static::$current     = null;
+        static::$claimedAtMs = null;
+        static::$queue       = $config->queueDatabaseClientQueue;
+        static::$table       = $config->queueDatabaseClientTable;
+        static::$manager     = static::getManager($container);
     }
 
     /**
@@ -133,11 +138,17 @@ class DatabaseQueue extends PullQueue
     #[Override]
     public static function disconnect(): void
     {
-        // Anything still reserved was not completed, so hand it back rather
-        // than leaving a row no worker will ever claim again
-        static::releaseCurrent();
-
-        static::$manager = null;
+        try {
+            // Anything still reserved was not completed, so hand it back
+            // rather than leaving a row no worker will ever claim again
+            static::releaseCurrent();
+        } finally {
+            // A release that throws must not leave this entry holding a
+            // manager a later run would claim on
+            static::$current     = null;
+            static::$claimedAtMs = null;
+            static::$manager     = null;
+        }
     }
 
     /**
@@ -146,22 +157,26 @@ class DatabaseQueue extends PullQueue
     #[Override]
     public static function settle(JobContract $job, JobResult $result, ClientContract $client): void
     {
-        $id = static::$current;
+        $id        = static::$current;
+        $claimedAt = static::$claimedAtMs;
 
-        if ($id === null) {
+        if ($id === null || $claimedAt === null) {
             return;
         }
 
-        static::$current = null;
+        static::$current     = null;
+        static::$claimedAtMs = null;
 
-        // The reserved row is spent whatever the outcome: a retry arrives as a
-        // fresh row carrying the incremented attempt count
-        static::delete($id);
-
-        // A table owns no retry loop, so the framework publishes the job again
+        // A table owns no retry loop, so the framework publishes the job
+        // again. The new row goes first: an insert that fails after the delete
+        // committed would lose the job, where this order leaves a duplicate
+        // delivery at worst.
         if ($result === JobResult::RETRY) {
             $client->requeue($job);
         }
+
+        // The reserved row is spent whatever the outcome
+        static::delete($id, $claimedAt);
     }
 
     /**
@@ -302,7 +317,10 @@ class DatabaseQueue extends PullQueue
      */
     protected static function claim(int|string $id): bool
     {
-        $now   = Microtime::getMilliseconds();
+        $now = Microtime::getMilliseconds();
+
+        static::$claimedAtMs = $now;
+
         $table = static::$table;
 
         $statement = static::getConnection()->prepare(
@@ -347,8 +365,9 @@ class DatabaseQueue extends PullQueue
         $id = static::$current;
 
         if ($id !== null) {
-            static::$current = null;
-            $table           = static::$table;
+            static::$current     = null;
+            static::$claimedAtMs = null;
+            $table               = static::$table;
 
             $statement = static::getConnection()->prepare(
                 "UPDATE $table SET reserved_at_ms = NULL WHERE id = :id"
@@ -360,15 +379,22 @@ class DatabaseQueue extends PullQueue
     }
 
     /**
-     * Take a row off the table for good.
+     * Take a row off the table for good, if this worker still owns it.
+     *
+     * The claim stamp fences the delete. A worker whose window lapsed no
+     * longer owns the row, and deleting it would take the copy that the worker
+     * which reclaimed it is still running.
      */
-    protected static function delete(int|string $id): void
+    protected static function delete(int|string $id, int $claimedAt): void
     {
         $table = static::$table;
 
-        $statement = static::getConnection()->prepare("DELETE FROM $table WHERE id = :id");
+        $statement = static::getConnection()->prepare(
+            "DELETE FROM $table WHERE id = :id AND reserved_at_ms = :claimedAt"
+        );
 
         $statement->bindValue(new Value('id', $id));
+        $statement->bindValue(new Value('claimedAt', $claimedAt));
         $statement->execute();
     }
 }
