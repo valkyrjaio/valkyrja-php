@@ -105,6 +105,8 @@ class BeanstalkdClient extends Client
 
     /**
      * @inheritDoc
+     *
+     * @throws QueueClientRedeliveryNotSupportedException
      */
     #[Override]
     public function retry(JobContract $job, int $delayMs): void
