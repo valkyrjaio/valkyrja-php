@@ -137,6 +137,17 @@ final class BeanstalkdQueueTest extends TestCase
         BeanstalkdQueueFixture::receive();
     }
 
+    public function testDisconnectWithNoConnectionOpenedIsHarmless(): void
+    {
+        BeanstalkdQueueFixture::reset();
+
+        // A connect that failed before it opened anything still reaches the
+        // loop's finally, so the teardown has to tolerate no connection
+        BeanstalkdQueueFixture::disconnect();
+
+        self::assertSame([], $this->pheanstalk->getCalls('disconnect'));
+    }
+
     public function testDisconnectDropsTheConnectionItHeld(): void
     {
         BeanstalkdQueueFixture::connect($this->application());
