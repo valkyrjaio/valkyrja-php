@@ -64,6 +64,12 @@ final class DatabaseClientTest extends TestCase
         self::assertStringContainsString('queue_jobs', $inserts[0]->query);
         self::assertTrue($inserts[0]->executed);
         self::assertSame(self::QUEUE, $inserts[0]->bound['queue']);
+        // A row born with a reservation is invisible to every worker, so the
+        // column list is what makes a pushed job deliverable at all
+        self::assertStringContainsString(
+            'VALUES (:queue, :envelope, :priority, :available_at_ms, NULL)',
+            $inserts[0]->query
+        );
 
         /** @var array<string, mixed> $envelope */
         $envelope = json_decode((string) $inserts[0]->bound['envelope'], true);

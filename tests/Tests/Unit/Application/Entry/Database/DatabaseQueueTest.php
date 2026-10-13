@@ -191,7 +191,7 @@ final class DatabaseQueueTest extends TestCase
 
         self::assertStringContainsString('reserved_at_ms IS NULL OR reserved_at_ms <= :stale', $select->query);
         self::assertSame(
-            self::FROZEN_MS - DatabaseQueue::DEFAULT_RESERVATION_TIMEOUT_MS,
+            self::FROZEN_MS - 300_000,
             $select->bound['stale']
         );
     }
@@ -208,7 +208,7 @@ final class DatabaseQueueTest extends TestCase
         // row would be selected forever and never actually taken
         self::assertStringContainsString('reserved_at_ms IS NULL OR reserved_at_ms <= :stale', $update->query);
         self::assertSame(
-            self::FROZEN_MS - DatabaseQueue::DEFAULT_RESERVATION_TIMEOUT_MS,
+            self::FROZEN_MS - 300_000,
             $update->bound['stale']
         );
     }
@@ -365,7 +365,7 @@ final class DatabaseQueueTest extends TestCase
 
         self::assertSame([], $this->manager->getStatements('DELETE'));
         self::assertSame(
-            DatabaseQueue::PARKED_AT_MS,
+            253_402_300_799_000,
             $this->parkStatement()->bound['parked']
         );
     }
@@ -374,10 +374,12 @@ final class DatabaseQueueTest extends TestCase
     {
         // The claim reads a reservation as free once it is older than the
         // window, so the stamp has to sit beyond every window a worker computes
-        self::assertGreaterThan(
-            Microtime::getMilliseconds() + DatabaseQueue::DEFAULT_RESERVATION_TIMEOUT_MS,
-            DatabaseQueue::PARKED_AT_MS
-        );
+        self::assertSame(253_402_300_799_000, DatabaseQueue::PARKED_AT_MS);
+
+        // Beyond any window a worker can compute. A stamp merely past the
+        // current window clears that comparison and still becomes claimable
+        // once the window elapses, so the year 2100 is the floor here.
+        self::assertGreaterThan(4_102_444_800_000, DatabaseQueue::PARKED_AT_MS);
     }
 
     public function testAParkedRowLeavesTheIndexRangeTheClaimNarrowsTo(): void

@@ -48,6 +48,7 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 use Valkyrja\Tests\Fixtures\Cache\Data\CacheConfigFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\Data\QueueClientConfigFixture;
+use Valkyrja\Tests\Fixtures\Queue\Client\DatabaseManagerFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 
@@ -411,12 +412,31 @@ final class ServiceProviderTest extends ServiceProviderTestCase
      */
     public function testPublishDatabaseClient(): void
     {
-        $this->container->setSingleton(QueueDatabaseClientConfigContract::class, new QueueDatabaseClientConfig());
-        $this->container->setSingleton(ManagerContract::class, self::createStub(ManagerContract::class));
+        $manager = new DatabaseManagerFixture();
+
+        $this->container->setSingleton(
+            QueueDatabaseClientConfigContract::class,
+            new QueueDatabaseClientConfig(
+                queueDatabaseClientQueue: 'configured-queue',
+                queueDatabaseClientTable: 'configured_table',
+            )
+        );
+        $this->container->setSingleton(ManagerContract::class, $manager);
 
         $this->publish(DatabaseClient::class);
 
-        self::assertInstanceOf(DatabaseClient::class, $this->container->getSingleton(DatabaseClient::class));
+        $client = $this->container->getSingleton(DatabaseClient::class);
+
+        self::assertInstanceOf(DatabaseClient::class, $client);
+
+        // The config values are only observable through what the client
+        // writes, so a provider that ignored them would pass an instanceof
+        $client->push(new JobFactory()->create('x'));
+
+        $insert = $manager->getStatements('INSERT')[0];
+
+        self::assertStringContainsString('configured_table', $insert->query);
+        self::assertSame('configured-queue', $insert->bound['queue']);
     }
 
     /**
