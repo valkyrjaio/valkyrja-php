@@ -14,6 +14,7 @@ namespace Valkyrja\Tests\Fixtures\Application\Data;
 
 use Valkyrja\Application\Data\QueueConfig;
 use Valkyrja\Application\Directory\Directory;
+use Valkyrja\Application\Entry\Database\DatabaseQueue;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDatabaseClientConfigContract;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
@@ -30,12 +31,14 @@ final class DatabaseWorkerConfigFixture extends QueueConfig implements QueueClie
     public string $defaultQueueClient = DatabaseClient::class;
 
     /**
-     * @param non-empty-string $queueDatabaseClientQueue The queue jobs are published to
-     * @param non-empty-string $queueDatabaseClientTable The table jobs are stored in
+     * @param non-empty-string $queueDatabaseClientQueue                The queue jobs are published to
+     * @param non-empty-string $queueDatabaseClientTable                The table jobs are stored in
+     * @param int<1, max>      $queueDatabaseClientReservationTimeoutMs The milliseconds a claim holds a row
      */
     public function __construct(
         public string $queueDatabaseClientQueue = 'default',
         public string $queueDatabaseClientTable = DatabaseClient::DEFAULT_TABLE,
+        public int $queueDatabaseClientReservationTimeoutMs = DatabaseQueue::DEFAULT_RESERVATION_TIMEOUT_MS,
     ) {
         parent::__construct(
             dir: Directory::$basePath,

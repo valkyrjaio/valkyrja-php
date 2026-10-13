@@ -23,4 +23,9 @@ interface QueueDatabaseClientConfigContract
     public string $queueDatabaseClientTable {
         get;
     }
+
+    /** @var int<1, max> */
+    public int $queueDatabaseClientReservationTimeoutMs {
+        get;
+    }
 }

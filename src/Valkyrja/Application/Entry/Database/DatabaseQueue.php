@@ -50,7 +50,7 @@ class DatabaseQueue extends PullQueue
     /**
      * The reservation stamp a parked row carries.
      *
-     * The last millisecond of the year 9999, so no staleness window a worker
+     * The last whole second of the year 9999, so no staleness window a worker
      * computes reaches back to it and a parked row is never claimed again.
      */
     public const int PARKED_AT_MS = 253_402_300_799_000;
@@ -89,11 +89,12 @@ class DatabaseQueue extends PullQueue
         $container = $app->getContainer();
         $config    = $container->getSingleton(QueueDatabaseClientConfigContract::class);
 
-        static::$current     = null;
-        static::$claimedAtMs = null;
-        static::$queue       = $config->queueDatabaseClientQueue;
-        static::$table       = $config->queueDatabaseClientTable;
-        static::$manager     = static::getManager($container);
+        static::$current              = null;
+        static::$claimedAtMs          = null;
+        static::$queue                = $config->queueDatabaseClientQueue;
+        static::$table                = $config->queueDatabaseClientTable;
+        static::$reservationTimeoutMs = $config->queueDatabaseClientReservationTimeoutMs;
+        static::$manager              = static::getManager($container);
     }
 
     /**

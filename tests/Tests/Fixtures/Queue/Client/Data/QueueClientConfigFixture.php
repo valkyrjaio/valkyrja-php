@@ -84,6 +84,7 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public int $queueBeanstalkdClientReserveTimeout = 3,
         public string $queueDatabaseClientQueue = 'jobs',
         public string $queueDatabaseClientTable = 'jobs_test',
+        public int $queueDatabaseClientReservationTimeoutMs = 60_000,
     ) {
         parent::__construct(
             applicationName: 'host',
