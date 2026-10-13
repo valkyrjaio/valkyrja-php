@@ -487,12 +487,19 @@ UUID sorts lexically rather than by age, so equal-priority jobs run in no
 particular order. The queue still drains.
 
 `DatabaseQueue` claims a row by stamping `reserved_at_ms`, which is what stops
-two workers taking the same job. A reservation older than the timeout counts as
-free, so a row that a crashed worker abandoned returns to the queue.
+two workers taking the same job: the claim is one conditional update, so the
+second worker writes nothing. A reservation older than
+`queueDatabaseClientReservationTimeoutMs` counts as free, so a row that a
+crashed worker abandoned returns to the queue.
+
+A settlement deletes the row only while this worker still holds the claim it
+stamped. A worker whose window lapsed therefore takes nothing from the worker
+that reclaimed the row. A retry writes the new row before the old one goes, so
+a failure between the two leaves a duplicate rather than no job at all.
 
 A row whose `envelope` no factory can read is parked rather than deleted: the
 entry stamps both `reserved_at_ms` and `available_at_ms` with the last
-millisecond of the year 9999. No staleness window reaches back to that
+whole second of the year 9999. No staleness window reaches back to that
 reservation, and the availability stamp takes the row out of the range the claim
 index narrows to, so a parked row costs no later poll anything and keeps its
 bytes. Select on that stamp to find what a worker could not read. A settled job
@@ -775,10 +782,17 @@ has to stop promptly, and pay for the extra reserves.
 
 #### `QueueDatabaseClientConfigContract`
 
-| Property                   | Default        | Description                           |
-| :------------------------- | :------------- | :------------------------------------ |
-| `queueDatabaseClientQueue` | `'default'`    | The queue that jobs are written under |
-| `queueDatabaseClientTable` | `'queue_jobs'` | The table that jobs are written to    |
+| Property                                  | Default        | Description                           |
+| :---------------------------------------- | :------------- | :------------------------------------ |
+| `queueDatabaseClientQueue`                | `'default'`    | The queue that jobs are written under |
+| `queueDatabaseClientTable`                | `'queue_jobs'` | The table that jobs are written to    |
+| `queueDatabaseClientReservationTimeoutMs` | `300000`       | The milliseconds a claim holds a row  |
+
+Warning: a job that runs longer than the reservation timeout loses its claim.
+The row counts as free, a second worker claims and runs it while the first is
+still going, and both settle it. The first worker's delete is fenced on its own
+claim stamp, so it takes nothing the second one owns, but the job has run twice
+by then. Set the value above the longest job the table carries.
 
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
