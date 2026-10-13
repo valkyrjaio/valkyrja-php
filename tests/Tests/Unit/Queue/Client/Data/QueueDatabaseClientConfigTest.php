@@ -27,18 +27,18 @@ final class QueueDatabaseClientConfigTest extends TestCase
     {
         $config = new QueueDatabaseClientConfig();
 
-        self::assertSame('default', $config->databaseQueue);
-        self::assertSame('queue_jobs', $config->databaseTable);
+        self::assertSame('default', $config->queueDatabaseClientQueue);
+        self::assertSame('queue_jobs', $config->queueDatabaseClientTable);
     }
 
     public function testCustomValuesAreStored(): void
     {
         $config = new QueueDatabaseClientConfig(
-            databaseQueue: 'jobs',
-            databaseTable: 'jobs_test',
+            queueDatabaseClientQueue: 'jobs',
+            queueDatabaseClientTable: 'jobs_test',
         );
 
-        self::assertSame('jobs', $config->databaseQueue);
-        self::assertSame('jobs_test', $config->databaseTable);
+        self::assertSame('jobs', $config->queueDatabaseClientQueue);
+        self::assertSame('jobs_test', $config->queueDatabaseClientTable);
     }
 }

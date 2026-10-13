@@ -30,12 +30,12 @@ final class DatabaseWorkerConfigFixture extends QueueConfig implements QueueClie
     public string $defaultQueueClient = DatabaseClient::class;
 
     /**
-     * @param non-empty-string $databaseQueue The queue jobs are published to
-     * @param non-empty-string $databaseTable The table jobs are stored in
+     * @param non-empty-string $queueDatabaseClientQueue The queue jobs are published to
+     * @param non-empty-string $queueDatabaseClientTable The table jobs are stored in
      */
     public function __construct(
-        public string $databaseQueue = 'default',
-        public string $databaseTable = DatabaseClient::DEFAULT_TABLE,
+        public string $queueDatabaseClientQueue = 'default',
+        public string $queueDatabaseClientTable = DatabaseClient::DEFAULT_TABLE,
     ) {
         parent::__construct(
             dir: Directory::$basePath,

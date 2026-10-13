@@ -86,8 +86,8 @@ class DatabaseQueue extends PullQueue
         $container = $app->getContainer();
         $config    = $container->getSingleton(QueueDatabaseClientConfigContract::class);
 
-        static::$queue   = $config->databaseQueue;
-        static::$table   = $config->databaseTable;
+        static::$queue   = $config->queueDatabaseClientQueue;
+        static::$table   = $config->queueDatabaseClientTable;
         static::$manager = static::getManager($container);
     }
 

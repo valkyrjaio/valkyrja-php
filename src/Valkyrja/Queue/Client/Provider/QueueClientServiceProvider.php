@@ -368,8 +368,8 @@ class QueueClientServiceProvider implements ServiceProviderContract
             DatabaseClient::class,
             new DatabaseClient(
                 manager: $container->getSingleton(ManagerContract::class),
-                queue: $config->databaseQueue,
-                table: $config->databaseTable,
+                queue: $config->queueDatabaseClientQueue,
+                table: $config->queueDatabaseClientTable,
                 applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
             )
         );

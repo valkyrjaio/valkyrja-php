@@ -246,8 +246,8 @@ final class DatabaseIntegrationTest extends TestCase
     private function config(): QueueConfigContract
     {
         return new DatabaseWorkerConfigFixture(
-            databaseQueue: self::QUEUE,
-            databaseTable: self::TABLE,
+            queueDatabaseClientQueue: self::QUEUE,
+            queueDatabaseClientTable: self::TABLE,
         );
     }
 

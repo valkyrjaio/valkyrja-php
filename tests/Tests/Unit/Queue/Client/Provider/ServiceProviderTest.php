@@ -390,8 +390,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueueDatabaseClientConfigContract::class);
 
-        self::assertSame('default', $config->databaseQueue);
-        self::assertSame('queue_jobs', $config->databaseTable);
+        self::assertSame('default', $config->queueDatabaseClientQueue);
+        self::assertSame('queue_jobs', $config->queueDatabaseClientTable);
     }
 
     public function testPublishDatabaseConfigWithApplicationConfig(): void
@@ -402,8 +402,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueueDatabaseClientConfigContract::class);
 
-        self::assertSame('jobs', $config->databaseQueue);
-        self::assertSame('jobs_test', $config->databaseTable);
+        self::assertSame('jobs', $config->queueDatabaseClientQueue);
+        self::assertSame('jobs_test', $config->queueDatabaseClientTable);
     }
 
     /**

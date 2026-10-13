@@ -15,12 +15,12 @@ namespace Valkyrja\Queue\Client\Data\Contract;
 interface QueueDatabaseClientConfigContract
 {
     /** @var non-empty-string */
-    public string $databaseQueue {
+    public string $queueDatabaseClientQueue {
         get;
     }
 
     /** @var non-empty-string */
-    public string $databaseTable {
+    public string $queueDatabaseClientTable {
         get;
     }
 }

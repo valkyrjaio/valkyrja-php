@@ -18,12 +18,12 @@ use Valkyrja\Queue\Client\Manager\DatabaseClient;
 class QueueDatabaseClientConfig implements QueueDatabaseClientConfigContract
 {
     /**
-     * @param non-empty-string $databaseQueue The queue that jobs are written under
-     * @param non-empty-string $databaseTable The table that jobs are written to
+     * @param non-empty-string $queueDatabaseClientQueue The queue that jobs are written under
+     * @param non-empty-string $queueDatabaseClientTable The table that jobs are written to
      */
     public function __construct(
-        public readonly string $databaseQueue = 'default',
-        public readonly string $databaseTable = DatabaseClient::DEFAULT_TABLE,
+        public readonly string $queueDatabaseClientQueue = 'default',
+        public readonly string $queueDatabaseClientTable = DatabaseClient::DEFAULT_TABLE,
     ) {
     }
 }

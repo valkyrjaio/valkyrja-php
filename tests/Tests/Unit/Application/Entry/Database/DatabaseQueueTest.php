@@ -83,7 +83,7 @@ final class DatabaseQueueTest extends TestCase
     {
         $container = self::createStub(ContainerContract::class);
         $container->method('getSingleton')->willReturn(
-            new QueueDatabaseClientConfig(databaseQueue: 'emails', databaseTable: 'jobs_test')
+            new QueueDatabaseClientConfig(queueDatabaseClientQueue: 'emails', queueDatabaseClientTable: 'jobs_test')
         );
 
         $app = self::createStub(ApplicationContract::class);

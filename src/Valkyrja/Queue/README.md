@@ -775,10 +775,10 @@ has to stop promptly, and pay for the extra reserves.
 
 #### `QueueDatabaseClientConfigContract`
 
-| Property        | Default        | Description                           |
-| :-------------- | :------------- | :------------------------------------ |
-| `databaseQueue` | `'default'`    | The queue that jobs are written under |
-| `databaseTable` | `'queue_jobs'` | The table that jobs are written to    |
+| Property                   | Default        | Description                           |
+| :------------------------- | :------------- | :------------------------------------ |
+| `queueDatabaseClientQueue` | `'default'`    | The queue that jobs are written under |
+| `queueDatabaseClientTable` | `'queue_jobs'` | The table that jobs are written to    |
 
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
