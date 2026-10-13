@@ -19,6 +19,7 @@ use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Orm\Manager\Contract\ManagerContract;
 use Valkyrja\Queue\Client\Data\QueueDatabaseClientConfig;
+use Valkyrja\Queue\Client\Manager\DatabaseClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -29,6 +30,9 @@ use Valkyrja\Tests\Fixtures\Application\Entry\DatabaseQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\DatabaseManagerFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\RecordingClientFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
+
+use function array_map;
+use function str_starts_with;
 
 final class DatabaseQueueTest extends TestCase
 {
@@ -55,6 +59,22 @@ final class DatabaseQueueTest extends TestCase
             'fail'        => [JobResult::FAIL],
             'dead letter' => [JobResult::DEAD_LETTER],
         ];
+    }
+
+    /**
+     * The index of the first query that starts with the keyword.
+     *
+     * @param string[] $queries
+     */
+    protected static function firstIndexOf(array $queries, string $keyword): int|null
+    {
+        foreach ($queries as $index => $query) {
+            if (str_starts_with($query, $keyword)) {
+                return $index;
+            }
+        }
+
+        return null;
     }
 
     #[Override]
@@ -418,6 +438,45 @@ final class DatabaseQueueTest extends TestCase
         // The spent row goes; the retry arrives as a fresh one
         self::assertCount(1, $this->manager->getStatements('DELETE'));
         self::assertSame(3, $client->getPushed()[0]->getAttempts());
+    }
+
+    public function testARetryWritesTheNewRowBeforeItTakesTheOldOneOff(): void
+    {
+        $this->reserved();
+
+        // The real client writes through the same manager, so the order the
+        // two statements reach it is what this pins
+        $client = new DatabaseClient($this->manager, self::QUEUE);
+
+        DatabaseQueueFixture::settle(new Job(name: self::NAME, attempts: 2), JobResult::RETRY, $client);
+
+        $queries = array_map(
+            static fn (object $statement): string => $statement->query,
+            $this->manager->statements
+        );
+
+        $insert = self::firstIndexOf($queries, 'INSERT');
+        $delete = self::firstIndexOf($queries, 'DELETE');
+
+        self::assertNotNull($insert);
+        self::assertNotNull($delete);
+        // A delete that committed first would lose the job outright when the
+        // insert then failed; this order leaves a duplicate at worst
+        self::assertLessThan($delete, $insert);
+    }
+
+    public function testASettlementDeletesOnlyTheRowThisWorkerStillOwns(): void
+    {
+        $this->reserved();
+
+        DatabaseQueueFixture::settle(new Job(name: self::NAME), JobResult::ACK, new InMemoryClient());
+
+        // Without the claim stamp a worker whose window lapsed would delete
+        // the copy that the worker which reclaimed the row is still running
+        self::assertStringContainsString(
+            'reserved_at_ms = :claimedAt',
+            $this->manager->getStatements('DELETE')[0]->query
+        );
     }
 
     public function testTheRetryHoldStaysFrameworkOwned(): void
