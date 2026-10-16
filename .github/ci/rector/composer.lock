@@ -221,16 +221,16 @@
         },
         {
             "name": "valkyrja/ci-rector",
-            "version": "v26.3.68",
+            "version": "v26.3.69",
             "source": {
                 "type": "git",
                 "url": "https://github.com/valkyrjaio/ci-rector-php.git",
-                "reference": "5be8a33275eb45e1186b33d55959137bbbbaf755"
+                "reference": "c2cd89c0fc0f8e9c56f0ca88e1aa00841600c48e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/valkyrjaio/ci-rector-php/zipball/5be8a33275eb45e1186b33d55959137bbbbaf755",
-                "reference": "5be8a33275eb45e1186b33d55959137bbbbaf755",
+                "url": "https://api.github.com/repos/valkyrjaio/ci-rector-php/zipball/c2cd89c0fc0f8e9c56f0ca88e1aa00841600c48e",
+                "reference": "c2cd89c0fc0f8e9c56f0ca88e1aa00841600c48e",
                 "shasum": ""
             },
             "require": {
@@ -263,9 +263,9 @@
             ],
             "support": {
                 "issues": "https://github.com/valkyrjaio/ci-rector-php/issues",
-                "source": "https://github.com/valkyrjaio/ci-rector-php/tree/v26.3.68"
+                "source": "https://github.com/valkyrjaio/ci-rector-php/tree/v26.3.69"
             },
-            "time": "2026-10-15T15:29:52+00:00"
+            "time": "2026-10-16T15:08:53+00:00"
         }
     ],
     "aliases": [],
