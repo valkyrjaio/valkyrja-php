@@ -8,9 +8,9 @@
     "psr/log"                 : "^3.0.2"
   },
   "require-dev"       : {
-    "filp/whoops"                : "^2.18.6",
+    "filp/whoops"                : "^2.18.7",
     "firebase/php-jwt"           : "^7.2.1",
-    "guzzlehttp/guzzle"          : "^7.15.5",
+    "guzzlehttp/guzzle"          : "^7.16.0",
     "league/flysystem"           : "^3.36.0",
     "league/flysystem-aws-s3-v3" : "^3.35.3",
     "mailgun/mailgun-php"        : "^4.5.2",
