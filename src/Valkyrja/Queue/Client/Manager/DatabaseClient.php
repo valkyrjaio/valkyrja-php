@@ -17,8 +17,8 @@ use Override;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Orm\Data\Value;
 use Valkyrja\Orm\Manager\Contract\ManagerContract;
-use Valkyrja\Orm\Throwable\Exception\OrmExecuteException;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientPushFailedException;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -53,6 +53,7 @@ class DatabaseClient extends Client
      * @inheritDoc
      *
      * @throws JsonException
+     * @throws QueueClientPushFailedException
      */
     #[Override]
     protected function publish(JobContract $job): void
@@ -64,6 +65,7 @@ class DatabaseClient extends Client
      * @inheritDoc
      *
      * @throws JsonException
+     * @throws QueueClientPushFailedException
      */
     #[Override]
     protected function republish(JobContract $job, int $delayMs): void
@@ -77,6 +79,7 @@ class DatabaseClient extends Client
      * @param int<0, max> $delayMs The hold in milliseconds
      *
      * @throws JsonException
+     * @throws QueueClientPushFailedException
      */
     protected function insert(JobContract $job, int $delayMs): void
     {
@@ -91,9 +94,14 @@ class DatabaseClient extends Client
         $statement->bindValue(new Value('available_at_ms', Microtime::getMilliseconds() + $delayMs));
 
         if (! $statement->execute()) {
-            throw new OrmExecuteException(
-                $statement->hasError()
-                    ? $statement->getErrorMessage()
+            // The driver names the constraint, the column or the lock it
+            // stopped on. It reports no message for a failure PDO itself
+            // raised, and an empty exception tells an operator nothing.
+            $message = $statement->getErrorMessage();
+
+            throw new QueueClientPushFailedException(
+                $message !== ''
+                    ? $message
                     : 'The queue insert failed'
             );
         }

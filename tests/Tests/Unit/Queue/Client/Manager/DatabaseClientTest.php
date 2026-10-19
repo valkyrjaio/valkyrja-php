@@ -13,8 +13,8 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Queue\Client\Manager;
 
 use Override;
-use Valkyrja\Orm\Throwable\Exception\OrmExecuteException;
 use Valkyrja\Queue\Client\Manager\DatabaseClient;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientPushFailedException;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
@@ -155,7 +155,7 @@ final class DatabaseClientTest extends TestCase
         // the job as pushed while the row was never written
         $this->manager->failExecute = true;
 
-        $this->expectException(OrmExecuteException::class);
+        $this->expectException(QueueClientPushFailedException::class);
         $this->expectExceptionMessage('The queue insert failed');
 
         $this->client()->push(new JobFactory()->create(self::NAME));
@@ -168,7 +168,7 @@ final class DatabaseClientTest extends TestCase
         $this->manager->failExecute  = true;
         $this->manager->errorMessage = 'Duplicate entry';
 
-        $this->expectException(OrmExecuteException::class);
+        $this->expectException(QueueClientPushFailedException::class);
         $this->expectExceptionMessage('Duplicate entry');
 
         $this->client()->push(new JobFactory()->create(self::NAME));

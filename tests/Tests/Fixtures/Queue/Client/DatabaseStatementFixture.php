@@ -71,15 +71,6 @@ final class DatabaseStatementFixture extends NullStatement
      * @inheritDoc
      */
     #[Override]
-    public function hasError(): bool
-    {
-        return $this->errorMessage !== null;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    #[Override]
     public function getErrorMessage(): string
     {
         return $this->errorMessage ?? parent::getErrorMessage();
