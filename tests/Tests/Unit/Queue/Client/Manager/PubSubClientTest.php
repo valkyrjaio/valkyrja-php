@@ -14,6 +14,7 @@ namespace Valkyrja\Tests\Unit\Queue\Client\Manager;
 
 use Override;
 use Valkyrja\Queue\Client\Manager\PubSubClient;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientRedeliveryNotSupportedException;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
@@ -73,11 +74,24 @@ final class PubSubClientTest extends TestCase
         );
     }
 
-    public function testARetryPublishesNothingBecauseTheProcessorOwnsRedelivery(): void
+    public function testARetryIsRefusedBecauseTheProcessorOwnsRedelivery(): void
     {
-        // The original delivery is still unacknowledged; publishing would
-        // duplicate it
+        // The original delivery is still unacknowledged, so publishing would
+        // duplicate it. Answering quietly is worse than refusing: the caller
+        // reads a successful requeue and the job is in `getPushed()`, while
+        // nothing ever reached the topic
+        $this->expectException(QueueClientRedeliveryNotSupportedException::class);
+
         $this->client()->retry(new Job(name: self::NAME, attempts: 2), 5000);
+    }
+
+    public function testARefusedRetryRecordsNoPush(): void
+    {
+        try {
+            $this->client()->retry(new Job(name: self::NAME, attempts: 2), 5000);
+        } catch (QueueClientRedeliveryNotSupportedException) {
+            // The refusal is asserted above; this pins what it leaves behind
+        }
 
         self::assertSame([], $this->topic->published);
     }

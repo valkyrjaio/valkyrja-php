@@ -17,6 +17,7 @@ use JsonException;
 use Override;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientRedeliveryNotSupportedException;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
@@ -43,6 +44,19 @@ class PubSubClient extends Client
     /**
      * @inheritDoc
      *
+     * @throws QueueClientRedeliveryNotSupportedException
+     */
+    #[Override]
+    public function retry(JobContract $job, int $delayMs): void
+    {
+        throw new QueueClientRedeliveryNotSupportedException(
+            'The Pub/Sub subscription owns redelivery, so a job cannot be retried through this client'
+        );
+    }
+
+    /**
+     * @inheritDoc
+     *
      * @throws JsonException
      */
     #[Override]
@@ -55,13 +69,5 @@ class PubSubClient extends Client
                 EnvelopeField::ID   => $job->getId(),
             ],
         ]);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    #[Override]
-    protected function republish(JobContract $job, int $delayMs): void
-    {
     }
 }
