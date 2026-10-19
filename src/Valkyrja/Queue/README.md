@@ -569,6 +569,19 @@ all, so the policy an operator adds for the ceiling is the one the ceiling then
 bypasses. A deployment that needs the copy sets `maxDeliveryAttempts` below the
 job's `max_attempts`, so Pub/Sub routes it first.
 
+`PubSubQueue` pulls the subscription named after the topic. An application
+whose subscription carries another name sets `PubSubQueue::$subscriptionName`
+on its own entry, and sets `PubSubQueue::$timeoutMs` there to change how long
+one pull waits. A name that matches no subscription fails the first pull.
+
+Warning: on the REST transport the entry cannot tell an idle poll from an
+endpoint that drops traffic. The deadline it sets bounds the whole transfer, so
+a connect that never completes times out at the same cURL code and the same
+instant as a pull that found nothing. Such a worker keeps polling an endpoint
+that answers nothing, and keeps reporting healthy. The gRPC transport names the
+deadline and does not have this problem, so prefer it where a silent outage
+costs more than the dependency.
+
 Warning: `PubSubQueue` acknowledges a body no factory can read rather than
 parking it, as `SqsQueue` does, and nothing keeps a copy. A dead-letter topic
 does not help here: it takes a message on the delivery attempt, and an

@@ -116,17 +116,12 @@ class PubSubQueue extends PullQueue
     public static function disconnect(): void
     {
         // Anything still in flight was not completed, so hand it back rather
-        // than letting it wait out the whole acknowledgement deadline. The
-        // release is best effort: `PullQueue::loop()` calls this from a
-        // `finally`, so a throw here would replace whatever ended the loop and
-        // skip the teardown below, and the deadline lapsing hands the delivery
-        // back anyway.
+        // than letting it wait out the whole acknowledgement deadline
         try {
             static::releaseCurrent();
         } catch (ServiceException|TransferException) {
-            // One root per layer, so neither can hand a teardown failure past
-            // this. The deadline lapsing is the fallback, and it always
-            // applies.
+            // One root per layer, so a teardown `PullQueue::loop()` runs from
+            // a `finally` cannot replace whatever ended the loop
         }
 
         static::$subscription = null;
@@ -195,12 +190,8 @@ class PubSubQueue extends PullQueue
     protected static function decode(Message $message): JobContract|null
     {
         /**
-         * Pub/Sub accepts a message that carries attributes and no data at all,
-         * and `fromJson()` takes a string under strict types, so a body-less
-         * delivery would raise a TypeError that the catch below does not hold.
-         * The library types `data()` as `@return string` with no native type
-         * while its own constructor defaults the key to null, so the guard is
-         * only unreachable on paper.
+         * The library types this `@return string` while its own constructor
+         * defaults the key to null, so a body-less delivery reaches the guard.
          *
          * @psalm-suppress DocblockTypeContradiction
          *
@@ -258,13 +249,10 @@ class PubSubQueue extends PullQueue
     /**
      * Ask the subscription for the next message, within the deadline.
      *
-     * Both transports report a passed deadline as an error rather than as an
-     * empty result, and an empty subscription is the normal case here, so a
-     * deadline reads as nothing arrived. Any other failure is a real one and
-     * travels on.
-     *
-     * `returnImmediately` would avoid the deadline, but Pub/Sub documents it as
-     * able to return nothing while a message is waiting, so it cannot be used.
+     * Both transports report a passed deadline as an error, and an empty
+     * subscription is the normal case here, so a deadline reads as nothing
+     * arrived. `returnImmediately` would avoid it, but Pub/Sub documents that
+     * one as able to return nothing while a message is waiting.
      *
      * @return Message[]
      */
@@ -293,18 +281,10 @@ class PubSubQueue extends PullQueue
     }
 
     /**
-     * Read whether a transport failure is the pull deadline, and not an outage.
+     * Read whether a REST transport failure is the pull deadline.
      *
-     * The gRPC transport names the deadline, so `pull()` reads it from the
-     * exception. The REST transport does not: it reports a passed deadline as
-     * a cURL timeout, and the deadline it sets bounds the whole transfer, so a
-     * connect that never completes times out at the same code and the same
-     * instant. A refused connection and a failed name lookup carry their own
-     * codes and travel on.
-     *
-     * Warning: on the REST transport an endpoint that drops traffic therefore
-     * reads as an idle queue. The loop does not back off when a receive gives
-     * nothing, so such a worker keeps polling and keeps reporting healthy.
+     * Warning: the deadline bounds the whole transfer, so a connect that never
+     * completes answers the same code. The README says what that costs.
      */
     protected static function isDeadline(ConnectException $exception): bool
     {
