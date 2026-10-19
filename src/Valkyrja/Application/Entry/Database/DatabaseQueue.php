@@ -256,7 +256,7 @@ class DatabaseQueue extends PullQueue
 
         $statement = static::getConnection()->prepare(
             "SELECT id, envelope FROM $table"
-            . ' WHERE queue = :queue AND available_at_ms <= :now'
+            . ' WHERE queue = :queue AND id IS NOT NULL AND available_at_ms <= :now'
             . ' AND (reserved_at_ms IS NULL OR reserved_at_ms <= :stale)'
             . ' ORDER BY priority DESC, id ASC LIMIT 1'
         );
@@ -279,9 +279,10 @@ class DatabaseQueue extends PullQueue
         $envelope = $row['envelope'] ?? null;
 
         // Without a key there is nothing to name the row by, and an unqualified
-        // update would park whichever row is at the head instead. The row
-        // therefore stays, and the queue stalls on it. The documented DDL makes
-        // `id` the primary key, so this needs a table that allows it to be null.
+        // update would park whichever row is at the head instead. The select
+        // leaves a keyless row out for that reason, so the queue moves past one
+        // rather than holding at the head of the sort forever. This guard is
+        // the narrowing the predicate cannot give the type.
         if (! is_int($id) && ! is_string($id)) {
             return null;
         }

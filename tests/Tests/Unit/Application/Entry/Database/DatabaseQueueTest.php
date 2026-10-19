@@ -141,6 +141,9 @@ final class DatabaseQueueTest extends TestCase
 
         self::assertStringContainsString('reserved_at_ms IS NULL', $select->query);
         self::assertStringContainsString('available_at_ms <= :now', $select->query);
+        // A keyless row cannot be claimed, parked or deleted, so the sort must
+        // not hand one back at the head on every poll for the life of the table
+        self::assertStringContainsString('id IS NOT NULL', $select->query);
         self::assertStringContainsString('ORDER BY priority DESC, id ASC', $select->query);
         self::assertSame(self::QUEUE, $select->bound['queue']);
         self::assertSame(self::FROZEN_MS, $select->bound['now']);
