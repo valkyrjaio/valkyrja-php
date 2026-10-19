@@ -14,6 +14,6 @@ namespace Valkyrja\Grpc\Throwable\Exception;
 
 use Valkyrja\Grpc\Throwable\Exception\Abstract\GrpcRuntimeException;
 
-class MetadataInvalidValueException extends GrpcRuntimeException
+class GrpcMetadataInvalidValueException extends GrpcRuntimeException
 {
 }

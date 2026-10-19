@@ -16,7 +16,7 @@ use Throwable;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Throwable\Exception\Abstract\GrpcRuntimeException;
 
-class CancelledException extends GrpcRuntimeException
+class GrpcCancelledException extends GrpcRuntimeException
 {
     public function __construct(
         string $message = '',

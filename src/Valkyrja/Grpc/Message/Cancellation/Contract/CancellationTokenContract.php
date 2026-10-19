@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Grpc\Message\Cancellation\Contract;
 
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
-use Valkyrja\Grpc\Throwable\Exception\CancelledException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 
 interface CancellationTokenContract
 {
@@ -37,7 +37,7 @@ interface CancellationTokenContract
     /**
      * Throw if the call is cancelled; otherwise do nothing.
      *
-     * @throws CancelledException
+     * @throws GrpcCancelledException
      */
     public function throwIfCancelled(): void;
 

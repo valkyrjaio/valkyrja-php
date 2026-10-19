@@ -17,11 +17,11 @@ use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Throwable\Contract\GrpcThrowable;
 use Valkyrja\Grpc\Throwable\Exception\Abstract\GrpcInvalidArgumentException;
 use Valkyrja\Grpc\Throwable\Exception\Abstract\GrpcRuntimeException;
-use Valkyrja\Grpc\Throwable\Exception\CancelledException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 use Valkyrja\Grpc\Throwable\Exception\GrpcConcurrentSendException;
 use Valkyrja\Grpc\Throwable\Exception\GrpcNonStreamingSendException;
-use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidKeyException;
-use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidValueException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcMetadataInvalidKeyException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcMetadataInvalidValueException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 use Valkyrja\Throwable\Contract\ValkyrjaThrowable;
 use Valkyrja\Throwable\Exception\Abstract\ValkyrjaInvalidArgumentException;
@@ -49,17 +49,17 @@ final class ExceptionsTest extends TestCase
 
     public function testCancelledException(): void
     {
-        self::isA(GrpcRuntimeException::class, CancelledException::class);
+        self::isA(GrpcRuntimeException::class, GrpcCancelledException::class);
     }
 
     public function testMetadataInvalidKeyException(): void
     {
-        self::isA(GrpcRuntimeException::class, MetadataInvalidKeyException::class);
+        self::isA(GrpcRuntimeException::class, GrpcMetadataInvalidKeyException::class);
     }
 
     public function testMetadataInvalidValueException(): void
     {
-        self::isA(GrpcRuntimeException::class, MetadataInvalidValueException::class);
+        self::isA(GrpcRuntimeException::class, GrpcMetadataInvalidValueException::class);
     }
 
     public function testNonStreamingSendException(): void
@@ -74,7 +74,7 @@ final class ExceptionsTest extends TestCase
 
     public function testCancelledExceptionDefaults(): void
     {
-        $exception = new CancelledException();
+        $exception = new GrpcCancelledException();
 
         self::assertSame('', $exception->getMessage());
         self::assertNull($exception->getReason());
@@ -82,7 +82,7 @@ final class ExceptionsTest extends TestCase
 
     public function testCancelledExceptionCarriesItsReason(): void
     {
-        $exception = new CancelledException('stopped', CancellationReason::DEADLINE_EXCEEDED);
+        $exception = new GrpcCancelledException('stopped', CancellationReason::DEADLINE_EXCEEDED);
 
         self::assertSame('stopped', $exception->getMessage());
         self::assertSame(CancellationReason::DEADLINE_EXCEEDED, $exception->getReason());

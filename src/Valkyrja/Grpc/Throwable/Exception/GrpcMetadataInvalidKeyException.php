@@ -14,6 +14,6 @@ namespace Valkyrja\Grpc\Throwable\Exception;
 
 use Valkyrja\Grpc\Throwable\Exception\Abstract\GrpcRuntimeException;
 
-class MetadataInvalidKeyException extends GrpcRuntimeException
+class GrpcMetadataInvalidKeyException extends GrpcRuntimeException
 {
 }

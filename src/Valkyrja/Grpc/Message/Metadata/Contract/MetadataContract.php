@@ -13,8 +13,8 @@ declare(strict_types=1);
 namespace Valkyrja\Grpc\Message\Metadata\Contract;
 
 use IteratorAggregate;
-use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidKeyException;
-use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidValueException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcMetadataInvalidKeyException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcMetadataInvalidValueException;
 
 /**
  * @extends IteratorAggregate<string, string[]>
@@ -57,8 +57,8 @@ interface MetadataContract extends IteratorAggregate
      * @param string $key   The key (case-insensitive)
      * @param string $value The value
      *
-     * @throws MetadataInvalidKeyException   When the key is not a valid gRPC header name
-     * @throws MetadataInvalidValueException When an ASCII key carries a non-printable value
+     * @throws GrpcMetadataInvalidKeyException   When the key is not a valid gRPC header name
+     * @throws GrpcMetadataInvalidValueException When an ASCII key carries a non-printable value
      */
     public function with(string $key, string $value): static;
 
@@ -68,8 +68,8 @@ interface MetadataContract extends IteratorAggregate
      * @param string $key   The key (case-insensitive)
      * @param string $value The value
      *
-     * @throws MetadataInvalidKeyException   When the key is not a valid gRPC header name
-     * @throws MetadataInvalidValueException When an ASCII key carries a non-printable value
+     * @throws GrpcMetadataInvalidKeyException   When the key is not a valid gRPC header name
+     * @throws GrpcMetadataInvalidValueException When an ASCII key carries a non-printable value
      */
     public function withAdded(string $key, string $value): static;
 
