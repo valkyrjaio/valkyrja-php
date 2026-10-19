@@ -33,7 +33,7 @@ use Valkyrja\Grpc\Routing\Collection\RouteCollection;
 use Valkyrja\Grpc\Routing\Data\Route;
 use Valkyrja\Grpc\Routing\Dispatcher\Router;
 use Valkyrja\Grpc\Server\Handler\ServiceHandler;
-use Valkyrja\Grpc\Throwable\Exception\CancelledException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\CallReceivedMiddlewareChangedFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\CallReceivedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\ResponseSentMiddlewareFixture;
@@ -169,7 +169,7 @@ final class ServiceHandlerTest extends TestCase
     public function testACancelledExceptionBecomesCancelled(): void
     {
         $this->addRoute(static function (): ServiceResponseContract {
-            throw new CancelledException('stopped');
+            throw new GrpcCancelledException('stopped');
         });
 
         $response = $this->handler()->handle(new ServiceCall(self::METHOD));
@@ -180,7 +180,7 @@ final class ServiceHandlerTest extends TestCase
     public function testACancelledExceptionCarryingADeadlineReasonBecomesDeadlineExceeded(): void
     {
         $this->addRoute(static function (): ServiceResponseContract {
-            throw new CancelledException('stopped', CancellationReason::DEADLINE_EXCEEDED);
+            throw new GrpcCancelledException('stopped', CancellationReason::DEADLINE_EXCEEDED);
         });
 
         $response = $this->handler()->handle(new ServiceCall(self::METHOD));

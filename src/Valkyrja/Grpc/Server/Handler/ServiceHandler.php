@@ -32,7 +32,7 @@ use Valkyrja\Grpc\Routing\Dispatcher\Contract\RouterContract;
 use Valkyrja\Grpc\Routing\Dispatcher\Router;
 use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
 use Valkyrja\Grpc\Support\Cancellation;
-use Valkyrja\Grpc\Throwable\Exception\CancelledException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 
 class ServiceHandler implements ServiceHandlerContract
 {
@@ -179,7 +179,7 @@ class ServiceHandler implements ServiceHandlerContract
      */
     protected function getResponseFromThrowable(Throwable $throwable): ServiceResponseContract
     {
-        if ($throwable instanceof CancelledException) {
+        if ($throwable instanceof GrpcCancelledException) {
             return ServiceResponse::cancelled($throwable->getReason());
         }
 
