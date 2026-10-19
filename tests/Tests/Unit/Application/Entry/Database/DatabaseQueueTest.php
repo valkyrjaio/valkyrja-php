@@ -104,7 +104,11 @@ final class DatabaseQueueTest extends TestCase
     {
         $container = self::createStub(ContainerContract::class);
         $container->method('getSingleton')->willReturn(
-            new QueueDatabaseClientConfig(queueDatabaseClientQueue: 'emails', queueDatabaseClientTable: 'jobs_test')
+            new QueueDatabaseClientConfig(
+                queueDatabaseClientQueue: 'emails',
+                queueDatabaseClientTable: 'jobs_test',
+                queueDatabaseClientReservationTimeoutMs: 90_000,
+            )
         );
 
         $app = self::createStub(ApplicationContract::class);
@@ -119,6 +123,9 @@ final class DatabaseQueueTest extends TestCase
         // fails if connect() stops reading the table from the config
         self::assertStringContainsString('FROM jobs_test', $select->query);
         self::assertSame('emails', $select->bound['queue']);
+        // A window that differs from the default, so the assertion fails if
+        // connect() stops reading the timeout from the config
+        self::assertSame(self::FROZEN_MS - 90_000, $select->bound['stale']);
     }
 
     public function testAnEmptyTableYieldsNothing(): void
