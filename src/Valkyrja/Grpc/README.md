@@ -1,93 +1,75 @@
-# gRPC
+# Grpc
 
-The gRPC component matches an inbound call to a handler and runs middleware
-around every phase of the dispatch. A gRPC method name is a fixed string, so
-the router performs a map lookup rather than a pattern match. There is no
-dynamic segment and no regular expression.
+Implements
+[`GRPC.md`](https://github.com/valkyrjaio/architecture/blob/26.x/component/grpc/GRPC.md).
 
-The call and response classes carry an agnostic message payload, typed `mixed`.
-The component imports no protobuf library and no gRPC library. A worker adapter
-translates between the native types and these classes at its own boundary.
+## Introduction
 
-The component has five parts:
+The Grpc component answers a remote procedure call. A caller names a service and
+a method on it, the component routes that name to a handler, and the handler
+answers with a **service response**.
 
-- **`Grpc\Message`** — the call, the response, the status, the metadata, the
-  deadline, the cancellation token, and the peer.
-- **`Grpc\Routing`** — the service attributes, the collector, the service map,
-  and the router.
-- **`Grpc\Middleware`** — the seven stage contracts and their handlers.
-- **`Grpc\Server`** — the service handler, the adapter contract, and the
-  built-in middleware.
-- **`Grpc\Support`** — the cancellation check that every orchestrator boundary
-  calls.
+A **service** is a class, and each remote method is a method of that class. The
+routing key is the two names together, in the protocol's own form,
+`/package.Service/Method`, and the match is exact.
 
-## Configuration and entry point
+The component owns no transport. An **adapter** runs a gRPC library, takes a
+native call apart into the component's own types, and writes the response back.
+The adapter is the one place a library is named, so the component speaks no wire
+protocol.
 
-`Valkyrja\Application\Data\GrpcConfig` holds the configuration as constructor
-arguments, and every argument has a default. It repeats the base properties
-that `Config` carries, and it adds one cap and seven middleware lists:
+**A message is the port's own any-or-object type.** The component adopts the
+message type of no gRPC library, and bytes never reach the framework. A handler
+decodes the message it was given, and the adapter translates.
 
-| Property                    | Default                                 |
-| --------------------------- | --------------------------------------- |
-| `maxInboundMessages`        | `1000`                                  |
-| `providers`                 | `[GrpcApplicationComponentProvider]`    |
-| `callReceivedMiddleware`    | `[]`                                    |
-| `routeMatchedMiddleware`    | `[]`                                    |
-| `routeNotMatchedMiddleware` | `[]`                                    |
-| `routeDispatchedMiddleware` | `[]`                                    |
-| `throwableCaughtMiddleware` | `[LogThrowableCaughtMiddleware::class]` |
-| `sendingResponseMiddleware` | `[]`                                    |
-| `responseSentMiddleware`    | `[]`                                    |
+This document assumes the framework, where the container resolves the call and a
+provider builds the handlers.
 
-The config holds no port. Port binding is an adapter setting, so it lives on
-the adapter implementation.
+## Declaring a service
 
-`maxInboundMessages` bounds the inbound direction, and the adapter enforces it.
-Under the buffered model the adapter caps the messages it buffers before
-dispatch. Under the streaming model the adapter reads the same number as the
-high-water mark of the live inbound queue. The framework puts no bound on the
-outbound direction. A worker adapter applies its own backpressure there, which
-[Worker adapters](#worker-adapters) describes.
-
-`Grpc::handle()` is the entry point. It takes a config and one call, and it
-returns the response:
+Declare the service name on the class and the remote method on the method, where
+the language has a marker for that. The collector reads each class a route
+provider lists.
 
 ```php
-// app/bin/grpc
-use App\Grpc\Config;
-use Valkyrja\Application\Entry\Grpc;
-use Valkyrja\Grpc\Message\Call\ServiceCall;
+#[Service(service: 'example.Greeter')]
+final class GreeterController
+{
+    #[Method(name: 'SayHello')]
+    #[Middleware(name: AppAuthMiddleware::class)]
+    public static function sayHello(ContainerContract $container, RouteContract $route): ServiceResponseContract
+    {
+        $call = $container->getSingleton(ServiceCallContract::class);
 
-require __DIR__ . '/../vendor/autoload.php';
-
-$response = Grpc::handle(
-    new Config(),
-    ServiceCall::unary('/pkg.Greeter/SayHello', 'world')
-);
+        return ServiceResponse::ok(
+            $container->getSingleton(GreetingRepository::class)->greet($call->getMessages()),
+        );
+    }
+}
 ```
 
-`Grpc::handle()` bootstraps the application for one call, so it suits a test
-and a single-call script. A server runs many calls from one bootstrap, which
-[Persistent workers](#persistent-workers) describes.
+| Marker             | On       | States                                           |
+| ------------------ | -------- | ------------------------------------------------ |
+| `#[Service]`       | a class  | the full service name, such as `example.Greeter` |
+| `#[Method]`        | a method | the remote method's name, and which side streams |
+| `#[Middleware]`    | a method | one middleware class of this method              |
+| `#[MethodHandler]` | a method | a handler to dispatch instead of the method      |
 
-## Service registration
+`#[Middleware]` is repeatable, so a method may carry several.
 
-A route key is a fully-qualified method of the form `/package.Service/Method`.
-Each segment is a protobuf identifier, so each segment holds letters, digits
-and an underscore. The package part also holds a dot. `Route` rejects any
-other method and throws `GrpcRoutingInvalidMethodException`.
+A handler method is `public static`, because the component calls it without an
+instance. `#[MethodHandler]` names a different callable to dispatch, and a
+method that carries it is exempt from that rule.
 
-### Route providers
+### Declaring methods in a provider
 
-A route provider names the controllers the scan reads, and it returns any route
-the application builds itself:
+A route provider returns the classes to scan and any prebuilt route, and the
+application lists that provider in its config
+([`PROVIDERS.md`](https://github.com/valkyrjaio/architecture/blob/26.x/convention/PROVIDERS.md)).
+The component discovers nothing on its own.
 
 ```php
-namespace App\Grpc\Provider;
-
-use Valkyrja\Grpc\Routing\Provider\Contract\GrpcRouteProviderContract;
-
-class AppGrpcRouteProvider implements GrpcRouteProviderContract
+final class AppGrpcRouteProvider implements GrpcRouteProviderContract
 {
     public function getControllerClasses(): array
     {
@@ -96,352 +78,475 @@ class AppGrpcRouteProvider implements GrpcRouteProviderContract
 
     public function getRoutes(): array
     {
-        return [];
+        return [
+            new Route('/example.Greeter/SayGoodbye', [GoodbyeHandler::class, 'sayGoodbye']),
+        ];
     }
 }
 ```
 
-A component provider returns the route provider from `getGrpcProviders()`, the
-same way it returns an HTTP route provider from `getHttpProviders()`.
+A prebuilt route takes the full method, so a malformed one fails at boot rather
+than on the first call. Each list is a literal with no conditional logic, because
+the build tool reads the declaration rather than running it.
 
-### Attribute routes
+## Writing a handler
 
-`#[Service]` names the service on the controller class, and `#[Method]` names
-the method on each handler:
+A handler takes the container and the route, and returns a service response. It
+resolves the call from the container when it needs the messages, the metadata,
+the deadline or the peer.
 
 ```php
-namespace App\Grpc\Controller;
-
-use Valkyrja\Container\Manager\Contract\ContainerContract;
-use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
-use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
-use Valkyrja\Grpc\Message\Response\ServiceResponse;
-use Valkyrja\Grpc\Routing\Attribute\Method;
-use Valkyrja\Grpc\Routing\Attribute\Service;
-use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
-
-#[Service(service: 'pkg.Greeter')]
-final class GreeterController
+public static function sayHello(ContainerContract $container, RouteContract $route): ServiceResponseContract
 {
-    #[Method(name: 'SayHello')]
-    public static function sayHello(
-        ContainerContract $container,
-        RouteContract $route
-    ): ServiceResponseContract {
-        $call = $container->getSingleton(ServiceCallContract::class);
+    $call = $container->getSingleton(ServiceCallContract::class);
 
-        return ServiceResponse::ok('hello');
+    $name = $container->getSingleton(GreetingRepository::class)
+        ->nameFor($call->getPeer()->getAddress());
+
+    return ServiceResponse::ok(['greeting' => 'Hello ' . $name]);
+}
+```
+
+Warning: a port that invokes the handler reflectively **constructs the
+controller with no arguments**. A controller therefore resolves its dependencies
+from the container inside the method, and it declares no constructor parameter.
+
+Warning: resolve `ServiceCallContract` from the container rather than keeping a
+reference. The router binds a copy of the call that carries the route, so a
+reference taken at an earlier stage reads a call with no route.
+
+## The call
+
+| Asks              | Returns                                                |
+| ----------------- | ------------------------------------------------------ |
+| `getMethod`       | the full method, which is the routing key              |
+| `getMetadata`     | the metadata the caller sent                           |
+| `getDeadline`     | when the caller stops waiting                          |
+| `getCancellation` | whether the caller gave up                             |
+| `getPeer`         | who called, and how they authenticated                 |
+| `getMessages`     | the inbound messages                                   |
+| `isStreaming`     | whether the call runs under the streaming model        |
+| `getRoute`        | the route, once the router resolved one                |
+| `hasRoute`        | whether the call carries a route yet                   |
+| `send`            | pushes one outbound message, under the streaming model |
+| `cancellable`     | wraps a sequence, so iteration stops on a cancellation |
+| `withRoute`       | returns a copy of the call carrying the route          |
+
+The call is immutable, and `withRoute` is the one change. The response is
+immutable too, with a `with` form for each part of it.
+
+## The four shapes, and the two models
+
+A method declares which side streams, and the two flags give the protocol's four
+shapes.
+
+| Shape            | Declares                                | Runs under |
+| ---------------- | --------------------------------------- | ---------- |
+| unary            | neither flag                            | buffered   |
+| server streaming | `serverStreaming`                       | buffered   |
+| client streaming | `clientStreaming`                       | buffered   |
+| bidirectional    | `clientStreaming` and `serverStreaming` | streaming  |
+
+**Under the buffered model the handler runs once.** The adapter reads every
+inbound message first, so `getMessages` returns a fixed sequence, and the handler
+returns its own messages on the response.
+
+```php
+#[Method(name: 'ListGreetings', serverStreaming: true)]
+public static function listGreetings(ContainerContract $container, RouteContract $route): ServiceResponseContract
+{
+    return ServiceResponse::ok()
+        ->withMessages($container->getSingleton(GreetingRepository::class)->all());
+}
+```
+
+**Under the streaming model the handler runs while messages arrive.** The adapter
+calls the handler at once, `getMessages` yields each message as it arrives, and
+the handler replies through `send` rather than by returning its messages.
+
+```php
+#[Method(name: 'Chat', clientStreaming: true, serverStreaming: true)]
+public static function chat(ContainerContract $container, RouteContract $route): ServiceResponseContract
+{
+    $call = $container->getSingleton(ServiceCallContract::class);
+
+    foreach ($call->getMessages() as $message) {
+        $call->send($message);
+    }
+
+    return ServiceResponse::ok();
+}
+```
+
+**Buffered is the default**, and it is the shape the pipeline is designed
+around. Streaming is the deliberate exception, for a caller that waits for a
+reply before it sends more. Without it such a caller would deadlock.
+
+Warning: `send` fails under the buffered model. Return the messages on the
+response instead.
+
+Warning: `send` fails for a second send that starts while the first one runs. A
+streaming handler emits from one thread.
+
+Warning: the inbound sequence ends on a half-close, and it ends on a
+cancellation too. Read the cancellation after the loop to tell the two apart.
+
+**Middleware runs once per call, not once per message.** A stage is about the
+call, so a streaming call does not multiply the pipeline.
+
+A streaming response reaches the wire through an **outbound stream**, which the
+adapter owns. The stream sends the headers, then each message, and it closes
+with the terminal response.
+
+**An outbound write respects backpressure.** A send does not hand the transport
+more than it can take, and honoring that is the adapter's obligation, because
+only the adapter knows the transport's writability.
+
+## Status
+
+A response carries a status, and the status carries a code from the gRPC
+standard set: `OK`, `CANCELLED`, `UNKNOWN`, `INVALID_ARGUMENT`,
+`DEADLINE_EXCEEDED`, `NOT_FOUND`, `ALREADY_EXISTS`, `PERMISSION_DENIED`,
+`RESOURCE_EXHAUSTED`, `FAILED_PRECONDITION`, `ABORTED`, `OUT_OF_RANGE`,
+`UNIMPLEMENTED`, `INTERNAL`, `UNAVAILABLE`, `DATA_LOSS` and `UNAUTHENTICATED`.
+
+The set is the protocol's, so a port adds nothing to it and renames nothing in
+it. `Status` carries one named constructor per code, and a response carries one
+for each case a handler answers with often.
+
+```php
+$user = $container->getSingleton(UserRepository::class)->find($id);
+
+// The method failed, and the code names the failure.
+if ($user === null) {
+    return ServiceResponse::of(Status::notFound('No such user.'));
+}
+
+// The method succeeded.
+return ServiceResponse::ok($user);
+```
+
+| Builds                           | Answers with                         |
+| -------------------------------- | ------------------------------------ |
+| `ServiceResponse::ok`            | `OK`, with the messages you pass     |
+| `ServiceResponse::of`            | the status you pass                  |
+| `ServiceResponse::unimplemented` | `UNIMPLEMENTED`                      |
+| `ServiceResponse::cancelled`     | `CANCELLED`, for the reason you pass |
+
+| Asks on a status | Answers                                   |
+| ---------------- | ----------------------------------------- |
+| `getCode`        | the code                                  |
+| `getMessage`     | the message that travels with the code    |
+| `getDetails`     | the details, where the status carries any |
+| `hasDetails`     | whether it carries details                |
+| `isOk`           | whether the call succeeded                |
+| `isCancellation` | whether it represents a cancellation      |
+
+A caller tests the meaning rather than comparing codes, so `isOk` and
+`isCancellation` are what a middleware branches on.
+
+**Prefer returning a status to throwing.** A status is the protocol's own
+vocabulary, and a throwable has to be mapped to one.
+
+## Metadata
+
+Metadata is the key and value pairs a call carries. The caller sends it one way,
+and the response sends it back the other way.
+
+```php
+$traceId = $call->getMetadata()->get('x-trace-id');
+
+return ServiceResponse::ok($user)
+    ->withTrailingMetadata(new Metadata()->with('x-trace-id', $traceId));
+```
+
+| Asks          | Does                                   |
+| ------------- | -------------------------------------- |
+| `get`         | reads a key's first value              |
+| `getAll`      | reads a key's values                   |
+| `has`         | answers whether a key holds a value    |
+| `isBinaryKey` | answers whether a key carries binary   |
+| `with`        | returns metadata with a key replaced   |
+| `withAdded`   | returns metadata with a value appended |
+| `without`     | returns metadata with a key removed    |
+| `toArray`     | reads every pair as an array           |
+
+Metadata is iterable, so a middleware that copies or records every pair reads
+them by iterating.
+
+A key is case insensitive, and the metadata lowercases each one it is given. A
+key that ends in `-bin` carries a binary value, and every other key carries a
+string.
+
+**Metadata validates on write.** An invalid key and a value whose type does not
+match its key's kind each fail where the caller set them, rather than when the
+response reaches the wire.
+
+A response carries metadata twice. The **initial** metadata is the headers, and
+the **trailing** metadata follows the last message.
+
+Warning: the initial metadata locks once the first message reaches the wire. Set
+it before the handler sends anything. The trailing metadata stays open until the
+handler returns.
+
+## The deadline and the cancellation
+
+**The deadline and the cancellation are separate.** A deadline passes on its
+own. A cancellation is something the caller did. A component that treated them
+as one could not tell a slow call from an abandoned one.
+
+| Asks on the deadline | Answers                      |
+| -------------------- | ---------------------------- |
+| `getAbsoluteTime`    | the instant the call expires |
+| `getRemaining`       | how long is left             |
+| `isExpired`          | whether the instant passed   |
+| `hasDeadline`        | whether the caller set one   |
+
+| Asks on the cancellation | Does                                  |
+| ------------------------ | ------------------------------------- |
+| `isCancelled`            | answers whether the caller gave up    |
+| `getReason`              | reads which of the two causes it was  |
+| `throwIfCancelled`       | throws instead of answering           |
+| `onCancelled`            | runs a listener when the call cancels |
+
+**Neither one is ever absent.** Each has a sentinel for "none", so no caller
+checks for an empty value. The sentinel deadline is a finite far-future instant
+rather than an unbounded one, so arithmetic on it cannot overflow.
+
+The reason is where the two meet. A cancellation reports either that the caller
+cancelled or that the deadline passed, so code tests the cancellation and reads
+the reason where the difference matters.
+
+### Cancellation is cooperative
+
+A caller can give up at any time, and **the framework never interrupts running
+handler code**. Forcible interruption is unsafe in every one of these languages,
+so the model is the same everywhere.
+
+The framework checks the cancellation between its own steps and stops advancing
+when it is set. A handler that runs a long computation, or that calls a library
+which knows nothing about cancellation, checks for itself.
+
+```php
+public static function chargeEach(ContainerContract $container, RouteContract $route): ServiceResponseContract
+{
+    $call = $container->getSingleton(ServiceCallContract::class);
+
+    foreach ($call->getMessages() as $order) {
+        if ($call->getCancellation()->isCancelled()) {
+            return ServiceResponse::cancelled($call->getCancellation()->getReason());
+        }
+
+        $container->getSingleton(PaymentGateway::class)->charge($order);
+    }
+
+    return ServiceResponse::ok();
+}
+```
+
+`cancellable` does the same for a sequence the handler iterates, so a loop over
+it ends when the call cancels.
+
+**A detected cancellation produces a response, not a throwable.** So
+cancellation is never a special case in the `ThrowableCaught` stage, and that
+stage handles only real failures.
+
+A handler that does not check runs to completion after the caller has gone.
+
+## Middleware
+
+Seven stages run around a call, and each one has its own contract. An
+application implements the contract for the stage it wants, and one class may
+implement several.
+
+| Stage             | Runs                   | May change                 |
+| ----------------- | ---------------------- | -------------------------- |
+| `CallReceived`    | always                 | the call, or the response  |
+| `RouteMatched`    | a route was found      | the route, or the response |
+| `RouteNotMatched` | no route was found     | the response               |
+| `RouteDispatched` | a route was found      | the response               |
+| `ThrowableCaught` | a throwable was caught | the response               |
+| `SendingResponse` | always                 | the response               |
+| `ResponseSent`    | always                 | nothing                    |
+
+Each stage's contract declares one method, named for the stage, and that method
+takes the stage's own handler as its last parameter. Calling the handler passes
+the work to the next middleware; returning a response instead ends the pipeline
+there.
+
+```php
+final class AppAuthMiddleware implements RouteMatchedMiddlewareContract
+{
+    public function routeMatched(
+        ServiceCallContract $call,
+        RouteContract $route,
+        RouteMatchedHandlerContract $handler,
+    ): RouteContract|ServiceResponseContract {
+        if (! $call->getMetadata()->has('authorization')) {
+            return ServiceResponse::of(Status::unauthenticated('No credentials.'));
+        }
+
+        return $handler->routeMatched($call, $route);
     }
 }
 ```
 
-The two attributes above register `/pkg.Greeter/SayHello`. `#[Method]` also
-takes `clientStreaming`, `serverStreaming`, `requestType` and `responseType`.
-The two streaming flags choose the call shape, which
-[Call shapes](#call-shapes) describes. The framework reads neither message
-type, and carries both for the adapter.
+`CallReceived` and `RouteMatched` can **short-circuit**: each returns either the
+thing it received or a response, and a response skips every remaining stage
+before `SendingResponse`.
 
-The scan runs in debug mode. Outside debug mode the service map loads from the
-`GrpcRoutingData` class that `sindri` generates.
+`SendingResponse` is the last place the response changes, because the adapter
+writes it next. Under the streaming model it runs at the stream open, against a
+response whose initial metadata becomes the headers. `ResponseSent` runs after
+the write, so it holds work the caller never waits for.
 
-### Route handlers
+### Scheduling middleware
 
-A handler is a public static method, and it takes the container and the route.
-The container holds the call, so the signature names no call parameter. The
-scan rejects a method that is not public or not static, and it throws
-`GrpcRoutingInvalidHandlerException`. The scan is where the developer can still
-act on the fault.
-
-`#[MethodHandler]` supplies a handler explicitly. The attributed method then
-runs nothing, so the scan checks it no further:
+The application's gRPC config holds one list per stage, and the provider gives
+each stage handler the list for that stage.
 
 ```php
-#[Method(name: 'SayHello')]
-#[MethodHandler([GreeterService::class, 'sayHello'])]
-public function sayHello(
-    ContainerContract $container,
-    RouteContract $route
-): ServiceResponseContract {
-    return ServiceResponse::ok('never reached');
+new GrpcConfig(
+    dir:                       __DIR__,
+    routeMatchedMiddleware:    [AppAuthMiddleware::class],
+    throwableCaughtMiddleware: [LogThrowableCaughtMiddleware::class],
+);
+```
+
+`GrpcConfig` declares every property as a promoted readonly argument, so a
+subclass cannot replace one. Pass the named argument, or write your own class
+against `GrpcConfigContract`.
+
+Middleware runs in registration order, and the framework removes no repeat.
+Scheduling one class twice at a stage runs it twice.
+
+Every middleware class needs a binding, because the stage handler resolves each
+one through the container ([Container](../Container/README.md) covers bindings).
+
+### Middleware on one method
+
+Declare it on the method, and the router appends it to the stage handlers for
+that call alone. A method's route carries a list per stage, and the stage a class
+lands in follows from the contracts the class implements.
+
+`RouteNotMatched` takes no method-level middleware, because no route matched. An
+unknown method answers `UNIMPLEMENTED`, and that stage is where an application
+replaces the answer.
+
+## The adapter
+
+The component declares the adapter contract and ships no adapter. An
+implementation owns both ends of a call: taking a native call apart into the
+component's own types, and writing the component's response back out.
+
+```php
+interface ServiceAdapterContract
+{
+    public function start(ServiceHandlerContract $handler): void;
+
+    public function stop(): void;
 }
 ```
 
-### Per-route middleware
+An adapter names a gRPC library, so it is the one piece that cannot live in the
+component. An application supplies one, or installs a package that does. The
+address it binds, the TLS settings and the thread pool are the implementation's
+own, because this protocol's server is the transport rather than the language's
+own.
 
-`#[Middleware]` schedules one middleware for the route. The attribute is
-repeatable, so a method takes several:
+The write happens **between** `SendingResponse` and `ResponseSent`, which is
+what makes those two stages meaningful. The first can still change the response,
+and the second runs once the response is on the wire.
 
-```php
-#[Method(name: 'SayHello')]
-#[Middleware(name: AuditMiddleware::class)]
-#[Middleware(name: RateLimitMiddleware::class)]
-public static function sayHello(/* … */): ServiceResponseContract
-```
+Warning: no provider binds the adapter contract. The entry point of the runtime
+starts the adapter, and it hands the service handler over.
 
-The collector reads the contracts each middleware implements, and it adds the
-middleware to every matching stage. A middleware that serves two stages runs at
-both. Middleware is appended and never deduplicated, so a class scheduled twice
-runs twice.
+## Configuration
 
-An application binds each middleware it schedules. The container resolves a
-middleware by class name, and it throws for a name that nothing bound.
+The component reads the application's gRPC config for the pipeline and for the
+inbound message limit.
 
-## Calls and responses
+Your application has one config class. Where it implements this contract, the
+provider binds your class. Where it does not, the provider binds the component's
+own default. So implementing the contract is how you override, and implementing
+nothing leaves every default in place.
 
-### The call
-
-`ServiceCallContract` carries one inbound call. The router binds it in the
-container under `ServiceCallContract`, so a handler and a middleware read it
-from there:
-
-| Method              | Returns                     |
-| ------------------- | --------------------------- |
-| `getMethod()`       | the fully-qualified method  |
-| `getMetadata()`     | the inbound metadata        |
-| `getDeadline()`     | the deadline                |
-| `getCancellation()` | the cancellation token      |
-| `getPeer()`         | the peer                    |
-| `getMessages()`     | the inbound messages        |
-| `isStreaming()`     | whether a push sink exists  |
-| `send()`            | pushes one outbound message |
-| `getRoute()`        | the resolved route, or null |
-| `hasRoute()`        | whether a route resolved    |
-| `withRoute()`       | a clone carrying a route    |
-| `cancellable()`     | a cancellation-aware source |
-
-`getRoute()` answers the route the pipeline resolved. The router sets the route
-again whenever RouteMatched middleware returns a replacement, so every later
-stage reads the route the middleware chose.
-
-### The response
-
-`ServiceResponseContract` carries the status, the messages, and two metadata
-maps. The initial metadata becomes the response headers, and the trailing
-metadata becomes the trailers. `ServiceResponse` holds three named
-constructors: `of()`, `ok()` and `unimplemented()`. It also holds
-`cancelled()`, which builds the response for a cancellation reason.
-
-### Status
-
-`Status` carries a code, a message, and the optional `google.rpc.Status`
-protobuf bytes. `StatusCode` holds the seventeen wire codes, and each code
-carries a default message through `getDefaultMessage()`. `StatusText` holds
-those messages, and each of its case names matches a `StatusCode` case name.
-
-`Status` holds one named constructor for each code, so a handler returns a
-domain outcome without naming a code:
+| Property                    | Holds                                   | Default            |
+| --------------------------- | --------------------------------------- | ------------------ |
+| `maxInboundMessages`        | the inbound messages one call may carry | 1000               |
+| `callReceivedMiddleware`    | the middleware at `CallReceived`        | none               |
+| `routeMatchedMiddleware`    | the middleware at `RouteMatched`        | none               |
+| `routeNotMatchedMiddleware` | the middleware at `RouteNotMatched`     | none               |
+| `routeDispatchedMiddleware` | the middleware at `RouteDispatched`     | none               |
+| `throwableCaughtMiddleware` | the middleware at `ThrowableCaught`     | the log middleware |
+| `sendingResponseMiddleware` | the middleware at `SendingResponse`     | none               |
+| `responseSentMiddleware`    | the middleware at `ResponseSent`        | none               |
 
 ```php
-use Valkyrja\Grpc\Message\Response\ServiceResponse;
-use Valkyrja\Grpc\Message\Status\Status;
-
-return ServiceResponse::of(Status::notFound('No user holds that id'));
+Grpc::bootstrap(new GrpcConfig(
+    dir:                    __DIR__,
+    maxInboundMessages:     200,
+    routeMatchedMiddleware: [AppAuthMiddleware::class],
+));
 ```
 
-The framework maps only cancellation and the catch-all. A handler returns every
-other outcome on the response, the same way an HTTP controller returns a status
-code. `withCode()` resets the message to the new code's default, so a status
-never reports a message that describes another code.
+`maxInboundMessages` bounds the inbound side. Under the buffered model the
+adapter rejects a call that exceeds the bound with `RESOURCE_EXHAUSTED`. Under
+the streaming model the value bounds the flow-control window, and it rejects no
+call.
 
-### Metadata
+Replacing `throwableCaughtMiddleware` replaces the default, so a config that
+sets it names the log middleware again where a failure still has to be recorded
+([Log](../Log/README.md)).
 
-`Metadata` keys are case-insensitive, and the class lower-cases each one. A key
-holds lowercase letters, digits, `-`, `_` and `.`. A key that ends in `-bin`
-carries arbitrary bytes. Every other key carries printable ASCII.
+## Service registration
 
-`Metadata` validates a key and a value on construction, which every `with*`
-operation flows through. An invalid key raises
-`GrpcMetadataInvalidKeyException`. An invalid value raises
-`GrpcMetadataInvalidValueException`. The adapter can therefore trust the values it
-writes to the wire.
+The component ships one provider per area, and they bind:
 
-### Deadline
-
-`Deadline` reports an absolute expiry time and the remaining budget, both in
-seconds. `fromTimeout()` builds a deadline from a relative timeout, and
-`fromAbsolute()` builds one from a unix timestamp. `none()` builds the sentinel
-for a call that carries no deadline.
-
-The sentinel is finite. `none()` reports `INFINITE_REMAINING` from
-`getRemaining()`, which is one hundred years in seconds. Arithmetic on the
-sentinel therefore cannot overflow. Every port reproduces the same value.
-
-### Peer
-
-`Peer` reports the address, the address type, and the auth context.
-`AddressType` holds `IPV4`, `IPV6`, `UNIX` and `UNKNOWN`. `AuthContext`
-reports the transport security type, the peer subject, and the peer
-certificates.
-
-## Cancellation
-
-A cancelled call returns a response, and it raises no throwable. Every
-orchestrator boundary therefore handles a cancelled call the same way.
-
-`Cancellation::checkAndFinalize()` runs the two-question check:
-
-1. Has cancellation fired on the call, or has the deadline elapsed?
-2. Does the response in hand already carry a cancellation status?
-
-A positive answer returns the cancellation response, which fast-exits up the
-stack. A negative answer returns null, which continues the dispatch.
-
-The two questions are not symmetric. Before delegation the check overlays the
-cancellation status on an existing response, which keeps the metadata that
-earlier middleware accumulated. It builds a fresh response when none exists
-yet. After delegation the check passes an already-cancelled response through
-unchanged.
-
-A handler reads the token directly for its own checks:
+| Binding                     | Is                                                    |
+| --------------------------- | ----------------------------------------------------- |
+| `RouteCollectionContract`   | the methods, and the lookup the router uses           |
+| `RouteCollectorContract`    | the collector for the way this port declares a method |
+| `RouterContract`            | the router                                            |
+| each stage handler contract | that stage's handler, as a singleton                  |
+| `ServiceHandlerContract`    | the handler that runs a call end to end               |
+| each shipped middleware     | bound under its own name                              |
 
 ```php
-use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
+final class GrpcServerServiceProvider implements ServiceProviderContract
+{
+    public function publishers(): array
+    {
+        return [
+            ServiceHandlerContract::class => [self::class, 'publishServiceHandler'],
+        ];
+    }
 
-$call = $container->getSingleton(ServiceCallContract::class);
-
-// Raises GrpcCancelledException, which the framework maps to CANCELLED.
-$call->getCancellation()->throwIfCancelled();
+    public static function publishServiceHandler(ContainerContract $container): void
+    {
+        $container->setSingleton(ServiceHandlerContract::class, new ServiceHandler(
+            container:              $container,
+            router:                 $container->getSingleton(RouterContract::class),
+            callReceivedHandler:    $container->getSingleton(CallReceivedHandlerContract::class),
+            throwableCaughtHandler: $container->getSingleton(ThrowableCaughtHandlerContract::class),
+            sendingResponseHandler: $container->getSingleton(SendingResponseHandlerContract::class),
+            responseSentHandler:    $container->getSingleton(ResponseSentHandlerContract::class),
+        ));
+    }
+}
 ```
 
-`cancellable()` wraps a source so iteration stops once the call is cancelled.
-It checks before the first pull, and again after each item. A server-streaming
-handler wraps its own generator with it:
+**The router and the stage handlers resolve the same instances.** Each stage
+handler is a singleton, so the middleware a method appends at a stage reaches the
+handler that runs it. Two instances means that middleware never runs, and
+nothing reports it.
 
-```php
-return ServiceResponse::ok()->withMessages($call->cancellable($messages));
-```
+The service handler declares `run` as the entry point an adapter calls, and
+`handle` as the method that produces the response from the first five stages.
+The terminal methods carry their stage names, `sendingResponse` and
+`responseSent`, and the adapter calls each one around its own write.
 
-`cancellable()` stops yielding rather than throw. A cancelled call therefore
-closes normally instead of raising through the transport listener.
-
-## The middleware pipeline
-
-Each stage has one contract and one handler. A middleware returns the next
-value, or it short-circuits by returning a response:
-
-| Stage             | Receives                  | Returns                |
-| ----------------- | ------------------------- | ---------------------- |
-| `CallReceived`    | the call                  | a call, or a response  |
-| `RouteMatched`    | the call and the route    | a route, or a response |
-| `RouteNotMatched` | the call and the response | a response             |
-| `RouteDispatched` | the call, response, route | a response             |
-| `ThrowableCaught` | the call, response, error | a response             |
-| `SendingResponse` | the call and the response | a response             |
-| `ResponseSent`    | the call and the response | nothing                |
-
-Five stage handlers run the two-question check before and after they delegate.
-`SendingResponse` and `ResponseSent` run no check, because both stages always
-run. A cancelled call still sends a status and still terminates.
-
-`ServiceHandler` orchestrates the stages. `handle()` runs the call through
-`CallReceived` and the router. `sending()` runs `SendingResponse`.
-`terminate()` runs `ResponseSent`. `run()` calls `handle()` and then
-`sending()`, so an adapter writes the wire between `sending()` and
-`terminate()`.
-
-`ThrowableCaught` runs a middleware, so `handle()` guards that stage
-separately. A stage that throws leaves the mapped status standing, so the
-client receives a status rather than nothing.
-
-`LogThrowableCaughtMiddleware` logs a caught throwable against the call's
-method. `GrpcConfig` schedules it by default, so errors reach the log the way
-they do in HTTP and CLI.
-
-## Call shapes
-
-A method's declared flags choose the shape, and the client's behavior does not.
-
-**The buffered model** serves a unary, a server-streaming and a
-client-streaming method. The adapter buffers the inbound messages, and on
-half-close it builds the call once. The handler returns one response, and the
-adapter drains its messages to the wire.
-
-**The streaming model** serves a bidirectional method. The adapter invokes the
-handler at once rather than after half-close. `getMessages()` is then a live
-stream, and `send()` pushes an outbound message while the handler still reads
-inbound.
-
-`send()` serializes the sends. A send issued while another is in flight raises
-`GrpcConcurrentSendException`, because the transport is not re-entrant. The
-guard lives with the sink, so a clone from `withRoute()` shares it. `send()` on
-a buffered call raises `GrpcNonStreamingSendException`.
-
-## Persistent workers
-
-`Valkyrja\Application\Entry\Abstract\WorkerGrpc` bootstraps once and serves
-many calls. It freezes the parent application, and it gives every call its own
-`ChildContainer` and `ChildApplication`. The worker discards both when the
-call ends.
-
-`dispatch()` serves one buffered call, and it hands the response to a writer.
-`dispatchStreaming()` serves one streaming call against an
-`OutboundStreamContract`. Each method runs the whole pipeline under one guard,
-so a throw still runs `terminate()`.
-
-`dispatchStreaming()` opens the stream once, at the first emit, or at the close
-when the handler emits nothing. `SendingResponse` runs at that open, against an
-OK shell whose initial metadata becomes the response headers. A throwable that
-leaves `dispatchStreaming()` leaves the stream closed whenever the stream had
-been opened. An adapter that catches one therefore sends no status of its own.
-
-## Worker adapters
-
-`ServiceAdapterContract` declares `start()` and `stop()`. An adapter binds the
-port, configures TLS, and translates the native types. None of that work is
-part of the agnostic surface.
-
-An adapter carries two transport obligations:
-
-- It checks whether the transport can accept a message before it writes one.
-  When the transport cannot, the adapter pauses the drain and resumes it later.
-  A paused drain is not a cancelled call.
-- It keeps the handler off the path that delivers the transport's callbacks.
-  That path carries the resume signal the paused drain waits for, so a handler
-  that occupies the path blocks its own resume.
-
-## Container bindings
-
-Three service providers publish the component's services:
-
-| Provider                        | Binds                                                                                                                                                                                                                               |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GrpcMiddlewareServiceProvider` | `CallReceivedHandlerContract`, `RouteMatchedHandlerContract`, `RouteNotMatchedHandlerContract`, `RouteDispatchedHandlerContract`, `ThrowableCaughtHandlerContract`, `SendingResponseHandlerContract`, `ResponseSentHandlerContract` |
-| `GrpcRoutingServiceProvider`    | `RouteCollectorContract`, `RouterContract`, `RouteCollectionContract`, `GrpcRoutingData`                                                                                                                                            |
-| `GrpcServerServiceProvider`     | `ServiceHandlerContract`, `LogThrowableCaughtMiddleware`                                                                                                                                                                            |
-
-`GrpcApplicationComponentProvider` composes the component providers a gRPC
-application needs. It declares the Container and Event components through
-`ApplicationComponentProvider`, and it adds the gRPC Middleware, Routing and
-Server components plus Log. It omits every HTTP and CLI component, and it omits
-View, because a gRPC call renders no template.
-
-The router and the service handler share the stage-handler singletons. A route
-registers its `SendingResponse` and `ResponseSent` middleware on the router,
-and the service handler consumes both stages. Sharing the singletons is what
-makes that middleware run.
-
-## Exceptions
-
-Every exception this component throws implements
-`Valkyrja\Grpc\Throwable\Contract\GrpcThrowable`, which extends the
-framework-wide `ValkyrjaThrowable`. Two abstract bases hold the component's
-exceptions: `GrpcRuntimeException` and `GrpcInvalidArgumentException` in
-`Valkyrja\Grpc\Throwable\Exception\Abstract`.
-
-Each subcomponent adds its own throwable contract and its own two abstract
-bases. `GrpcRoutingThrowable`, `GrpcMiddlewareThrowable` and
-`GrpcServerThrowable` each extend `GrpcThrowable`.
-
-| Exception                            | Raised when                                                        |
-| ------------------------------------ | ------------------------------------------------------------------ |
-| `GrpcCancelledException`                 | a cooperative check finds the call cancelled                       |
-| `GrpcConcurrentSendException`        | a send runs while another send is in flight                        |
-| `GrpcNonStreamingSendException`      | `send()` runs on a buffered call                                   |
-| `GrpcMetadataInvalidKeyException`        | a metadata key is not a valid header name                          |
-| `GrpcMetadataInvalidValueException`      | an ASCII key carries a non-printable value                         |
-| `GrpcRoutingInvalidMethodException`  | a method is not `/package.Service/Method`                          |
-| `GrpcRoutingInvalidHandlerException` | an attributed handler is not public static, or returns no response |
-
-Catch `GrpcThrowable` to handle every exception from this component. Catch
-`ValkyrjaThrowable` to handle every framework exception. Neither catch masks an
-unrelated error.
+Warning: a port that invokes the handler reflectively **rethrows the handler's
+own throwable**. A reflective call wraps whatever the target threw, so
+unwrapping it is required. Without it the `ThrowableCaught` stage sees the
+reflection wrapper rather than the failure.
