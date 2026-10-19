@@ -46,8 +46,9 @@ interface RouteContract
     /**
      * Get the generated protobuf request message type, or null if unspecified.
      *
-     * `GRPC.md` declares this field non-null. The framework reads neither message type, and
-     * carries both for the adapter, so a route that names no type still dispatches.
+     * The framework reads neither message type. A route carries both so an adapter can
+     * translate, and a route that names no type still dispatches. So the null is the value a
+     * caller reads, and this field takes no `has` companion.
      *
      * @return class-string|null
      */
@@ -63,7 +64,8 @@ interface RouteContract
     /**
      * Get the generated protobuf response message type, or null if unspecified.
      *
-     * The field is nullable for the reason `getRequestType()` records.
+     * The field is nullable for the reason `getRequestType()` records, and it takes no `has`
+     * companion for the same reason.
      *
      * @return class-string|null
      */
