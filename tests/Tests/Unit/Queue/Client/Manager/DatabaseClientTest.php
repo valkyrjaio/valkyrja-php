@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Queue\Client\Manager;
 
 use Override;
+use Valkyrja\Orm\Throwable\Exception\OrmExecuteException;
 use Valkyrja\Queue\Client\Manager\DatabaseClient;
 use Valkyrja\Queue\Message\Constant\EnvelopeField;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -145,6 +146,32 @@ final class DatabaseClientTest extends TestCase
             self::FROZEN_MS,
             $this->manager->getStatements('INSERT')[0]->bound['available_at_ms']
         );
+    }
+
+    public function testAPushTheDatabaseRefusesSurfaces(): void
+    {
+        // An application that overrides PDO::ATTR_ERRMODE gets false back from
+        // execute rather than a throw, and an unchecked return would report
+        // the job as pushed while the row was never written
+        $this->manager->failExecute = true;
+
+        $this->expectException(OrmExecuteException::class);
+        $this->expectExceptionMessage('The queue insert failed');
+
+        $this->client()->push(new JobFactory()->create(self::NAME));
+    }
+
+    public function testAPushCarriesTheMessageTheDriverReports(): void
+    {
+        // The driver names the constraint, the column or the lock that stopped
+        // the write, and that name is what an operator reads the log for
+        $this->manager->failExecute  = true;
+        $this->manager->errorMessage = 'Duplicate entry';
+
+        $this->expectException(OrmExecuteException::class);
+        $this->expectExceptionMessage('Duplicate entry');
+
+        $this->client()->push(new JobFactory()->create(self::NAME));
     }
 
     protected function client(): DatabaseClient

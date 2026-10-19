@@ -17,6 +17,7 @@ use Override;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Orm\Data\Value;
 use Valkyrja\Orm\Manager\Contract\ManagerContract;
+use Valkyrja\Orm\Throwable\Exception\OrmExecuteException;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
@@ -89,6 +90,12 @@ class DatabaseClient extends Client
         $statement->bindValue(new Value('priority', $job->getPriority()));
         $statement->bindValue(new Value('available_at_ms', Microtime::getMilliseconds() + $delayMs));
 
-        $statement->execute();
+        if (! $statement->execute()) {
+            throw new OrmExecuteException(
+                $statement->hasError()
+                    ? $statement->getErrorMessage()
+                    : 'The queue insert failed'
+            );
+        }
     }
 }
