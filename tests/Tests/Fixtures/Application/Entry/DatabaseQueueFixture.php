@@ -58,7 +58,7 @@ final class DatabaseQueueFixture extends DatabaseQueue
     {
         self::$injected             = null;
         self::$manager              = null;
-        self::$current              = null;
+        self::$claim                = null;
         self::$queue                = 'default';
         self::$table                = DatabaseClient::DEFAULT_TABLE;
         self::$reservationTimeoutMs = self::DEFAULT_RESERVATION_TIMEOUT_MS;

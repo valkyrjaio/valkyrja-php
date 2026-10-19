@@ -75,10 +75,8 @@ class DatabaseQueue extends PullQueue
      * A pull worker handles one job at a time, so a single slot is enough, and
      * it is cleared on settlement so a second settle cannot act twice.
      */
-    protected static int|string|null $current = null;
-
-    /** @var int|null The stamp this worker wrote when it claimed the row */
-    protected static int|null $claimedAtMs = null;
+    /** @var array{id: int|string, at: int}|null The row this worker holds, and the stamp it claimed with */
+    protected static array|null $claim = null;
 
     /**
      * @inheritDoc
@@ -89,8 +87,7 @@ class DatabaseQueue extends PullQueue
         $container = $app->getContainer();
         $config    = $container->getSingleton(QueueDatabaseClientConfigContract::class);
 
-        static::$current              = null;
-        static::$claimedAtMs          = null;
+        static::$claim                = null;
         static::$queue                = $config->queueDatabaseClientQueue;
         static::$table                = $config->queueDatabaseClientTable;
         static::$reservationTimeoutMs = $config->queueDatabaseClientReservationTimeoutMs;
@@ -115,7 +112,9 @@ class DatabaseQueue extends PullQueue
 
         [$id, $envelope] = $row;
 
-        if (! static::claim($id)) {
+        $claimedAt = static::claim($id);
+
+        if ($claimedAt === null) {
             // Another worker claimed the row between the read and the write.
             // Work is known to exist, so the loop asks again at once rather
             // than pausing exactly when the backlog is deepest.
@@ -128,7 +127,7 @@ class DatabaseQueue extends PullQueue
             return null;
         }
 
-        static::$current = $id;
+        static::$claim = ['id' => $id, 'at' => $claimedAt];
 
         return $job;
     }
@@ -146,9 +145,8 @@ class DatabaseQueue extends PullQueue
         } finally {
             // A release that throws must not leave this entry holding a
             // manager a later run would claim on
-            static::$current     = null;
-            static::$claimedAtMs = null;
-            static::$manager     = null;
+            static::$claim   = null;
+            static::$manager = null;
         }
     }
 
@@ -158,15 +156,13 @@ class DatabaseQueue extends PullQueue
     #[Override]
     public static function settle(JobContract $job, JobResult $result, ClientContract $client): void
     {
-        $id        = static::$current;
-        $claimedAt = static::$claimedAtMs;
+        $claim = static::$claim;
 
-        if ($id === null || $claimedAt === null) {
+        if ($claim === null) {
             return;
         }
 
-        static::$current     = null;
-        static::$claimedAtMs = null;
+        static::$claim = null;
 
         // A table owns no retry loop, so the framework publishes the job
         // again. The new row goes first: an insert that fails after the delete
@@ -177,7 +173,7 @@ class DatabaseQueue extends PullQueue
         }
 
         // The reserved row is spent whatever the outcome
-        static::delete($id, $claimedAt);
+        static::delete($claim['id'], $claim['at']);
     }
 
     /**
@@ -315,13 +311,12 @@ class DatabaseQueue extends PullQueue
      *
      * The write is conditional, so two workers reading the same row cannot both
      * win: the second one updates nothing.
+     *
+     * @return int|null The stamp this worker claimed with, or null if it lost
      */
-    protected static function claim(int|string $id): bool
+    protected static function claim(int|string $id): int|null
     {
-        $now = Microtime::getMilliseconds();
-
-        static::$claimedAtMs = $now;
-
+        $now   = Microtime::getMilliseconds();
         $table = static::$table;
 
         $statement = static::getConnection()->prepare(
@@ -334,7 +329,11 @@ class DatabaseQueue extends PullQueue
         $statement->bindValue(new Value('id', $id));
         $statement->execute();
 
-        return $statement->getRowCount() > 0;
+        // The stamp this worker wrote, so the settlement can fence on it. A
+        // row count of zero means another worker claimed it first.
+        return $statement->getRowCount() > 0
+            ? $now
+            : null;
     }
 
     /**
@@ -367,13 +366,11 @@ class DatabaseQueue extends PullQueue
      */
     protected static function releaseCurrent(): void
     {
-        $id        = static::$current;
-        $claimedAt = static::$claimedAtMs;
+        $claim = static::$claim;
 
-        if ($id !== null && $claimedAt !== null) {
-            static::$current     = null;
-            static::$claimedAtMs = null;
-            $table               = static::$table;
+        if ($claim !== null) {
+            static::$claim = null;
+            $table         = static::$table;
 
             // Fenced on the claim, as the delete is: a worker whose window
             // lapsed would otherwise free a row another worker is running
@@ -381,8 +378,8 @@ class DatabaseQueue extends PullQueue
                 "UPDATE $table SET reserved_at_ms = NULL WHERE id = :id AND reserved_at_ms = :claimedAt"
             );
 
-            $statement->bindValue(new Value('id', $id));
-            $statement->bindValue(new Value('claimedAt', $claimedAt));
+            $statement->bindValue(new Value('id', $claim['id']));
+            $statement->bindValue(new Value('claimedAt', $claim['at']));
             $statement->execute();
         }
     }
