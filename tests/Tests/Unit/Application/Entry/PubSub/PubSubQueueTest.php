@@ -90,6 +90,10 @@ final class PubSubQueueTest extends TestCase
 
     public function testConnectOpensTheSubscriptionFromTheConfig(): void
     {
+        // setUp() already holds one, and an assignment is unobservable while
+        // the slot it writes to is still full
+        PubSubQueueFixture::disconnect();
+
         $container = self::createStub(ContainerContract::class);
         $container->method('getSingleton')->willReturn(new QueuePubSubClientConfig());
 
@@ -98,7 +102,8 @@ final class PubSubQueueTest extends TestCase
 
         PubSubQueueFixture::connect($app);
 
-        // The injected subscription survives connect, so the loop polls it
+        // A connect that assigned nothing leaves the entry unconnected, and
+        // this read raises rather than answering
         self::assertNull(PubSubQueueFixture::receive());
     }
 
