@@ -93,6 +93,15 @@ final class RouteTest extends TestCase
         self::assertSame('DoThing', $route->getMethodName());
     }
 
+    public function testSplitsAMethodWithNoPackageAndNonLetterCharacters(): void
+    {
+        $route = new Route('/Health_v1/Check_2', self::handler());
+
+        self::assertSame('/Health_v1/Check_2', $route->getMethod());
+        self::assertSame('Health_v1', $route->getService());
+        self::assertSame('Check_2', $route->getMethodName());
+    }
+
     #[DataProvider('provideInvalidMethods')]
     public function testRejectsAMalformedMethod(string $method): void
     {
