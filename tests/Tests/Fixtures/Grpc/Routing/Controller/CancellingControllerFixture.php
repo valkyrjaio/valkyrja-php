@@ -42,7 +42,7 @@ final class CancellingControllerFixture
     {
         $container->getSingleton(ServiceCallContract::class)->send('partial');
 
-        throw new CancelledException(
+        throw new GrpcCancelledException(
             message: 'the handler stopped after emitting',
             reason: CancellationReason::CLIENT_CANCELLED
         );

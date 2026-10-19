@@ -251,8 +251,8 @@ carries arbitrary bytes. Every other key carries printable ASCII.
 
 `Metadata` validates a key and a value on construction, which every `with*`
 operation flows through. An invalid key raises
-`MetadataInvalidKeyException`. An invalid value raises
-`MetadataInvalidValueException`. The adapter can therefore trust the values it
+`GrpcMetadataInvalidKeyException`. An invalid value raises
+`GrpcMetadataInvalidValueException`. The adapter can therefore trust the values it
 writes to the wire.
 
 ### Deadline
@@ -299,7 +299,7 @@ use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
 
 $call = $container->getSingleton(ServiceCallContract::class);
 
-// Raises CancelledException, which the framework maps to CANCELLED.
+// Raises GrpcCancelledException, which the framework maps to CANCELLED.
 $call->getCancellation()->throwIfCancelled();
 ```
 
@@ -434,11 +434,11 @@ bases. `GrpcRoutingThrowable`, `GrpcMiddlewareThrowable` and
 
 | Exception                            | Raised when                                                        |
 | ------------------------------------ | ------------------------------------------------------------------ |
-| `CancelledException`                 | a cooperative check finds the call cancelled                       |
+| `GrpcCancelledException`                 | a cooperative check finds the call cancelled                       |
 | `GrpcConcurrentSendException`        | a send runs while another send is in flight                        |
 | `GrpcNonStreamingSendException`      | `send()` runs on a buffered call                                   |
-| `MetadataInvalidKeyException`        | a metadata key is not a valid header name                          |
-| `MetadataInvalidValueException`      | an ASCII key carries a non-printable value                         |
+| `GrpcMetadataInvalidKeyException`        | a metadata key is not a valid header name                          |
+| `GrpcMetadataInvalidValueException`      | an ASCII key carries a non-printable value                         |
 | `GrpcRoutingInvalidMethodException`  | a method is not `/package.Service/Method`                          |
 | `GrpcRoutingInvalidHandlerException` | an attributed handler is not public static, or returns no response |
 

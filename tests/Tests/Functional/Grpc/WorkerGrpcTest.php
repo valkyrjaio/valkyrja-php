@@ -29,7 +29,7 @@ use Valkyrja\Grpc\Message\Metadata\Contract\MetadataContract;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Grpc\Server\Handler\Contract\ServiceHandlerContract;
-use Valkyrja\Grpc\Throwable\Exception\CancelledException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 use Valkyrja\Tests\Abstract\TestCase;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\ResponseSentMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\GrpcComponentProviderFixture;
@@ -147,7 +147,7 @@ final class WorkerGrpcTest extends TestCase
             );
 
             self::fail('Expected the handler throwable to propagate');
-        } catch (CancelledException $exception) {
+        } catch (GrpcCancelledException $exception) {
             self::assertSame(CancellationReason::CLIENT_CANCELLED, $exception->getReason());
         }
 
@@ -173,7 +173,7 @@ final class WorkerGrpcTest extends TestCase
             );
 
             self::fail('Expected the handler throwable to propagate');
-        } catch (CancelledException) {
+        } catch (GrpcCancelledException) {
             // The guard must not swallow it.
         }
 
@@ -199,7 +199,7 @@ final class WorkerGrpcTest extends TestCase
             );
 
             self::fail('Expected the handler throwable to propagate');
-        } catch (CancelledException) {
+        } catch (GrpcCancelledException) {
             // The guard must not swallow it.
         }
 
@@ -228,7 +228,7 @@ final class WorkerGrpcTest extends TestCase
             );
 
             self::fail('Expected the handler throwable to propagate');
-        } catch (CancelledException $exception) {
+        } catch (GrpcCancelledException $exception) {
             // The recovery close failed in turn, and the first throwable is still the one raised.
             self::assertSame('the handler stopped after emitting', $exception->getMessage());
         }
