@@ -76,24 +76,28 @@ final class PubSubClientTest extends TestCase
 
     public function testARetryIsRefusedBecauseTheProcessorOwnsRedelivery(): void
     {
-        // The original delivery is still unacknowledged, so publishing would
-        // duplicate it. Answering quietly is worse than refusing: the caller
-        // reads a successful requeue and the job is in `getPushed()`, while
-        // nothing ever reached the topic
-        $this->expectException(QueueClientRedeliveryNotSupportedException::class);
+        $client = $this->client();
 
-        $this->client()->retry(new Job(name: self::NAME, attempts: 2), 5000);
-    }
-
-    public function testARefusedRetryRecordsNoPush(): void
-    {
         try {
-            $this->client()->retry(new Job(name: self::NAME, attempts: 2), 5000);
+            $client->retry(new Job(name: self::NAME, attempts: 2), 5000);
+
+            self::fail('The client accepted a retry it cannot carry out.');
         } catch (QueueClientRedeliveryNotSupportedException) {
-            // The refusal is asserted above; this pins what it leaves behind
+            // The original delivery is still unacknowledged, so there is
+            // nothing here to hand back
         }
 
+        // Publishing would duplicate the delivery, and recording a handover
+        // that never happened would report a job this client no longer has
         self::assertSame([], $this->topic->published);
+        self::assertSame([], $client->getPushed());
+    }
+
+    public function testARequeueIsRefusedForTheSameReason(): void
+    {
+        $this->expectException(QueueClientRedeliveryNotSupportedException::class);
+
+        $this->client()->requeue(new Job(name: self::NAME, attempts: 2));
     }
 
     protected function client(): PubSubClient

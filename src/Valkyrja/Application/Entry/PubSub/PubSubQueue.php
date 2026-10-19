@@ -12,11 +12,11 @@ declare(strict_types=1);
 
 namespace Valkyrja\Application\Entry\PubSub;
 
-use Google\ApiCore\ApiException;
+use Google\Cloud\Core\Exception\DeadlineExceededException;
+use Google\Cloud\Core\Exception\ServiceException;
 use Google\Cloud\PubSub\Message;
 use Google\Cloud\PubSub\PubSubClient;
 use Google\Cloud\PubSub\Subscription;
-use Google\Rpc\Code;
 use GuzzleHttp\Exception\ConnectException;
 use JsonException;
 use Override;
@@ -122,7 +122,7 @@ class PubSubQueue extends PullQueue
         // back anyway.
         try {
             static::releaseCurrent();
-        } catch (ApiException|ConnectException) {
+        } catch (ServiceException|ConnectException) {
             // The deadline lapsing is the fallback, and it always applies
         }
 
@@ -278,8 +278,10 @@ class PubSubQueue extends PullQueue
             }
 
             return [];
-        } catch (ApiException $exception) {
-            if ($exception->getCode() !== Code::DEADLINE_EXCEEDED) {
+        } catch (ServiceException $exception) {
+            // `RequestHandler` converts every `ApiException` the transport
+            // raises into one of these before it leaves the SDK
+            if (! $exception instanceof DeadlineExceededException) {
                 throw $exception;
             }
 
@@ -290,13 +292,16 @@ class PubSubQueue extends PullQueue
     /**
      * Read whether a transport failure is the pull deadline, and not an outage.
      *
-     * The REST transport reports a passed deadline as a cURL timeout, and it
-     * reports a refused connection, a failed name lookup, and a TLS failure the
-     * same way. Only the timeout means that nothing arrived.
+     * The gRPC transport names the deadline, so `pull()` reads it from the
+     * exception. The REST transport does not: it reports a passed deadline as
+     * a cURL timeout, and the deadline it sets bounds the whole transfer, so a
+     * connect that never completes times out at the same code and the same
+     * instant. A refused connection and a failed name lookup carry their own
+     * codes and travel on.
      *
-     * Warning: the loop does not back off when a receive gives nothing, so
-     * treating an outage as an empty poll would spin the worker instead of
-     * surfacing the failure.
+     * Warning: on the REST transport an endpoint that drops traffic therefore
+     * reads as an idle queue. The loop does not back off when a receive gives
+     * nothing, so such a worker keeps polling and keeps reporting healthy.
      */
     protected static function isDeadline(ConnectException $exception): bool
     {

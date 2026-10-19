@@ -91,7 +91,11 @@ final class PubSubSubscriptionFixture extends Subscription
         $this->deadlines[] = [$message, $seconds];
 
         if ($this->deadlineFailure !== null) {
-            throw $this->deadlineFailure;
+            $failure = $this->deadlineFailure;
+
+            $this->deadlineFailure = null;
+
+            throw $failure;
         }
     }
 }

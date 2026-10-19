@@ -12,9 +12,10 @@ declare(strict_types=1);
 
 namespace Valkyrja\Tests\Unit\Application\Entry\PubSub;
 
-use Google\ApiCore\ApiException;
+use Google\Cloud\Core\Exception\DeadlineExceededException;
+use Google\Cloud\Core\Exception\NotFoundException;
+use Google\Cloud\Core\Exception\ServiceException;
 use Google\Cloud\PubSub\Message;
-use Google\Rpc\Code;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Psr7\Request;
 use Override;
@@ -163,11 +164,9 @@ final class PubSubQueueTest extends TestCase
 
     public function testAnApiDeadlineReadsAsNothingArrived(): void
     {
-        $this->subscription->failure = new ApiException(
-            'deadline exceeded',
-            Code::DEADLINE_EXCEEDED,
-            'DEADLINE_EXCEEDED'
-        );
+        // The SDK's request handler converts the transport's own throwable
+        // into this one, so this is the type the entry can ever see
+        $this->subscription->failure = new DeadlineExceededException('deadline exceeded');
 
         self::assertNull(PubSubQueueFixture::receive());
     }
@@ -175,13 +174,9 @@ final class PubSubQueueTest extends TestCase
     public function testAnyOtherApiFailureTravelsOn(): void
     {
         // A real failure must not be mistaken for an empty subscription
-        $this->subscription->failure = new ApiException(
-            'permission denied',
-            Code::PERMISSION_DENIED,
-            'PERMISSION_DENIED'
-        );
+        $this->subscription->failure = new ServiceException('permission denied');
 
-        $this->expectException(ApiException::class);
+        $this->expectException(ServiceException::class);
 
         PubSubQueueFixture::receive();
     }
@@ -400,7 +395,7 @@ final class PubSubQueueTest extends TestCase
         // throw here would replace whatever ended the loop
         $this->received();
 
-        $this->subscription->deadlineFailure = new ApiException('deadline', 0, 'NOT_FOUND');
+        $this->subscription->deadlineFailure = new NotFoundException('the delivery is no longer held');
 
         PubSubQueueFixture::disconnect();
 
