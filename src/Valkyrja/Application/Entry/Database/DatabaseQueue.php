@@ -26,9 +26,11 @@ use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerInvalidRowKeyException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
 
+use function get_debug_type;
 use function is_int;
 use function is_string;
 use function sleep;
@@ -97,6 +99,7 @@ class DatabaseQueue extends PullQueue
     /**
      * @inheritDoc
      *
+     * @throws QueueServerInvalidRowKeyException
      * @throws QueueServerNotConnectedException
      */
     #[Override]
@@ -247,6 +250,9 @@ class DatabaseQueue extends PullQueue
     /**
      * Find the next job whose hold has elapsed and that no worker holds.
      *
+     * @throws QueueServerInvalidRowKeyException
+     * @throws QueueServerNotConnectedException
+     *
      * @return array{0: int|string, 1: string}|null
      */
     protected static function findEligible(): array|null
@@ -256,7 +262,7 @@ class DatabaseQueue extends PullQueue
 
         $statement = static::getConnection()->prepare(
             "SELECT id, envelope FROM $table"
-            . ' WHERE queue = :queue AND id IS NOT NULL AND available_at_ms <= :now'
+            . ' WHERE queue = :queue AND available_at_ms <= :now'
             . ' AND (reserved_at_ms IS NULL OR reserved_at_ms <= :stale)'
             . ' ORDER BY priority DESC, id ASC LIMIT 1'
         );
@@ -278,13 +284,23 @@ class DatabaseQueue extends PullQueue
         $id       = $row['id'] ?? null;
         $envelope = $row['envelope'] ?? null;
 
-        // Without a key there is nothing to name the row by, and an unqualified
-        // update would park whichever row is at the head instead. The select
-        // leaves a keyless row out for that reason, so the queue moves past one
-        // rather than holding at the head of the sort forever. This guard is
-        // the narrowing the predicate cannot give the type.
-        if (! is_int($id) && ! is_string($id)) {
+        // No value names this row, so every later statement would have to go
+        // unqualified and take whichever row is at the head. The set it belongs
+        // to is nameable even though the row is not, so the whole set is parked
+        // at once and an operator reads it back the way a parked envelope reads.
+        if ($id === null) {
+            static::parkKeyless();
+
             return null;
+        }
+
+        // A key this entry cannot bind. One row cannot carry a type the column
+        // does not have, so the column itself is wrong and no row on it will
+        // ever run.
+        if (! is_int($id) && ! is_string($id)) {
+            throw new QueueServerInvalidRowKeyException(
+                "The $table table keys on a type the queue cannot bind: " . get_debug_type($id)
+            );
         }
 
         if (! is_string($envelope)) {
@@ -359,6 +375,30 @@ class DatabaseQueue extends PullQueue
         $statement->bindValue(new Value('parkedReserved', self::PARKED_AT_MS));
         $statement->bindValue(new Value('parkedAvailable', self::PARKED_AT_MS));
         $statement->bindValue(new Value('id', $id));
+        $statement->execute();
+    }
+
+    /**
+     * Hold every row this queue cannot name out of the claim's reach.
+     *
+     * The predicate names the set rather than the row, which is the one write
+     * a keyless row can be given. It is idempotent, so a queue that collects
+     * several of them parks each one on the next poll that reaches one.
+     *
+     * @throws QueueServerNotConnectedException
+     */
+    protected static function parkKeyless(): void
+    {
+        $table = static::$table;
+
+        $statement = static::getConnection()->prepare(
+            "UPDATE $table SET reserved_at_ms = :parkedReserved, available_at_ms = :parkedAvailable"
+            . ' WHERE queue = :queue AND id IS NULL'
+        );
+
+        $statement->bindValue(new Value('parkedReserved', self::PARKED_AT_MS));
+        $statement->bindValue(new Value('parkedAvailable', self::PARKED_AT_MS));
+        $statement->bindValue(new Value('queue', static::$queue));
         $statement->execute();
     }
 

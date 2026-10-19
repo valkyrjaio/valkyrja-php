@@ -24,6 +24,7 @@ use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerInvalidRowKeyException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
 use Valkyrja\Tests\Fixtures\Application\Entry\DatabaseQueueFixture;
@@ -141,9 +142,6 @@ final class DatabaseQueueTest extends TestCase
 
         self::assertStringContainsString('reserved_at_ms IS NULL', $select->query);
         self::assertStringContainsString('available_at_ms <= :now', $select->query);
-        // A keyless row cannot be claimed, parked or deleted, so the sort must
-        // not hand one back at the head on every poll for the life of the table
-        self::assertStringContainsString('id IS NOT NULL', $select->query);
         self::assertStringContainsString('ORDER BY priority DESC, id ASC', $select->query);
         self::assertSame(self::QUEUE, $select->bound['queue']);
         self::assertSame(self::FROZEN_MS, $select->bound['now']);
@@ -165,12 +163,14 @@ final class DatabaseQueueTest extends TestCase
         self::assertArrayHasKey('parkedReserved', $updates[0]->bound);
     }
 
-    public function testARowWithNoIdIsSkipped(): void
+    public function testAReadableJobWithNoKeyStillNeverRuns(): void
     {
+        // The envelope is sound here, so the key is read before the envelope is:
+        // a job that cannot be settled must not be handed to a handler at all
         $this->manager->rows = [['envelope' => new JobFactory()->toJson(new JobFactory()->create(self::NAME))]];
 
         self::assertNull(DatabaseQueueFixture::receive());
-        self::assertSame([], $this->manager->getStatements('UPDATE'));
+        self::assertStringContainsString('WHERE queue = :queue AND id IS NULL', $this->parkStatement()->query);
     }
 
     public function testAStringIdIsReadBackAsAJob(): void
@@ -275,17 +275,15 @@ final class DatabaseQueueTest extends TestCase
     {
         // A polling consumer must yield, or the entry's loop bounds and
         // graceful shutdown would never get a chance to run
-        DatabaseQueueFixture::inject($this->manager, pollInterval: 1);
+        DatabaseQueueFixture::inject($this->manager, pollInterval: 2);
 
         self::assertNull(DatabaseQueueFixture::receive());
-        self::assertSame([1], DatabaseQueueFixture::$pauses);
+        self::assertSame([2], DatabaseQueueFixture::$pauses);
     }
 
     public function testAZeroIntervalDoesNotYield(): void
     {
-        // An operator who turns the yield off gets no call at all. A zero the
-        // seam still receives would sleep for a scheduler quantum on every
-        // empty poll, and `pause()` takes a positive count
+        // `pause()` takes a positive count, so a zero must not reach it
         DatabaseQueueFixture::inject($this->manager, pollInterval: 0);
 
         self::assertNull(DatabaseQueueFixture::receive());
@@ -358,15 +356,35 @@ final class DatabaseQueueTest extends TestCase
         self::assertSame([], $this->manager->getStatements('UPDATE'));
     }
 
-    public function testARowWithNoKeyTouchesNothing(): void
+    public function testARowWithNoKeyIsParkedWithItsSet(): void
     {
-        // Without a key there is nothing to identify the row by, so an
-        // unqualified write would be the only option and would take a job
+        // Nothing names the row, so it would come back at the head of the sort
+        // on every poll for the life of the table. The predicate names the set
         $this->manager->rows = [['envelope' => '{}']];
 
         self::assertNull(DatabaseQueueFixture::receive());
         self::assertSame([], $this->manager->getStatements('DELETE'));
-        self::assertSame([], $this->manager->getStatements('UPDATE'));
+
+        $park = $this->parkStatement();
+
+        // The whole predicate: a park that drops the queue takes every other
+        // queue's keyless rows on the same table with it
+        self::assertStringContainsString('WHERE queue = :queue AND id IS NULL', $park->query);
+        self::assertSame(self::QUEUE, $park->bound['queue']);
+        self::assertSame(253_402_300_799_000, $park->bound['parkedReserved']);
+        self::assertSame(253_402_300_799_000, $park->bound['parkedAvailable']);
+    }
+
+    public function testARowWhoseKeyTheQueueCannotBindFails(): void
+    {
+        // A key of this type means the column has it, so no row on the table
+        // will ever run. Skipping would idle the worker against a dead queue
+        $this->manager->rows = [['id' => 1.5, 'envelope' => '{}']];
+
+        $this->expectException(QueueServerInvalidRowKeyException::class);
+        $this->expectExceptionMessage('float');
+
+        DatabaseQueueFixture::receive();
     }
 
     public function testAnUnreadableRowIsParkedOutOfTheClaimsReach(): void

@@ -479,7 +479,15 @@ queue's own shape when the eligible set grows large enough to matter.
 client never writes it: `INSERT` names `queue`, `envelope`, `priority`,
 `available_at_ms`, and `reserved_at_ms` only. `AUTO_INCREMENT` supplies it
 above, and a UUID key needs a database-side default such as `DEFAULT (UUID())`
-or `gen_random_uuid()`. Without one every push fails on the missing column.
+or `gen_random_uuid()`.
+
+Warning: give the key a default, and give it `NOT NULL`. A column that permits
+a null takes the push without complaint, and sqlite permits one on every
+primary key except `INTEGER PRIMARY KEY`. Nothing names a row with a null key,
+so the entry parks every such row in the queue rather than running it. A key
+the driver reads back as neither an integer nor a string raises
+`QueueServerInvalidRowKeyException`, because a type belongs to the column
+rather than to one row, so no row on that table would ever run.
 
 Warning: a key unrelated to insertion time gives up the first-in-first-out
 tiebreak, because the claim orders by `id ASC` among equal priorities. A random
@@ -497,7 +505,9 @@ stamped. A worker whose window lapsed therefore takes nothing from the worker
 that reclaimed the row. A retry writes the new row before the old one goes, so
 a failure between the two leaves a duplicate rather than no job at all.
 
-A row whose `envelope` no factory can read is parked rather than deleted: the
+A row the entry cannot run is parked rather than deleted. An unreadable
+`envelope` is parked by its own key, and a null key is parked by a predicate on
+the whole keyless set, which is the one write such a row can be given. The
 entry stamps both `reserved_at_ms` and `available_at_ms` with the last
 whole second of the year 9999. No staleness window reaches back to that
 reservation, and the availability stamp takes the row out of the range the claim
