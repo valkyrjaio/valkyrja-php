@@ -268,7 +268,7 @@ final class DatabaseQueueTest extends TestCase
 
         DatabaseQueueFixture::receive();
 
-        self::assertSame(0, DatabaseQueueFixture::$waits);
+        self::assertSame([], DatabaseQueueFixture::$pauses);
     }
 
     public function testAnEmptyTableYieldsForTheConfiguredInterval(): void
@@ -278,15 +278,18 @@ final class DatabaseQueueTest extends TestCase
         DatabaseQueueFixture::inject($this->manager, pollInterval: 1);
 
         self::assertNull(DatabaseQueueFixture::receive());
-        self::assertSame(1, DatabaseQueueFixture::$waits);
+        self::assertSame([1], DatabaseQueueFixture::$pauses);
     }
 
     public function testAZeroIntervalDoesNotYield(): void
     {
+        // An operator who turns the yield off gets no call at all. A zero the
+        // seam still receives would sleep for a scheduler quantum on every
+        // empty poll, and `pause()` takes a positive count
         DatabaseQueueFixture::inject($this->manager, pollInterval: 0);
 
         self::assertNull(DatabaseQueueFixture::receive());
-        self::assertSame(0, DatabaseQueueFixture::$waits);
+        self::assertSame([], DatabaseQueueFixture::$pauses);
     }
 
     public function testReceivingWithoutAConnectionFails(): void

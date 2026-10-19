@@ -26,7 +26,8 @@ use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
  */
 final class AmqpQueueFixture extends AmqpQueue
 {
-    public static int $waits = 0;
+    /** @var list<int<1, max>> The seconds each pause was asked to yield for */
+    public static array $pauses = [];
 
     private static AMQPChannel|null $injected = null;
 
@@ -42,7 +43,7 @@ final class AmqpQueueFixture extends AmqpQueue
         self::$channel   = $channel;
         self::$queue     = $queue;
         self::$timeout   = $timeout;
-        self::$waits     = 0;
+        self::$pauses    = [];
     }
 
     /**
@@ -64,7 +65,7 @@ final class AmqpQueueFixture extends AmqpQueue
         self::$current    = null;
         self::$queue      = 'queues.default';
         self::$timeout    = 1;
-        self::$waits      = 0;
+        self::$pauses     = [];
     }
 
     /**
@@ -82,6 +83,6 @@ final class AmqpQueueFixture extends AmqpQueue
     #[Override]
     protected static function pause(int $seconds): void
     {
-        self::$waits += $seconds;
+        self::$pauses[] = $seconds;
     }
 }

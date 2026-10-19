@@ -23,7 +23,8 @@ use Valkyrja\Queue\Client\Manager\DatabaseClient;
  */
 final class DatabaseQueueFixture extends DatabaseQueue
 {
-    public static int $waits = 0;
+    /** @var list<int<1, max>> The seconds each pause was asked to yield for */
+    public static array $pauses = [];
 
     private static ManagerContract|null $injected = null;
 
@@ -48,7 +49,7 @@ final class DatabaseQueueFixture extends DatabaseQueue
         self::$table                = $table;
         self::$reservationTimeoutMs = $reservationTimeoutMs;
         self::$pollInterval         = $pollInterval;
-        self::$waits                = 0;
+        self::$pauses               = [];
     }
 
     /**
@@ -63,7 +64,7 @@ final class DatabaseQueueFixture extends DatabaseQueue
         self::$table                = DatabaseClient::DEFAULT_TABLE;
         self::$reservationTimeoutMs = self::DEFAULT_RESERVATION_TIMEOUT_MS;
         self::$pollInterval         = 1;
-        self::$waits                = 0;
+        self::$pauses               = [];
     }
 
     /**
@@ -72,7 +73,7 @@ final class DatabaseQueueFixture extends DatabaseQueue
     #[Override]
     protected static function pause(int $seconds): void
     {
-        self::$waits += $seconds;
+        self::$pauses[] = $seconds;
     }
 
     /**

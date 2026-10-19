@@ -285,15 +285,18 @@ final class AmqpQueueTest extends TestCase
         AmqpQueueFixture::inject($this->channel, self::QUEUE, timeout: 1);
 
         self::assertNull(AmqpQueueFixture::receive());
-        self::assertSame(1, AmqpQueueFixture::$waits);
+        self::assertSame([1], AmqpQueueFixture::$pauses);
     }
 
     public function testAZeroTimeoutDoesNotYield(): void
     {
+        // An operator who turns the yield off gets no call at all. A zero the
+        // seam still receives would sleep for a scheduler quantum on every
+        // empty poll, and `pause()` takes a positive count
         AmqpQueueFixture::inject($this->channel, self::QUEUE, timeout: 0);
 
         self::assertNull(AmqpQueueFixture::receive());
-        self::assertSame(0, AmqpQueueFixture::$waits);
+        self::assertSame([], AmqpQueueFixture::$pauses);
     }
 
     public function testAFirstDeliveryKeepsTheEnvelopeAttempt(): void
