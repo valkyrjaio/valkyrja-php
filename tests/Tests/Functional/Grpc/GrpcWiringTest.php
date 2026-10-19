@@ -226,13 +226,12 @@ final class GrpcWiringTest extends TestCase
      * @param class-string<ResponseSentMiddlewareContract>[]    $responseSentMiddleware
      */
     private function config(
-        bool $debugMode = true,
         array $sendingResponseMiddleware = [],
         array $responseSentMiddleware = []
     ): GrpcConfigContract {
         return new GrpcConfig(
             dir: Directory::$basePath,
-            debugMode: $debugMode,
+            debugMode: true,
             providers: [
                 new GrpcApplicationComponentProvider(),
                 new GrpcComponentProviderFixture(),
