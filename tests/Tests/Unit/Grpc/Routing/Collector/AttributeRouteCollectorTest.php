@@ -18,7 +18,7 @@ use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Routing\Collector\AttributeRouteCollector;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingInvalidHandlerException;
-use Valkyrja\Grpc\Throwable\Exception\CancelledException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\ResponseSentMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareFixture;
@@ -229,7 +229,7 @@ final class AttributeRouteCollectorTest extends TestCase
             $handler(new Container(), $route);
 
             self::fail('The cancellation must reach the caller.');
-        } catch (CancelledException $exception) {
+        } catch (GrpcCancelledException $exception) {
             // Reflective dispatch must not wrap the controller's own throwable, or the status
             // mapping cannot see the cancellation.
             self::assertSame($reason, $exception->getReason());

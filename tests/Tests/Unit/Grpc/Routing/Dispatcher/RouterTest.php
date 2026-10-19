@@ -31,7 +31,7 @@ use Valkyrja\Grpc\Routing\Collector\AttributeRouteCollector;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Routing\Data\Route;
 use Valkyrja\Grpc\Routing\Dispatcher\Router;
-use Valkyrja\Grpc\Throwable\Exception\CancelledException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteDispatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareChangedFixture;
@@ -288,7 +288,7 @@ final class RouterTest extends TestCase
             $this->router()->dispatch(new ServiceCall('/pkg.Cancelling/Cancel'));
 
             self::fail('The cancellation must reach the caller.');
-        } catch (CancelledException $exception) {
+        } catch (GrpcCancelledException $exception) {
             // The router adds no wrapper, so the status mapping above it still sees the reason.
             self::assertSame(CancellationReason::CLIENT_CANCELLED, $exception->getReason());
         }

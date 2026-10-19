@@ -18,7 +18,7 @@ use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Routing\Attribute\Method;
 use Valkyrja\Grpc\Routing\Attribute\Service;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
-use Valkyrja\Grpc\Throwable\Exception\CancelledException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 
 /**
  * A gRPC service controller that cancels, so a test can drive cancellation through the scan-derived
@@ -30,7 +30,7 @@ final class CancellingControllerFixture
     #[Method(name: 'Cancel')]
     public static function cancel(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
-        throw new CancelledException(
+        throw new GrpcCancelledException(
             message: 'the client went away',
             reason: CancellationReason::CLIENT_CANCELLED
         );
@@ -39,7 +39,7 @@ final class CancellingControllerFixture
     #[Method(name: 'Expire')]
     public static function expire(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
-        throw new CancelledException(
+        throw new GrpcCancelledException(
             message: 'the deadline elapsed',
             reason: CancellationReason::DEADLINE_EXCEEDED
         );
