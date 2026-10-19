@@ -909,8 +909,9 @@ container. Its own surface differs:
 - `dispatch()` handles one buffered call and hands the response to a writer.
 - `dispatchStreaming()` handles one streaming call against an outbound stream.
 
-The steps below describe `WorkerHttp`. `WorkerGrpc` shares none of those
-signatures.
+The steps below describe `WorkerHttp`. `WorkerGrpc` shares the three child
+steps and `bootstrapParentServices()`, but it has no `handle()` or
+`handleRequest()`.
 
 ```mermaid
 flowchart TD

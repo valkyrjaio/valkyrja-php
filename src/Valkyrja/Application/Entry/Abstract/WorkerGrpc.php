@@ -101,8 +101,9 @@ abstract class WorkerGrpc extends App
      * response supplies the final status and the trailing metadata. ResponseSent fires once at
      * close.
      *
-     * A throwable this method raises leaves the stream closed whenever it had been opened, so an
-     * adapter that catches one must not send a status of its own.
+     * This method always attempts the close once the stream was opened. So an adapter that catches a
+     * throwable must not send a gRPC status of its own. A close that itself throws leaves the call
+     * needing a transport-level reset.
      *
      * @param ApplicationContract                              $app         The frozen parent application
      * @param ContainerData                                    $data        The container data snapshot
