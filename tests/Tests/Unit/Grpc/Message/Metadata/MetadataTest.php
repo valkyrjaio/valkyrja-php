@@ -13,8 +13,8 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Grpc\Message\Metadata;
 
 use Valkyrja\Grpc\Message\Metadata\Metadata;
-use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidKeyException;
-use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidValueException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcMetadataInvalidKeyException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcMetadataInvalidValueException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function iterator_to_array;
@@ -126,21 +126,21 @@ final class MetadataTest extends TestCase
 
     public function testRejectsAnInvalidKey(): void
     {
-        $this->expectException(MetadataInvalidKeyException::class);
+        $this->expectException(GrpcMetadataInvalidKeyException::class);
 
         new Metadata()->with('not valid!', 'x');
     }
 
     public function testRejectsAnEmptyKey(): void
     {
-        $this->expectException(MetadataInvalidKeyException::class);
+        $this->expectException(GrpcMetadataInvalidKeyException::class);
 
         new Metadata(['' => ['x']]);
     }
 
     public function testRejectsANonAsciiValueOnAnAsciiKey(): void
     {
-        $this->expectException(MetadataInvalidValueException::class);
+        $this->expectException(GrpcMetadataInvalidValueException::class);
 
         new Metadata()->with('trace', "\x00binary");
     }
@@ -152,14 +152,14 @@ final class MetadataTest extends TestCase
 
     public function testRejectsAKeyWithATrailingNewline(): void
     {
-        $this->expectException(MetadataInvalidKeyException::class);
+        $this->expectException(GrpcMetadataInvalidKeyException::class);
 
         new Metadata()->with("trace\n", 'x');
     }
 
     public function testRejectsAnAsciiValueWithATrailingNewline(): void
     {
-        $this->expectException(MetadataInvalidValueException::class);
+        $this->expectException(GrpcMetadataInvalidValueException::class);
 
         new Metadata()->with('trace', "x\n");
     }

@@ -16,8 +16,8 @@ use ArrayIterator;
 use Override;
 use Traversable;
 use Valkyrja\Grpc\Message\Metadata\Contract\MetadataContract;
-use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidKeyException;
-use Valkyrja\Grpc\Throwable\Exception\MetadataInvalidValueException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcMetadataInvalidKeyException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcMetadataInvalidValueException;
 
 use function array_values;
 use function preg_match;
@@ -83,12 +83,12 @@ class Metadata implements MetadataContract
      *
      * @param string $normalizedKey The already-normalized key
      *
-     * @throws MetadataInvalidKeyException
+     * @throws GrpcMetadataInvalidKeyException
      */
     protected static function validateKey(string $normalizedKey): void
     {
         if (preg_match(self::VALID_KEY_REGEX, $normalizedKey) !== 1) {
-            throw new MetadataInvalidKeyException(
+            throw new GrpcMetadataInvalidKeyException(
                 "'$normalizedKey' is not a valid metadata key; keys may contain only lowercase letters, digits, '-', '_', and '.'."
             );
         }
@@ -103,7 +103,7 @@ class Metadata implements MetadataContract
      * @param string $normalizedKey The already-normalized key
      * @param string $value         The value to validate
      *
-     * @throws MetadataInvalidValueException
+     * @throws GrpcMetadataInvalidValueException
      */
     protected static function validateValue(string $normalizedKey, string $value): void
     {
@@ -112,7 +112,7 @@ class Metadata implements MetadataContract
         }
 
         if (preg_match(self::VALID_ASCII_VALUE_REGEX, $value) !== 1) {
-            throw new MetadataInvalidValueException(
+            throw new GrpcMetadataInvalidValueException(
                 "ASCII metadata key '$normalizedKey' requires a printable ASCII value; use a '-bin' suffixed key to carry binary values."
             );
         }

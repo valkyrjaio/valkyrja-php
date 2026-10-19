@@ -16,7 +16,7 @@ use Override;
 use Throwable;
 use Valkyrja\Grpc\Message\Cancellation\Contract\CancellationTokenContract;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
-use Valkyrja\Grpc\Throwable\Exception\CancelledException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 
 class CancellationToken implements CancellationTokenContract
 {
@@ -60,7 +60,7 @@ class CancellationToken implements CancellationTokenContract
     public function throwIfCancelled(): void
     {
         if ($this->cancelled) {
-            throw new CancelledException(
+            throw new GrpcCancelledException(
                 message: 'The call has been cancelled',
                 reason: $this->reason
             );

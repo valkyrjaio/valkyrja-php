@@ -15,7 +15,7 @@ namespace Valkyrja\Tests\Unit\Grpc\Message\Cancellation;
 use RuntimeException;
 use Valkyrja\Grpc\Message\Cancellation\CancellationToken;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
-use Valkyrja\Grpc\Throwable\Exception\CancelledException;
+use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class CancellationTokenTest extends TestCase
@@ -70,7 +70,7 @@ final class CancellationTokenTest extends TestCase
             $token->throwIfCancelled();
 
             self::fail('Expected a cancellation exception');
-        } catch (CancelledException $exception) {
+        } catch (GrpcCancelledException $exception) {
             self::assertSame(CancellationReason::DEADLINE_EXCEEDED, $exception->getReason());
             self::assertSame('The call has been cancelled', $exception->getMessage());
         }
