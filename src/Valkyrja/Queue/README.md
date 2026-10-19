@@ -392,6 +392,10 @@ changing its visibility rather than by publishing again.
 `BeanstalkdClient` refuses both as well. The job stays reserved, so the entry
 answers a retry by releasing it with a priority and a hold.
 
+`PubSubClient` refuses both for the same reason. The delivery is still
+unacknowledged, so the entry answers a retry by moving its acknowledgement
+deadline rather than by publishing again.
+
 `AmqpClient` and `PubSubClient` publish without a hold, because neither broker
 carries a per-message delay. Giving AMQP one needs a delay queue and a
 dead-letter exchange that the broker owner declares rather than the client, and
@@ -555,6 +559,20 @@ Warning: `BeanstalkdQueue` buries a body no factory can read. A buried job
 stays on the tube for inspection, so nothing is lost, but nothing in the
 framework kicks or deletes it either: a producer that emits bad bytes
 accumulates buried jobs until an operator kicks or deletes them.
+
+Warning: a Pub/Sub dead-letter topic never sees a job the framework
+dead-letters. `PubSubQueue` acknowledges the message on `FAIL` and on
+`DEAD_LETTER`, and Pub/Sub routes to a dead-letter topic on the delivery
+attempt, so a message acknowledged here never reaches one. This is sharper than
+it reads: the attempt ceiling needs that same dead-letter policy to count at
+all, so the policy an operator adds for the ceiling is the one the ceiling then
+bypasses. A deployment that needs the copy sets `maxDeliveryAttempts` below the
+job's `max_attempts`, so Pub/Sub routes it first.
+
+Warning: `PubSubQueue` acknowledges a body no factory can read rather than
+parking it, as `SqsQueue` does. The acknowledgement destroys the bytes, and a
+subscription with no dead-letter topic keeps no copy. Give the subscription one
+to keep what could not be read.
 
 Warning: `SqsQueue` deletes a body no factory can read rather than parking it.
 Nothing settles an unreadable body, so SQS would hand the same message back on
