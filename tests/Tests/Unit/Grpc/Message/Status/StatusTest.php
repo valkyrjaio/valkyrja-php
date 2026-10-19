@@ -99,6 +99,14 @@ final class StatusTest extends TestCase
         self::assertSame('details', $new->getDetails());
     }
 
+    public function testWithCodeResetsTheMessageForAnUnchangedCode(): void
+    {
+        $status = new Status(StatusCode::INTERNAL, 'db connection refused');
+        $new    = $status->withCode(StatusCode::INTERNAL);
+
+        self::assertSame(StatusCode::INTERNAL->getDefaultMessage(), $new->getMessage());
+    }
+
     public function testWithMessage(): void
     {
         $status = new Status(StatusCode::ABORTED);
