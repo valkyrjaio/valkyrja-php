@@ -284,22 +284,20 @@ class DatabaseQueue extends PullQueue
         $id       = $row['id'] ?? null;
         $envelope = $row['envelope'] ?? null;
 
-        // No value names this row, so every later statement would have to go
-        // unqualified and take whichever row is at the head. The set it belongs
-        // to is nameable even though the row is not, so the whole set is parked
-        // at once and an operator reads it back the way a parked envelope reads.
+        // No value names this row, so the set it belongs to is parked instead
         if ($id === null) {
             static::parkKeyless();
 
             return null;
         }
 
-        // A key this entry cannot bind. One row cannot carry a type the column
-        // does not have, so the column itself is wrong and no row on it will
-        // ever run.
+        // This entry claims, parks and deletes by an integer or a string key,
+        // so a key of any other type can be given none of the three. It stops
+        // rather than hand the row back on every poll for the life of the
+        // table.
         if (! is_int($id) && ! is_string($id)) {
             throw new QueueServerInvalidRowKeyException(
-                "The $table table keys on a type the queue cannot bind: " . get_debug_type($id)
+                "A $table row keys on a type the queue cannot name: " . get_debug_type($id)
             );
         }
 
@@ -382,9 +380,9 @@ class DatabaseQueue extends PullQueue
      * Hold every row this queue cannot name out of the claim's reach.
      *
      * The predicate names the set rather than the row, which is the one write
-     * a keyless row can be given. It is idempotent, so a queue that collects
-     * several of them parks each one on the next poll that reaches one.
+     * a keyless row can be given.
      *
+     * @throws QueueServerInvalidRowKeyException
      * @throws QueueServerNotConnectedException
      */
     protected static function parkKeyless(): void
@@ -400,6 +398,14 @@ class DatabaseQueue extends PullQueue
         $statement->bindValue(new Value('parkedAvailable', self::PARKED_AT_MS));
         $statement->bindValue(new Value('queue', static::$queue));
         $statement->execute();
+
+        // This write is the only thing that ends the poll, so a write that
+        // took nothing leaves the entry parking the same row forever
+        if ($statement->getRowCount() === 0) {
+            throw new QueueServerInvalidRowKeyException(
+                "A keyless $table row could not be parked, so the queue cannot move past it"
+            );
+        }
     }
 
     /**

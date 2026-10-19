@@ -482,12 +482,13 @@ above, and a UUID key needs a database-side default such as `DEFAULT (UUID())`
 or `gen_random_uuid()`.
 
 Warning: give the key a default, and give it `NOT NULL`. A column that permits
-a null takes the push without complaint, and sqlite permits one on every
-primary key except `INTEGER PRIMARY KEY`. Nothing names a row with a null key,
-so the entry parks every such row in the queue rather than running it. A key
-the driver reads back as neither an integer nor a string raises
-`QueueServerInvalidRowKeyException`, because a type belongs to the column
-rather than to one row, so no row on that table would ever run.
+a null takes the push without complaint, and sqlite permits one on a primary
+key unless the column is `INTEGER PRIMARY KEY` or the table is
+`WITHOUT ROWID`. Nothing names a row with a null key, so the entry parks every
+such row in the queue rather than running it. The entry claims, parks and
+deletes by an integer or a string key, so a key the driver reads back as any
+other type raises `QueueServerInvalidRowKeyException`: the row can be given
+none of the three, and the entry stops rather than hand it back on every poll.
 
 Warning: a key unrelated to insertion time gives up the first-in-first-out
 tiebreak, because the claim orders by `id ASC` among equal priorities. A random
