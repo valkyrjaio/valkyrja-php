@@ -24,7 +24,7 @@
     "pusher/pusher-php-server"   : "^7.3.0",
     "spiral/roadrunner-http"     : "^4.2.1",
     "twig/twig"                  : "^3.30.0",
-    "vonage/client-core"         : "^4.14.0"
+    "vonage/client-core"         : "^4.15.0"
   },
   "minimum-stability" : "dev",
   "prefer-stable"     : true,

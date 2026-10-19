@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "eabd5457de998193930401bb0ea35aab",
+    "content-hash": "51a7043427991ac86fcd53617b2770be",
     "packages": [
         {
             "name": "psr/container",
@@ -4696,16 +4696,16 @@
         },
         {
             "name": "vonage/client-core",
-            "version": "4.14.0",
+            "version": "4.15.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Vonage/vonage-php-sdk-core.git",
-                "reference": "9c6bc46e70451d2dc6c8243ba04dc34121878199"
+                "reference": "c10d4423d6bacc801297983ebe2703a8a843ef46"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Vonage/vonage-php-sdk-core/zipball/9c6bc46e70451d2dc6c8243ba04dc34121878199",
-                "reference": "9c6bc46e70451d2dc6c8243ba04dc34121878199",
+                "url": "https://api.github.com/repos/Vonage/vonage-php-sdk-core/zipball/c10d4423d6bacc801297983ebe2703a8a843ef46",
+                "reference": "c10d4423d6bacc801297983ebe2703a8a843ef46",
                 "shasum": ""
             },
             "require": {
@@ -4766,7 +4766,7 @@
                 "issues": "https://github.com/Vonage/vonage-php-sdk-core/issues",
                 "source": "https://github.com/Vonage/vonage-php-sdk-core"
             },
-            "time": "2026-07-15T04:27:05+00:00"
+            "time": "2026-10-19T11:12:28+00:00"
         },
         {
             "name": "vonage/jwt",
