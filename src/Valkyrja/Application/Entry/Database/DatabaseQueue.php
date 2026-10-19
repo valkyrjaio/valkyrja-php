@@ -350,10 +350,14 @@ class DatabaseQueue extends PullQueue
         $table = static::$table;
 
         $statement = static::getConnection()->prepare(
-            "UPDATE $table SET reserved_at_ms = :parked, available_at_ms = :parked WHERE id = :id"
+            "UPDATE $table SET reserved_at_ms = :parkedReserved, available_at_ms = :parkedAvailable"
+            . ' WHERE id = :id'
         );
 
-        $statement->bindValue(new Value('parked', self::PARKED_AT_MS));
+        // One bound value per placeholder: a native prepare answers HY093 for
+        // a name it sees twice and bound once
+        $statement->bindValue(new Value('parkedReserved', self::PARKED_AT_MS));
+        $statement->bindValue(new Value('parkedAvailable', self::PARKED_AT_MS));
         $statement->bindValue(new Value('id', $id));
         $statement->execute();
     }
@@ -363,18 +367,22 @@ class DatabaseQueue extends PullQueue
      */
     protected static function releaseCurrent(): void
     {
-        $id = static::$current;
+        $id        = static::$current;
+        $claimedAt = static::$claimedAtMs;
 
-        if ($id !== null) {
+        if ($id !== null && $claimedAt !== null) {
             static::$current     = null;
             static::$claimedAtMs = null;
             $table               = static::$table;
 
+            // Fenced on the claim, as the delete is: a worker whose window
+            // lapsed would otherwise free a row another worker is running
             $statement = static::getConnection()->prepare(
-                "UPDATE $table SET reserved_at_ms = NULL WHERE id = :id"
+                "UPDATE $table SET reserved_at_ms = NULL WHERE id = :id AND reserved_at_ms = :claimedAt"
             );
 
             $statement->bindValue(new Value('id', $id));
+            $statement->bindValue(new Value('claimedAt', $claimedAt));
             $statement->execute();
         }
     }
