@@ -50,6 +50,9 @@ interface StatusContract
 
     /**
      * Create a new status with the specified code.
+     *
+     * The message follows the code, so the new status carries the new code's default message.
+     * This holds when the code does not change. Call `withMessage()` to set a message of your own.
      */
     public function withCode(StatusCode $code): static;
 
