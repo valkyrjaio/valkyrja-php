@@ -460,16 +460,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.400.1",
+            "version": "3.401.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "c0cf2c322bc1a344aaf39250da8856563532f82b"
+                "reference": "b1af9196bd0f94bcebdb6588a150dd85dc240758"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/c0cf2c322bc1a344aaf39250da8856563532f82b",
-                "reference": "c0cf2c322bc1a344aaf39250da8856563532f82b",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/b1af9196bd0f94bcebdb6588a150dd85dc240758",
+                "reference": "b1af9196bd0f94bcebdb6588a150dd85dc240758",
                 "shasum": ""
             },
             "require": {
@@ -551,9 +551,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.400.1"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.401.2"
             },
-            "time": "2026-10-09T18:11:15+00:00"
+            "time": "2026-10-14T18:09:34+00:00"
         },
         {
             "name": "brick/math",
@@ -683,16 +683,16 @@
         },
         {
             "name": "filp/whoops",
-            "version": "2.18.6",
+            "version": "2.18.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/filp/whoops.git",
-                "reference": "7d0a2cde892089bb09372f4366e9b960eb3001a9"
+                "reference": "50670ba239926c50f2073e868f6672f775cd57ec"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/filp/whoops/zipball/7d0a2cde892089bb09372f4366e9b960eb3001a9",
-                "reference": "7d0a2cde892089bb09372f4366e9b960eb3001a9",
+                "url": "https://api.github.com/repos/filp/whoops/zipball/50670ba239926c50f2073e868f6672f775cd57ec",
+                "reference": "50670ba239926c50f2073e868f6672f775cd57ec",
                 "shasum": ""
             },
             "require": {
@@ -742,7 +742,7 @@
             ],
             "support": {
                 "issues": "https://github.com/filp/whoops/issues",
-                "source": "https://github.com/filp/whoops/tree/2.18.6"
+                "source": "https://github.com/filp/whoops/tree/2.18.7"
             },
             "funding": [
                 {
@@ -750,7 +750,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-03T17:03:57+00:00"
+            "time": "2026-10-18T13:17:38+00:00"
         },
         {
             "name": "firebase/php-jwt",
@@ -872,22 +872,22 @@
         },
         {
             "name": "guzzlehttp/guzzle",
-            "version": "7.15.5",
+            "version": "7.16.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle.git",
-                "reference": "ee80339fd9177ba44c49cdb653ff02a4d1106b9a"
+                "reference": "ffb62ec787050ae4fa9449cdd6b80335db69bda2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/ee80339fd9177ba44c49cdb653ff02a4d1106b9a",
-                "reference": "ee80339fd9177ba44c49cdb653ff02a4d1106b9a",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/ffb62ec787050ae4fa9449cdd6b80335db69bda2",
+                "reference": "ffb62ec787050ae4fa9449cdd6b80335db69bda2",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
-                "guzzlehttp/promises": "^2.5.3",
-                "guzzlehttp/psr7": "^2.13.1",
+                "guzzlehttp/promises": "^2.6",
+                "guzzlehttp/psr7": "^2.13.2",
                 "php": "^7.2.5 || ^8.0",
                 "psr/http-client": "^1.0",
                 "symfony/deprecation-contracts": "^2.5 || ^3.0",
@@ -980,7 +980,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/guzzle/issues",
-                "source": "https://github.com/guzzle/guzzle/tree/7.15.5"
+                "source": "https://github.com/guzzle/guzzle/tree/7.16.0"
             },
             "funding": [
                 {
@@ -996,20 +996,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-24T09:21:06+00:00"
+            "time": "2026-10-18T13:38:36+00:00"
         },
         {
             "name": "guzzlehttp/promises",
-            "version": "2.5.3",
+            "version": "2.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/promises.git",
-                "reference": "cde49999552d185d64715fe9c1f77a2aadd2f9f1"
+                "reference": "3d88c829bd5f13d13847b39067dbf09a60af2154"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/promises/zipball/cde49999552d185d64715fe9c1f77a2aadd2f9f1",
-                "reference": "cde49999552d185d64715fe9c1f77a2aadd2f9f1",
+                "url": "https://api.github.com/repos/guzzle/promises/zipball/3d88c829bd5f13d13847b39067dbf09a60af2154",
+                "reference": "3d88c829bd5f13d13847b39067dbf09a60af2154",
                 "shasum": ""
             },
             "require": {
@@ -1064,7 +1064,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/promises/issues",
-                "source": "https://github.com/guzzle/promises/tree/2.5.3"
+                "source": "https://github.com/guzzle/promises/tree/2.6.0"
             },
             "funding": [
                 {
@@ -1080,20 +1080,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-24T09:11:28+00:00"
+            "time": "2026-10-18T12:46:59+00:00"
         },
         {
             "name": "guzzlehttp/psr7",
-            "version": "2.13.1",
+            "version": "2.13.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/psr7.git",
-                "reference": "95e7828100de18b4e269fb1703be530082d5166d"
+                "reference": "adee536f95101929f262b8c59e8a61472f347d58"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/psr7/zipball/95e7828100de18b4e269fb1703be530082d5166d",
-                "reference": "95e7828100de18b4e269fb1703be530082d5166d",
+                "url": "https://api.github.com/repos/guzzle/psr7/zipball/adee536f95101929f262b8c59e8a61472f347d58",
+                "reference": "adee536f95101929f262b8c59e8a61472f347d58",
                 "shasum": ""
             },
             "require": {
@@ -1183,7 +1183,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/psr7/issues",
-                "source": "https://github.com/guzzle/psr7/tree/2.13.1"
+                "source": "https://github.com/guzzle/psr7/tree/2.13.2"
             },
             "funding": [
                 {
@@ -1199,7 +1199,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-24T09:13:11+00:00"
+            "time": "2026-10-17T23:49:46+00:00"
         },
         {
             "name": "laminas/laminas-diactoros",
@@ -3375,23 +3375,23 @@
         },
         {
             "name": "roadrunner/goridge",
-            "version": "4.5.0",
+            "version": "4.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/roadrunner-php/goridge.git",
-                "reference": "195d49764c225102d6f4eae13b71f3cac53fb9c5"
+                "reference": "887bd3a6f89a0b95252db608856d33d7a1284406"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/roadrunner-php/goridge/zipball/195d49764c225102d6f4eae13b71f3cac53fb9c5",
-                "reference": "195d49764c225102d6f4eae13b71f3cac53fb9c5",
+                "url": "https://api.github.com/repos/roadrunner-php/goridge/zipball/887bd3a6f89a0b95252db608856d33d7a1284406",
+                "reference": "887bd3a6f89a0b95252db608856d33d7a1284406",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
                 "ext-sockets": "*",
                 "php": ">=8.2",
-                "spiral/roadrunner": "^3.0"
+                "roadrunner/roadrunner": "^3.0"
             },
             "replace": {
                 "spiral/goridge": "self.version"
@@ -3399,16 +3399,16 @@
             "require-dev": {
                 "google/protobuf": "^3.22 || ^4.0 || ^5.0",
                 "jetbrains/phpstorm-attributes": "^1.0",
+                "llm/skills": "^1.14",
+                "roxblnfk/unpoly": "^1.8",
                 "rybakit/msgpack": "^0.7",
                 "spiral/code-style": "^2.3.1",
                 "testo/testo": "^0.10.55",
                 "vimeo/psalm": "^6 || ^7"
             },
             "suggest": {
-                "ext-msgpack": "MessagePack codec support",
                 "ext-protobuf": "Protobuf codec support",
-                "google/protobuf": "(^3.22 || ^4.0 || ^5.0) Protobuf codec support",
-                "rybakit/msgpack": "(^0.7) MessagePack codec support"
+                "google/protobuf": "(^3.22 || ^4.0 || ^5.0) Protobuf codec support"
             },
             "type": "library",
             "autoload": {
@@ -3454,7 +3454,6 @@
                 "golang",
                 "goridge",
                 "ipc",
-                "msgpack",
                 "pipes",
                 "protobuf",
                 "roadrunner",
@@ -3472,20 +3471,69 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-10T12:23:18+00:00"
+            "time": "2026-10-19T08:41:25+00:00"
         },
         {
-            "name": "roadrunner/worker",
-            "version": "v3.8.0",
+            "name": "roadrunner/roadrunner",
+            "version": "v3.0.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/roadrunner-php/worker.git",
-                "reference": "209132269fa4f33f6f017727aeee42a204046d04"
+                "url": "https://github.com/roadrunner-server/roadrunner.git",
+                "reference": "c8f9cfd9510b748238b2fc6dd009ad3726f09e36"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/roadrunner-php/worker/zipball/209132269fa4f33f6f017727aeee42a204046d04",
-                "reference": "209132269fa4f33f6f017727aeee42a204046d04",
+                "url": "https://api.github.com/repos/roadrunner-server/roadrunner/zipball/c8f9cfd9510b748238b2fc6dd009ad3726f09e36",
+                "reference": "c8f9cfd9510b748238b2fc6dd009ad3726f09e36",
+                "shasum": ""
+            },
+            "type": "metapackage",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anton Titov / Wolfy-J",
+                    "email": "wolfy.jd@gmail.com"
+                },
+                {
+                    "name": "Valery Piashchynski",
+                    "homepage": "https://github.com/rustatian"
+                },
+                {
+                    "name": "RoadRunner Community",
+                    "homepage": "https://github.com/roadrunner-server/roadrunner/graphs/contributors"
+                }
+            ],
+            "description": "RoadRunner: High-performance PHP application server and process manager written in Go and powered with plugins",
+            "homepage": "https://roadrunner.dev/",
+            "support": {
+                "chat": "https://discord.gg/V6EK4he",
+                "docs": "https://docs.roadrunner.dev/",
+                "issues": "https://github.com/roadrunner-server/roadrunner/issues",
+                "source": "https://github.com/roadrunner-server/roadrunner/tree/v3.0.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/sponsors/roadrunner-server",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-10-09T12:52:49+00:00"
+        },
+        {
+            "name": "roadrunner/worker",
+            "version": "v3.8.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/roadrunner-php/worker.git",
+                "reference": "35fcf09b55de68954e03dc727b710b963db9517d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/roadrunner-php/worker/zipball/35fcf09b55de68954e03dc727b710b963db9517d",
+                "reference": "35fcf09b55de68954e03dc727b710b963db9517d",
                 "shasum": ""
             },
             "require": {
@@ -3495,7 +3543,7 @@
                 "php": ">=8.2",
                 "psr/log": "^2.0 || ^3.0",
                 "roadrunner/goridge": "^4.5",
-                "spiral/roadrunner": "^3.0"
+                "roadrunner/roadrunner": "^3.0"
             },
             "replace": {
                 "spiral/roadrunner-worker": "self.version"
@@ -3503,7 +3551,9 @@
             "require-dev": {
                 "buggregator/trap": "^1.13",
                 "jetbrains/phpstorm-attributes": "^1.0",
+                "llm/skills": "^1.14",
                 "mockery/mockery": "^1.6.7",
+                "roxblnfk/unpoly": "^1.8",
                 "spiral/code-style": "^2.3.1",
                 "testo/bridge-mockery": "^0.1.2",
                 "testo/testo": "^0.10.55",
@@ -3569,69 +3619,20 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-10T12:53:13+00:00"
-        },
-        {
-            "name": "spiral/roadrunner",
-            "version": "v3.x-dev",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/roadrunner-server/roadrunner.git",
-                "reference": "dcd8d437f0f17bd0c63ce7535374b146052e39db"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/roadrunner-server/roadrunner/zipball/dcd8d437f0f17bd0c63ce7535374b146052e39db",
-                "reference": "dcd8d437f0f17bd0c63ce7535374b146052e39db",
-                "shasum": ""
-            },
-            "type": "metapackage",
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Anton Titov / Wolfy-J",
-                    "email": "wolfy.jd@gmail.com"
-                },
-                {
-                    "name": "Valery Piashchynski",
-                    "homepage": "https://github.com/rustatian"
-                },
-                {
-                    "name": "RoadRunner Community",
-                    "homepage": "https://github.com/roadrunner-server/roadrunner/graphs/contributors"
-                }
-            ],
-            "description": "RoadRunner: High-performance PHP application server and process manager written in Go and powered with plugins",
-            "homepage": "https://roadrunner.dev/",
-            "support": {
-                "chat": "https://discord.gg/V6EK4he",
-                "docs": "https://docs.roadrunner.dev/",
-                "issues": "https://github.com/roadrunner-server/roadrunner/issues",
-                "source": "https://github.com/roadrunner-server/roadrunner/tree/v3"
-            },
-            "funding": [
-                {
-                    "url": "https://github.com/sponsors/roadrunner-server",
-                    "type": "github"
-                }
-            ],
-            "time": "2026-06-11T10:54:17+00:00"
+            "time": "2026-10-19T08:47:25+00:00"
         },
         {
             "name": "spiral/roadrunner-http",
-            "version": "v4.2.0",
+            "version": "v4.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/roadrunner-php/http.git",
-                "reference": "d748a4fa08b1ab65fc3ff7a72eca25f8e29bc555"
+                "reference": "8aef71907057d076f132484b32fe6178c370a73d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/roadrunner-php/http/zipball/d748a4fa08b1ab65fc3ff7a72eca25f8e29bc555",
-                "reference": "d748a4fa08b1ab65fc3ff7a72eca25f8e29bc555",
+                "url": "https://api.github.com/repos/roadrunner-php/http/zipball/8aef71907057d076f132484b32fe6178c370a73d",
+                "reference": "8aef71907057d076f132484b32fe6178c370a73d",
                 "shasum": ""
             },
             "require": {
@@ -3640,14 +3641,16 @@
                 "psr/http-factory": "^1.0.1",
                 "psr/http-message": "^1.0.1 || ^2.0",
                 "roadrunner/api-dto": "^2.1",
+                "roadrunner/roadrunner": "^3.0",
                 "roadrunner/worker": "^3.8",
-                "spiral/roadrunner": "^3.0",
                 "symfony/polyfill-php83": "^1.29"
             },
             "require-dev": {
                 "jetbrains/phpstorm-attributes": "^1.0",
+                "llm/skills": "^1.14",
                 "mockery/mockery": "^1.6.12",
                 "nyholm/psr7": "^1.3",
+                "roxblnfk/unpoly": "^1.8",
                 "spiral/code-style": "^2.3.1",
                 "spiral/dumper": "^3.3",
                 "symfony/process": "^6.2 || ^7.0",
@@ -3718,7 +3721,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-10T12:59:57+00:00"
+            "time": "2026-10-19T08:38:20+00:00"
         },
         {
             "name": "symfony/deprecation-contracts",
@@ -3793,16 +3796,16 @@
         },
         {
             "name": "symfony/filesystem",
-            "version": "v8.1.6",
+            "version": "v8.1.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/filesystem.git",
-                "reference": "7599ebb855fede59413ddb7f15198d67bfcae7ba"
+                "reference": "43d109c803d22c00bb820ed45df250b6a8792ca2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/filesystem/zipball/7599ebb855fede59413ddb7f15198d67bfcae7ba",
-                "reference": "7599ebb855fede59413ddb7f15198d67bfcae7ba",
+                "url": "https://api.github.com/repos/symfony/filesystem/zipball/43d109c803d22c00bb820ed45df250b6a8792ca2",
+                "reference": "43d109c803d22c00bb820ed45df250b6a8792ca2",
                 "shasum": ""
             },
             "require": {
@@ -3840,7 +3843,7 @@
             "description": "Provides basic utilities for the filesystem",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/filesystem/tree/v8.1.6"
+                "source": "https://github.com/symfony/filesystem/tree/v8.1.9"
             },
             "funding": [
                 {
@@ -3860,20 +3863,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-23T10:06:25+00:00"
+            "time": "2026-10-06T20:05:50+00:00"
         },
         {
             "name": "symfony/http-client",
-            "version": "v8.1.8",
+            "version": "v8.1.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/http-client.git",
-                "reference": "e20aca4ceaa888197de5c792ffc551d99e43d98a"
+                "reference": "f892301df77ac25613b19fc2450139c950d1368a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/http-client/zipball/e20aca4ceaa888197de5c792ffc551d99e43d98a",
-                "reference": "e20aca4ceaa888197de5c792ffc551d99e43d98a",
+                "url": "https://api.github.com/repos/symfony/http-client/zipball/f892301df77ac25613b19fc2450139c950d1368a",
+                "reference": "f892301df77ac25613b19fc2450139c950d1368a",
                 "shasum": ""
             },
             "require": {
@@ -3937,7 +3940,7 @@
                 "http"
             ],
             "support": {
-                "source": "https://github.com/symfony/http-client/tree/v8.1.8"
+                "source": "https://github.com/symfony/http-client/tree/v8.1.9"
             },
             "funding": [
                 {
@@ -3957,7 +3960,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-09-24T11:09:32+00:00"
+            "time": "2026-10-13T15:31:40+00:00"
         },
         {
             "name": "symfony/http-client-contracts",

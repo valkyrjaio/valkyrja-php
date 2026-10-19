@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b8db9708fd76aa9f524457a60ce26fc7",
+    "content-hash": "b13677843a1a828293d337c37e109b4c",
     "packages": [],
     "packages-dev": [
         {
@@ -377,16 +377,16 @@
         },
         {
             "name": "symfony/console",
-            "version": "v8.1.8",
+            "version": "v8.1.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/console.git",
-                "reference": "4b81146e3ee248ea969186f85499b54fbc78db08"
+                "reference": "630e74196a2635ec0f06c12bd3fb47cfedf85157"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/console/zipball/4b81146e3ee248ea969186f85499b54fbc78db08",
-                "reference": "4b81146e3ee248ea969186f85499b54fbc78db08",
+                "url": "https://api.github.com/repos/symfony/console/zipball/630e74196a2635ec0f06c12bd3fb47cfedf85157",
+                "reference": "630e74196a2635ec0f06c12bd3fb47cfedf85157",
                 "shasum": ""
             },
             "require": {
@@ -453,7 +453,7 @@
                 "terminal"
             ],
             "support": {
-                "source": "https://github.com/symfony/console/tree/v8.1.8"
+                "source": "https://github.com/symfony/console/tree/v8.1.9"
             },
             "funding": [
                 {
@@ -473,7 +473,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-09-18T16:00:27+00:00"
+            "time": "2026-10-12T19:11:16+00:00"
         },
         {
             "name": "symfony/deprecation-contracts",
@@ -1368,16 +1368,16 @@
         },
         {
             "name": "symfony/string",
-            "version": "v8.1.7",
+            "version": "v8.1.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/string.git",
-                "reference": "d950140b5f56f31901e5b7a0c04ffc3a3deb943c"
+                "reference": "07fb208558f941eab50ec49c89c2a6a93fb11f01"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/string/zipball/d950140b5f56f31901e5b7a0c04ffc3a3deb943c",
-                "reference": "d950140b5f56f31901e5b7a0c04ffc3a3deb943c",
+                "url": "https://api.github.com/repos/symfony/string/zipball/07fb208558f941eab50ec49c89c2a6a93fb11f01",
+                "reference": "07fb208558f941eab50ec49c89c2a6a93fb11f01",
                 "shasum": ""
             },
             "require": {
@@ -1434,7 +1434,7 @@
                 "utf8"
             ],
             "support": {
-                "source": "https://github.com/symfony/string/tree/v8.1.7"
+                "source": "https://github.com/symfony/string/tree/v8.1.9"
             },
             "funding": [
                 {
@@ -1454,20 +1454,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-09-11T14:51:16+00:00"
+            "time": "2026-10-03T15:16:03+00:00"
         },
         {
             "name": "valkyrja/ci-phparkitect",
-            "version": "v26.7.66",
+            "version": "v26.7.73",
             "source": {
                 "type": "git",
                 "url": "https://github.com/valkyrjaio/ci-phparkitect-php.git",
-                "reference": "d9dba74fe643478fd3ba32c80d7027c1982bbca1"
+                "reference": "db12fcb856ea2aea1d286614b3d71fd21ec5799e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/valkyrjaio/ci-phparkitect-php/zipball/d9dba74fe643478fd3ba32c80d7027c1982bbca1",
-                "reference": "d9dba74fe643478fd3ba32c80d7027c1982bbca1",
+                "url": "https://api.github.com/repos/valkyrjaio/ci-phparkitect-php/zipball/db12fcb856ea2aea1d286614b3d71fd21ec5799e",
+                "reference": "db12fcb856ea2aea1d286614b3d71fd21ec5799e",
                 "shasum": ""
             },
             "require": {
@@ -1499,9 +1499,9 @@
             ],
             "support": {
                 "issues": "https://github.com/valkyrjaio/ci-phparkitect-php/issues",
-                "source": "https://github.com/valkyrjaio/ci-phparkitect-php/tree/v26.7.66"
+                "source": "https://github.com/valkyrjaio/ci-phparkitect-php/tree/v26.7.73"
             },
-            "time": "2026-10-11T16:31:48+00:00"
+            "time": "2026-10-18T14:20:16+00:00"
         },
         {
             "name": "webmozart/assert",
