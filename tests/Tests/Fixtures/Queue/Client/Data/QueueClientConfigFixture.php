@@ -55,8 +55,8 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
      * @param int<1, max>                  $queueBeanstalkdClientReserveTimeout
      * @param non-empty-string             $queueDatabaseClientQueue
      * @param non-empty-string             $queueDatabaseClientTable
-     * @param non-empty-string             $pubSubProjectId
-     * @param non-empty-string             $pubSubTopic
+     * @param non-empty-string             $queuePubSubClientProjectId
+     * @param non-empty-string             $queuePubSubClientTopic
      */
     public function __construct(
         public string $defaultQueueClient = SyncClient::class,
@@ -88,8 +88,8 @@ final class QueueClientConfigFixture extends Config implements QueueClientConfig
         public string $queueDatabaseClientQueue = 'jobs',
         public string $queueDatabaseClientTable = 'jobs_test',
         public int $queueDatabaseClientReservationTimeoutMs = 60_000,
-        public string $pubSubProjectId = 'valkyrja-tests',
-        public string $pubSubTopic = 'jobs',
+        public string $queuePubSubClientProjectId = 'valkyrja-tests',
+        public string $queuePubSubClientTopic = 'jobs',
     ) {
         parent::__construct(
             applicationName: 'host',

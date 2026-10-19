@@ -30,12 +30,12 @@ final class PubSubWorkerConfigFixture extends QueueConfig implements QueueClient
     public string $defaultQueueClient = PubSubClient::class;
 
     /**
-     * @param non-empty-string $pubSubProjectId The project of the emulator under test
-     * @param non-empty-string $pubSubTopic     The topic jobs are published to
+     * @param non-empty-string $queuePubSubClientProjectId The project of the emulator under test
+     * @param non-empty-string $queuePubSubClientTopic     The topic jobs are published to
      */
     public function __construct(
-        public string $pubSubProjectId = 'valkyrja-tests',
-        public string $pubSubTopic = 'jobs',
+        public string $queuePubSubClientProjectId = 'valkyrja-tests',
+        public string $queuePubSubClientTopic = 'jobs',
     ) {
         parent::__construct(
             dir: Directory::$basePath,

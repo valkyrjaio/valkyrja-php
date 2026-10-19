@@ -219,7 +219,7 @@ class PubSubQueue extends PullQueue
      */
     protected static function getSubscription(QueuePubSubClientConfigContract $config): Subscription
     {
-        return new PubSubClient(['projectId' => $config->pubSubProjectId])
+        return new PubSubClient(['projectId' => $config->queuePubSubClientProjectId])
             ->subscription(static::getSubscriptionName($config));
     }
 
@@ -230,7 +230,7 @@ class PubSubQueue extends PullQueue
      */
     protected static function getSubscriptionName(QueuePubSubClientConfigContract $config): string
     {
-        return static::$subscriptionName ?? $config->pubSubTopic;
+        return static::$subscriptionName ?? $config->queuePubSubClientTopic;
     }
 
     /**

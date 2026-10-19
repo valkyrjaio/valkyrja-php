@@ -15,12 +15,12 @@ namespace Valkyrja\Queue\Client\Data\Contract;
 interface QueuePubSubClientConfigContract
 {
     /** @var non-empty-string */
-    public string $pubSubProjectId {
+    public string $queuePubSubClientProjectId {
         get;
     }
 
     /** @var non-empty-string */
-    public string $pubSubTopic {
+    public string $queuePubSubClientTopic {
         get;
     }
 }

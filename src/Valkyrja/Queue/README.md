@@ -803,10 +803,10 @@ by then. Set the value above the longest job the table carries.
 
 #### `QueuePubSubClientConfigContract`
 
-| Property          | Default      | Description                          |
-| :---------------- | :----------- | :----------------------------------- |
-| `pubSubProjectId` | `'valkyrja'` | The Google Cloud project             |
-| `pubSubTopic`     | `'default'`  | The topic that jobs are published to |
+| Property                     | Default      | Description                          |
+| :--------------------------- | :----------- | :----------------------------------- |
+| `queuePubSubClientProjectId` | `'valkyrja'` | The Google Cloud project             |
+| `queuePubSubClientTopic`     | `'default'`  | The topic that jobs are published to |
 
 Warning: the Google client reads the Application Default Credentials when the
 service provider builds the client. An application that resolves `PubSubClient`

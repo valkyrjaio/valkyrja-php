@@ -408,7 +408,7 @@ class QueueClientServiceProvider implements ServiceProviderContract
         $container->setSingleton(
             PubSubClient::class,
             new PubSubClient(
-                topic: new GooglePubSubClient(['projectId' => $config->pubSubProjectId])->topic($config->pubSubTopic),
+                topic: new GooglePubSubClient(['projectId' => $config->queuePubSubClientProjectId])->topic($config->queuePubSubClientTopic),
                 applicationName: $container->getSingleton(ConfigContract::class)->applicationName,
             )
         );

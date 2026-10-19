@@ -17,12 +17,12 @@ use Valkyrja\Queue\Client\Data\Contract\QueuePubSubClientConfigContract;
 class QueuePubSubClientConfig implements QueuePubSubClientConfigContract
 {
     /**
-     * @param non-empty-string $pubSubProjectId The Google Cloud project
-     * @param non-empty-string $pubSubTopic     The topic that jobs are published to
+     * @param non-empty-string $queuePubSubClientProjectId The Google Cloud project
+     * @param non-empty-string $queuePubSubClientTopic     The topic that jobs are published to
      */
     public function __construct(
-        public readonly string $pubSubProjectId = 'valkyrja',
-        public readonly string $pubSubTopic = 'default',
+        public readonly string $queuePubSubClientProjectId = 'valkyrja',
+        public readonly string $queuePubSubClientTopic = 'default',
     ) {
     }
 }

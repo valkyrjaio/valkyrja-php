@@ -458,8 +458,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueuePubSubClientConfigContract::class);
 
-        self::assertSame('valkyrja', $config->pubSubProjectId);
-        self::assertSame('default', $config->pubSubTopic);
+        self::assertSame('valkyrja', $config->queuePubSubClientProjectId);
+        self::assertSame('default', $config->queuePubSubClientTopic);
     }
 
     public function testPublishPubSubConfigWithApplicationConfig(): void
@@ -470,8 +470,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
 
         $config = $this->container->getSingleton(QueuePubSubClientConfigContract::class);
 
-        self::assertSame('valkyrja-tests', $config->pubSubProjectId);
-        self::assertSame('jobs', $config->pubSubTopic);
+        self::assertSame('valkyrja-tests', $config->queuePubSubClientProjectId);
+        self::assertSame('jobs', $config->queuePubSubClientTopic);
     }
 
     public function testPublishPubSubClient(): void

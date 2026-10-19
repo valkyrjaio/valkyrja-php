@@ -27,18 +27,18 @@ final class QueuePubSubClientConfigTest extends TestCase
     {
         $config = new QueuePubSubClientConfig();
 
-        self::assertSame('valkyrja', $config->pubSubProjectId);
-        self::assertSame('default', $config->pubSubTopic);
+        self::assertSame('valkyrja', $config->queuePubSubClientProjectId);
+        self::assertSame('default', $config->queuePubSubClientTopic);
     }
 
     public function testCustomValuesAreStored(): void
     {
         $config = new QueuePubSubClientConfig(
-            pubSubProjectId: 'valkyrja-tests',
-            pubSubTopic: 'jobs',
+            queuePubSubClientProjectId: 'valkyrja-tests',
+            queuePubSubClientTopic: 'jobs',
         );
 
-        self::assertSame('valkyrja-tests', $config->pubSubProjectId);
-        self::assertSame('jobs', $config->pubSubTopic);
+        self::assertSame('valkyrja-tests', $config->queuePubSubClientProjectId);
+        self::assertSame('jobs', $config->queuePubSubClientTopic);
     }
 }

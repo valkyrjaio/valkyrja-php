@@ -74,7 +74,7 @@ final class PubSubQueueTest extends TestCase
         // A subscription usually carries the name of its topic
         self::assertSame(
             'jobs',
-            PubSubQueueFixture::readSubscriptionName(new QueuePubSubClientConfig(pubSubTopic: 'jobs'))
+            PubSubQueueFixture::readSubscriptionName(new QueuePubSubClientConfig(queuePubSubClientTopic: 'jobs'))
         );
     }
 
@@ -84,7 +84,7 @@ final class PubSubQueueTest extends TestCase
 
         self::assertSame(
             'jobs-worker',
-            PubSubQueueFixture::readSubscriptionName(new QueuePubSubClientConfig(pubSubTopic: 'jobs'))
+            PubSubQueueFixture::readSubscriptionName(new QueuePubSubClientConfig(queuePubSubClientTopic: 'jobs'))
         );
     }
 
