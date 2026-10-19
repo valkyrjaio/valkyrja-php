@@ -32,6 +32,7 @@ use Valkyrja\Tests\Fixtures\Queue\Client\RecordingClientFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function array_map;
+use function count;
 use function str_starts_with;
 
 final class DatabaseQueueTest extends TestCase
@@ -151,7 +152,7 @@ final class DatabaseQueueTest extends TestCase
 
         // The park alone, never a claim
         self::assertCount(1, $updates);
-        self::assertArrayHasKey('parked', $updates[0]->bound);
+        self::assertArrayHasKey('parkedReserved', $updates[0]->bound);
     }
 
     public function testARowWithNoIdIsSkipped(): void
@@ -366,7 +367,13 @@ final class DatabaseQueueTest extends TestCase
         self::assertSame([], $this->manager->getStatements('DELETE'));
         self::assertSame(
             253_402_300_799_000,
-            $this->parkStatement()->bound['parked']
+            $this->parkStatement()->bound['parkedReserved']
+        );
+        // Each placeholder carries its own bind: a name used twice and bound
+        // once makes a native prepare answer HY093 and kills the worker
+        self::assertSame(
+            253_402_300_799_000,
+            $this->parkStatement()->bound['parkedAvailable']
         );
     }
 
@@ -465,6 +472,22 @@ final class DatabaseQueueTest extends TestCase
         // A delete that committed first would lose the job outright when the
         // insert then failed; this order leaves a duplicate at worst
         self::assertLessThan($delete, $insert);
+    }
+
+    public function testAReleaseFreesOnlyTheRowThisWorkerStillOwns(): void
+    {
+        $this->reserved();
+
+        DatabaseQueueFixture::disconnect();
+
+        // Unfenced, a worker whose window lapsed would free the row that the
+        // worker which reclaimed it is still running
+        $release = $this->manager->getStatements('UPDATE');
+
+        self::assertStringContainsString(
+            'reserved_at_ms = :claimedAt',
+            $release[count($release) - 1]->query
+        );
     }
 
     public function testASettlementDeletesOnlyTheRowThisWorkerStillOwns(): void
@@ -584,7 +607,7 @@ final class DatabaseQueueTest extends TestCase
     protected function parkStatement(): object
     {
         foreach ($this->manager->getStatements('UPDATE') as $statement) {
-            if (isset($statement->bound['parked'])) {
+            if (isset($statement->bound['parkedReserved'])) {
                 return $statement;
             }
         }

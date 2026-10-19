@@ -61,7 +61,13 @@ final class DatabaseIntegrationTest extends TestCase
             $dsn,
             is_string($user) ? $user : 'root',
             is_string($password) ? $password : '',
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            [
+                PDO::ATTR_ERRMODE          => PDO::ERRMODE_EXCEPTION,
+                // As OrmMysqlConfig and OrmSqliteConfig set it. With emulation
+                // on, the driver tolerates SQL a native prepare rejects, and
+                // this suite would pass for statements production cannot run.
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ]
         );
 
         $this->manager = new MysqlManager($pdo, new Container());
@@ -201,6 +207,26 @@ final class DatabaseIntegrationTest extends TestCase
     public function testAnEmptyTableYieldsNothing(): void
     {
         self::assertNull($this->poll());
+    }
+
+    public function testAnUnreadableRowIsParkedAgainstARealDriver(): void
+    {
+        // The park writes the same stamp into two columns. A placeholder reused
+        // across both and bound once answers HY093 on a native prepare, which
+        // no fixture can show, so this row has to meet the real driver.
+        $this->manager->query(
+            'INSERT INTO ' . self::TABLE . ' (queue, envelope, priority, available_at_ms, reserved_at_ms)'
+            . " VALUES ('" . self::QUEUE . "', '{not json', 0, 0, NULL)"
+        );
+
+        self::assertNull(DatabaseQueueFixture::receive());
+
+        $row = $this->manager
+            ->query('SELECT reserved_at_ms, available_at_ms FROM ' . self::TABLE)
+            ->fetch();
+
+        self::assertSame(253402300799000, (int) $row['reserved_at_ms']);
+        self::assertSame(253402300799000, (int) $row['available_at_ms']);
     }
 
     public function testDisconnectHandsAReservedRowBack(): void
