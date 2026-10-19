@@ -570,9 +570,11 @@ bypasses. A deployment that needs the copy sets `maxDeliveryAttempts` below the
 job's `max_attempts`, so Pub/Sub routes it first.
 
 Warning: `PubSubQueue` acknowledges a body no factory can read rather than
-parking it, as `SqsQueue` does. The acknowledgement destroys the bytes, and a
-subscription with no dead-letter topic keeps no copy. Give the subscription one
-to keep what could not be read.
+parking it, as `SqsQueue` does, and nothing keeps a copy. A dead-letter topic
+does not help here: it takes a message on the delivery attempt, and an
+acknowledgement removes the message before any attempt count can route it. A
+producer that emits bytes no factory reads therefore loses them, so read the
+envelope at the producer rather than relying on the subscription to hold it.
 
 Warning: `SqsQueue` deletes a body no factory can read rather than parking it.
 Nothing settles an unreadable body, so SQS would hand the same message back on

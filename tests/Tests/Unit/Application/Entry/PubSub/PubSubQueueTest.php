@@ -17,6 +17,7 @@ use Google\Cloud\Core\Exception\NotFoundException;
 use Google\Cloud\Core\Exception\ServiceException;
 use Google\Cloud\PubSub\Message;
 use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -162,7 +163,7 @@ final class PubSubQueueTest extends TestCase
         PubSubQueueFixture::receive();
     }
 
-    public function testAnApiDeadlineReadsAsNothingArrived(): void
+    public function testAConvertedDeadlineReadsAsNothingArrived(): void
     {
         // The SDK's request handler converts the transport's own throwable
         // into this one, so this is the type the entry can ever see
@@ -171,7 +172,7 @@ final class PubSubQueueTest extends TestCase
         self::assertNull(PubSubQueueFixture::receive());
     }
 
-    public function testAnyOtherApiFailureTravelsOn(): void
+    public function testAnyOtherServiceFailureTravelsOn(): void
     {
         // A real failure must not be mistaken for an empty subscription
         $this->subscription->failure = new ServiceException('permission denied');
@@ -402,6 +403,27 @@ final class PubSubQueueTest extends TestCase
         self::assertCount(1, $this->subscription->deadlines);
 
         // A subscription left set is one the next run would pull on
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        PubSubQueueFixture::receive();
+    }
+
+    public function testDisconnectSurvivesATransportFailure(): void
+    {
+        // A reset mid-request is not one of the five errnos Guzzle calls a
+        // connection error, so it arrives as a bare transfer failure rather
+        // than as anything the SDK converts
+        $this->received();
+
+        $this->subscription->deadlineFailure = new RequestException(
+            'recv failure',
+            new Request('POST', '/')
+        );
+
+        PubSubQueueFixture::disconnect();
+
+        self::assertCount(1, $this->subscription->deadlines);
+
         $this->expectException(QueueServerNotConnectedException::class);
 
         PubSubQueueFixture::receive();

@@ -18,6 +18,7 @@ use Google\Cloud\PubSub\Message;
 use Google\Cloud\PubSub\PubSubClient;
 use Google\Cloud\PubSub\Subscription;
 use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\TransferException;
 use JsonException;
 use Override;
 use Valkyrja\Application\Entry\Abstract\PullQueue;
@@ -122,8 +123,10 @@ class PubSubQueue extends PullQueue
         // back anyway.
         try {
             static::releaseCurrent();
-        } catch (ServiceException|ConnectException) {
-            // The deadline lapsing is the fallback, and it always applies
+        } catch (ServiceException|TransferException) {
+            // One root per layer, so neither can hand a teardown failure past
+            // this. The deadline lapsing is the fallback, and it always
+            // applies.
         }
 
         static::$subscription = null;
