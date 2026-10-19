@@ -17,10 +17,12 @@ use PHPUnit\Framework\MockObject\Exception;
 use Predis\ClientInterface;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Application\Data\Contract\ConfigContract;
+use Valkyrja\Orm\Manager\Contract\ManagerContract;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
 use Valkyrja\Queue\Client\Data\Contract\QueueAmqpClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueBeanstalkdClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueClientConfigContract;
+use Valkyrja\Queue\Client\Data\Contract\QueueDatabaseClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueDeferredClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueRedisClientConfigContract;
 use Valkyrja\Queue\Client\Data\Contract\QueueSqsClientConfigContract;
@@ -28,11 +30,13 @@ use Valkyrja\Queue\Client\Data\Contract\QueueSyncClientConfigContract;
 use Valkyrja\Queue\Client\Data\QueueAmqpClientConfig;
 use Valkyrja\Queue\Client\Data\QueueBeanstalkdClientConfig;
 use Valkyrja\Queue\Client\Data\QueueClientConfig;
+use Valkyrja\Queue\Client\Data\QueueDatabaseClientConfig;
 use Valkyrja\Queue\Client\Data\QueueRedisClientConfig;
 use Valkyrja\Queue\Client\Data\QueueSqsClientConfig;
 use Valkyrja\Queue\Client\Manager\AmqpClient;
 use Valkyrja\Queue\Client\Manager\BeanstalkdClient;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
+use Valkyrja\Queue\Client\Manager\DatabaseClient;
 use Valkyrja\Queue\Client\Manager\DeferredClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
 use Valkyrja\Queue\Client\Manager\RedisClient;
@@ -44,6 +48,7 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Tests\Fixtures\Application\Entry\InternalQueueFixture;
 use Valkyrja\Tests\Fixtures\Cache\Data\CacheConfigFixture;
 use Valkyrja\Tests\Fixtures\Queue\Client\Data\QueueClientConfigFixture;
+use Valkyrja\Tests\Fixtures\Queue\Client\DatabaseManagerFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Provider\QueueRoutingProviderFixture;
 
@@ -87,6 +92,8 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         self::assertArrayHasKey(SqsClient::class, $publishers);
         self::assertArrayHasKey(QueueBeanstalkdClientConfigContract::class, $publishers);
         self::assertArrayHasKey(BeanstalkdClient::class, $publishers);
+        self::assertArrayHasKey(QueueDatabaseClientConfigContract::class, $publishers);
+        self::assertArrayHasKey(DatabaseClient::class, $publishers);
     }
 
     public function testPublishConfig(): void
@@ -376,6 +383,60 @@ final class ServiceProviderTest extends ServiceProviderTestCase
         $this->publish(BeanstalkdClient::class);
 
         self::assertInstanceOf(BeanstalkdClient::class, $this->container->getSingleton(BeanstalkdClient::class));
+    }
+
+    public function testPublishDatabaseConfig(): void
+    {
+        $this->publish(QueueDatabaseClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueDatabaseClientConfigContract::class);
+
+        self::assertSame('default', $config->queueDatabaseClientQueue);
+        self::assertSame('queue_jobs', $config->queueDatabaseClientTable);
+    }
+
+    public function testPublishDatabaseConfigWithApplicationConfig(): void
+    {
+        $this->container->setSingleton(ConfigContract::class, new QueueClientConfigFixture());
+
+        $this->publish(QueueDatabaseClientConfigContract::class);
+
+        $config = $this->container->getSingleton(QueueDatabaseClientConfigContract::class);
+
+        self::assertSame('jobs', $config->queueDatabaseClientQueue);
+        self::assertSame('jobs_test', $config->queueDatabaseClientTable);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testPublishDatabaseClient(): void
+    {
+        $manager = new DatabaseManagerFixture();
+
+        $this->container->setSingleton(
+            QueueDatabaseClientConfigContract::class,
+            new QueueDatabaseClientConfig(
+                queueDatabaseClientQueue: 'configured-queue',
+                queueDatabaseClientTable: 'configured_table',
+            )
+        );
+        $this->container->setSingleton(ManagerContract::class, $manager);
+
+        $this->publish(DatabaseClient::class);
+
+        $client = $this->container->getSingleton(DatabaseClient::class);
+
+        self::assertInstanceOf(DatabaseClient::class, $client);
+
+        // The config values are only observable through what the client
+        // writes, so a provider that ignored them would pass an instanceof
+        $client->push(new JobFactory()->create('x'));
+
+        $insert = $manager->getStatements('INSERT')[0];
+
+        self::assertStringContainsString('configured_table', $insert->query);
+        self::assertSame('configured-queue', $insert->bound['queue']);
     }
 
     /**

@@ -354,6 +354,7 @@ quorum queue, or give the job a `max_attempts` of 2.
 | `AmqpClient`       | AMQP       | processor  |
 | `SqsClient`        | SQS        | processor  |
 | `BeanstalkdClient` | beanstalkd | processor  |
+| `DatabaseClient`   | a database | framework  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -428,6 +429,86 @@ Warning: a client scopes `getPushed` to one request, one command, or one job. A
 client that keeps a process-global record leaks in a long-running server, and it
 gives one request the deferred jobs of the request before it.
 
+## The Database Table
+
+`DatabaseClient` and `DatabaseQueue` read and write one table. The application
+owns the table, so the application creates it. Every statement the adapter
+issues is portable across the shipped ORM managers, but the table definition is
+not, so this one is MySQL and a note below gives the columns that differ:
+
+```sql
+-- MySQL
+CREATE TABLE queue_jobs (
+    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    queue           VARCHAR(255)    NOT NULL,
+    envelope        LONGTEXT        NOT NULL,
+    priority        INT             NOT NULL DEFAULT 0,
+    available_at_ms BIGINT          NOT NULL,
+    reserved_at_ms  BIGINT          NULL,
+    INDEX queue_jobs_claim (queue, available_at_ms, priority)
+);
+```
+
+On PostgreSQL the same table reads `BIGSERIAL PRIMARY KEY` for `id`, `TEXT` for
+`envelope`, `BIGINT` for the two millisecond columns, and the index becomes its
+own statement, because `AUTO_INCREMENT`, `BIGINT UNSIGNED`, `LONGTEXT`, and an
+inline `INDEX` clause are each rejected:
+
+```sql
+-- PostgreSQL
+CREATE TABLE queue_jobs (
+    id              BIGSERIAL    PRIMARY KEY,
+    queue           VARCHAR(255) NOT NULL,
+    envelope        TEXT         NOT NULL,
+    priority        INT          NOT NULL DEFAULT 0,
+    available_at_ms BIGINT       NOT NULL,
+    reserved_at_ms  BIGINT       NULL
+);
+
+CREATE INDEX queue_jobs_claim ON queue_jobs (queue, available_at_ms, priority);
+```
+
+The index narrows on `queue` by equality and then on `available_at_ms` by range.
+It cannot serve the `ORDER BY priority DESC, id ASC` that the claim select ends
+with, because a b-tree stops narrowing at the first column carrying a range, so
+the database sorts the eligible rows on every poll. Tune the index for the
+queue's own shape when the eligible set grows large enough to matter.
+
+`id` may be any key the driver reads back as an integer or a string, so a
+`CHAR(36)` UUID works. The column has to supply its own value, because the
+client never writes it: `INSERT` names `queue`, `envelope`, `priority`,
+`available_at_ms`, and `reserved_at_ms` only. `AUTO_INCREMENT` supplies it
+above, and a UUID key needs a database-side default such as `DEFAULT (UUID())`
+or `gen_random_uuid()`. Without one every push fails on the missing column.
+
+Warning: a key unrelated to insertion time gives up the first-in-first-out
+tiebreak, because the claim orders by `id ASC` among equal priorities. A random
+UUID sorts lexically rather than by age, so equal-priority jobs run in no
+particular order. The queue still drains.
+
+`DatabaseQueue` claims a row by stamping `reserved_at_ms`, which is what stops
+two workers taking the same job: the claim is one conditional update, so the
+second worker writes nothing. A reservation older than
+`queueDatabaseClientReservationTimeoutMs` counts as free, so a row that a
+crashed worker abandoned returns to the queue.
+
+A settlement deletes the row only while this worker still holds the claim it
+stamped. A worker whose window lapsed therefore takes nothing from the worker
+that reclaimed the row. A retry writes the new row before the old one goes, so
+a failure between the two leaves a duplicate rather than no job at all.
+
+A row whose `envelope` no factory can read is parked rather than deleted: the
+entry stamps both `reserved_at_ms` and `available_at_ms` with the last
+whole second of the year 9999. No staleness window reaches back to that
+reservation, and the availability stamp takes the row out of the range the claim
+index narrows to, so a parked row costs no later poll anything and keeps its
+bytes. Select on that stamp to find what a worker could not read. A settled job
+is deleted as usual, so the table holds only live work and whatever was parked.
+
+Nothing drains the parked rows. A deploy that changes the envelope shape parks
+every row it cannot read, in one pass, so treat a growing parked count as the
+signal it is — and delete them once you have read them.
+
 ## Entry Points
 
 | Entry             | Runs                                                  |
@@ -438,6 +519,7 @@ gives one request the deferred jobs of the request before it.
 | `AmqpQueue`       | a worker that consumes an AMQP queue                  |
 | `SqsQueue`        | a worker that long-polls an SQS queue                 |
 | `BeanstalkdQueue` | a worker that reserves jobs from a tube               |
+| `DatabaseQueue`   | a worker that claims rows from a table                |
 | `PushQueue`       | one job that a broker delivers over HTTP              |
 | `InternalQueue`   | each job that `SyncClient` or `DeferredClient` pushes |
 
@@ -697,6 +779,20 @@ does not extend it, so a long job needs the producer to publish a longer one.
 Warning: the reserve timeout is also how long a worker can overrun `maxSeconds`,
 because the loop reads its bounds only between reserves. Lower it when a worker
 has to stop promptly, and pay for the extra reserves.
+
+#### `QueueDatabaseClientConfigContract`
+
+| Property                                  | Default        | Description                           |
+| :---------------------------------------- | :------------- | :------------------------------------ |
+| `queueDatabaseClientQueue`                | `'default'`    | The queue that jobs are written under |
+| `queueDatabaseClientTable`                | `'queue_jobs'` | The table that jobs are written to    |
+| `queueDatabaseClientReservationTimeoutMs` | `300000`       | The milliseconds a claim holds a row  |
+
+Warning: a job that runs longer than the reservation timeout loses its claim.
+The row counts as free, a second worker claims and runs it while the first is
+still going, and both settle it. The first worker's delete is fenced on its own
+claim stamp, so it takes nothing the second one owns, but the job has run twice
+by then. Set the value above the longest job the table carries.
 
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
