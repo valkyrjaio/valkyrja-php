@@ -115,8 +115,16 @@ class PubSubQueue extends PullQueue
     public static function disconnect(): void
     {
         // Anything still in flight was not completed, so hand it back rather
-        // than letting it wait out the whole acknowledgement deadline
-        static::releaseCurrent();
+        // than letting it wait out the whole acknowledgement deadline. The
+        // release is best effort: `PullQueue::loop()` calls this from a
+        // `finally`, so a throw here would replace whatever ended the loop and
+        // skip the teardown below, and the deadline lapsing hands the delivery
+        // back anyway.
+        try {
+            static::releaseCurrent();
+        } catch (ApiException|ConnectException) {
+            // The deadline lapsing is the fallback, and it always applies
+        }
 
         static::$subscription = null;
     }

@@ -40,6 +40,9 @@ final class PubSubSubscriptionFixture extends Subscription
     /** @var Throwable|null The failure the next pull raises */
     public Throwable|null $failure = null;
 
+    /** @var Throwable|null The failure the next deadline change raises, as a lapsed lease does */
+    public Throwable|null $deadlineFailure = null;
+
     /**
      * @noinspection PhpMissingParentConstructorInspection
      */
@@ -86,5 +89,9 @@ final class PubSubSubscriptionFixture extends Subscription
     public function modifyAckDeadline(Message $message, $seconds, array $options = []): void
     {
         $this->deadlines[] = [$message, $seconds];
+
+        if ($this->deadlineFailure !== null) {
+            throw $this->deadlineFailure;
+        }
     }
 }

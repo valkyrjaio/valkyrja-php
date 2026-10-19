@@ -388,6 +388,25 @@ final class PubSubQueueTest extends TestCase
         self::assertSame(0, $this->subscription->deadlines[0][1]);
     }
 
+    public function testDisconnectSurvivesARefusedRelease(): void
+    {
+        // A job that outran its deadline lost the lease, so the release is
+        // refused. `PullQueue::loop()` calls disconnect from a `finally`, so a
+        // throw here would replace whatever ended the loop
+        $this->received();
+
+        $this->subscription->deadlineFailure = new ApiException('deadline', 0, 'NOT_FOUND');
+
+        PubSubQueueFixture::disconnect();
+
+        self::assertCount(1, $this->subscription->deadlines);
+
+        // A subscription left set is one the next run would pull on
+        $this->expectException(QueueServerNotConnectedException::class);
+
+        PubSubQueueFixture::receive();
+    }
+
     public function testDisconnectWithNothingInFlightHandsBackNothing(): void
     {
         PubSubQueueFixture::disconnect();
