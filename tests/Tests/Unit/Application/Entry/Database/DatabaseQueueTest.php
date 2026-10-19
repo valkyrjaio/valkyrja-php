@@ -361,19 +361,6 @@ final class DatabaseQueueTest extends TestCase
         self::assertStringNotContainsString('LIMIT', $query);
     }
 
-    public function testAKeylessParkThatTakesNothingFails(): void
-    {
-        // The park is what ends the poll, so a write that matched no row
-        // leaves the entry parking the same row on every later poll
-        // The select takes the first count, the park the second
-        $this->manager->rows      = [['envelope' => '{}']];
-        $this->manager->rowCounts = [1, 0];
-
-        $this->expectException(QueueServerInvalidRowKeyException::class);
-
-        DatabaseQueueFixture::receive();
-    }
-
     public function testAnEmptyTableTouchesNothing(): void
     {
         // The unreadable-row guard must not fire on an idle poll, or a job

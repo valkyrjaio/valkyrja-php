@@ -380,9 +380,10 @@ class DatabaseQueue extends PullQueue
      * Hold every row this queue cannot name out of the claim's reach.
      *
      * The predicate names the set rather than the row, which is the one write
-     * a keyless row can be given.
+     * a keyless row can be given. The write is best effort, as the claim is: a
+     * second worker that raced to the same row rewrites a value that is
+     * already parked, and mysql reports nothing changed for it.
      *
-     * @throws QueueServerInvalidRowKeyException
      * @throws QueueServerNotConnectedException
      */
     protected static function parkKeyless(): void
@@ -398,14 +399,6 @@ class DatabaseQueue extends PullQueue
         $statement->bindValue(new Value('parkedAvailable', self::PARKED_AT_MS));
         $statement->bindValue(new Value('queue', static::$queue));
         $statement->execute();
-
-        // This write is the only thing that ends the poll, so a write that
-        // took nothing leaves the entry parking the same row forever
-        if ($statement->getRowCount() === 0) {
-            throw new QueueServerInvalidRowKeyException(
-                "A keyless $table row could not be parked, so the queue cannot move past it"
-            );
-        }
     }
 
     /**
