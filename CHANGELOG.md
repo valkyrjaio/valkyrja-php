@@ -1,6 +1,25 @@
 # Release Notes for 26.x
 
-## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.19.1...26.x)
+## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.20.0...26.x)
+
+## [v26.20.0](https://github.com/valkyrjaio/valkyrja/compare/v26.19.1...v26.20.0) - 2026-10-19
+
+* [Cli] feat(#1359)!: Move the cast off the parameter and onto the caster by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1368
+* [Cli] docs: Show how an application binds its own cast type by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1371
+* [Event] fix: Type the events map as a map of listener id to listener id by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1372
+* [Queue] feat: Add the middleware and routing implementation by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1165
+* [Http] fix(#1360)!: Build a cast type through the container by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1374
+* [Http] fix!: Reject a route that names no handler by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1375
+* [Cli] fix!: Reject a route that names no handler by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1378
+* [Queue] feat: Add the server implementation by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1166
+* [Application] docs: Point at the enumerations instead of counting them by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1377
+* [Queue] feat: Add the client implementation and application entry points by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1167
+* [Queue] feat: Add the AMQP processor by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/974
+* [Queue] feat: Add the SQS processor by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/975
+* [Queue] feat: Add the beanstalkd processor by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/981
+* [Queue] feat: Add the database processor by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/982
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1383
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1384
 
 ## [v26.19.1](https://github.com/valkyrjaio/valkyrja/compare/v26.19.0...v26.19.1) - 2026-10-11
 
