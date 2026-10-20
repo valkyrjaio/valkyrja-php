@@ -38,6 +38,12 @@ final class DatabaseManagerFixture implements ManagerContract
     /** @var array<int, array<string, scalar|null>> The row each select returns, in order */
     public array $rows = [];
 
+    /** @var bool Whether every statement answers false from execute */
+    public bool $failExecute = false;
+
+    /** @var string|null The message every statement reports, when one is set */
+    public string|null $errorMessage = null;
+
     /** @var int[] The row count each statement reports, in order, a select included */
     public array $rowCounts = [];
 
@@ -76,6 +82,9 @@ final class DatabaseManagerFixture implements ManagerContract
                 : [],
             rowCount: array_shift($this->rowCounts) ?? 1,
         );
+
+        $statement->failExecute  = $this->failExecute;
+        $statement->errorMessage = $this->errorMessage;
 
         $this->statements[] = $statement;
 

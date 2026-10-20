@@ -29,6 +29,12 @@ final class DatabaseStatementFixture extends NullStatement
 
     public bool $executed = false;
 
+    /** @var bool Whether execute answers false, as it does under a non-throwing error mode */
+    public bool $failExecute = false;
+
+    /** @var string|null The message the driver reports, when it reports one */
+    public string|null $errorMessage = null;
+
     /**
      * @param array<string, scalar|null> $row The row a fetch returns
      */
@@ -58,7 +64,16 @@ final class DatabaseStatementFixture extends NullStatement
     {
         $this->executed = true;
 
-        return true;
+        return ! $this->failExecute;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getErrorMessage(): string
+    {
+        return $this->errorMessage ?? parent::getErrorMessage();
     }
 
     /**

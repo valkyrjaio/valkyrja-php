@@ -18,6 +18,7 @@ use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Orm\Data\Value;
 use Valkyrja\Orm\Manager\Contract\ManagerContract;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
+use Valkyrja\Queue\Client\Throwable\Exception\QueueClientPushFailedException;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
@@ -52,6 +53,7 @@ class DatabaseClient extends Client
      * @inheritDoc
      *
      * @throws JsonException
+     * @throws QueueClientPushFailedException
      */
     #[Override]
     protected function publish(JobContract $job): void
@@ -63,6 +65,7 @@ class DatabaseClient extends Client
      * @inheritDoc
      *
      * @throws JsonException
+     * @throws QueueClientPushFailedException
      */
     #[Override]
     protected function republish(JobContract $job, int $delayMs): void
@@ -76,6 +79,7 @@ class DatabaseClient extends Client
      * @param int<0, max> $delayMs The hold in milliseconds
      *
      * @throws JsonException
+     * @throws QueueClientPushFailedException
      */
     protected function insert(JobContract $job, int $delayMs): void
     {
@@ -89,6 +93,16 @@ class DatabaseClient extends Client
         $statement->bindValue(new Value('priority', $job->getPriority()));
         $statement->bindValue(new Value('available_at_ms', Microtime::getMilliseconds() + $delayMs));
 
-        $statement->execute();
+        if (! $statement->execute()) {
+            // PDO reports no message for a failure it raised itself, and an
+            // empty exception tells an operator nothing
+            $message = $statement->getErrorMessage();
+
+            throw new QueueClientPushFailedException(
+                $message !== ''
+                    ? $message
+                    : 'The queue insert failed'
+            );
+        }
     }
 }

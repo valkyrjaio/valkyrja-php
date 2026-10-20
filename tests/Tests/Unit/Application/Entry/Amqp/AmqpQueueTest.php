@@ -282,18 +282,19 @@ final class AmqpQueueTest extends TestCase
     {
         // A polling consumer must yield, or the entry's loop bounds and
         // graceful shutdown would never get a chance to run
-        AmqpQueueFixture::inject($this->channel, self::QUEUE, timeout: 1);
+        AmqpQueueFixture::inject($this->channel, self::QUEUE, timeout: 2);
 
         self::assertNull(AmqpQueueFixture::receive());
-        self::assertSame(1, AmqpQueueFixture::$waits);
+        self::assertSame([2], AmqpQueueFixture::$pauses);
     }
 
     public function testAZeroTimeoutDoesNotYield(): void
     {
+        // `pause()` takes a positive count, so a zero must not reach it
         AmqpQueueFixture::inject($this->channel, self::QUEUE, timeout: 0);
 
         self::assertNull(AmqpQueueFixture::receive());
-        self::assertSame(0, AmqpQueueFixture::$waits);
+        self::assertSame([], AmqpQueueFixture::$pauses);
     }
 
     public function testAFirstDeliveryKeepsTheEnvelopeAttempt(): void

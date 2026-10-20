@@ -26,9 +26,11 @@ use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
+use Valkyrja\Queue\Server\Throwable\Exception\QueueServerInvalidRowKeyException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
 
+use function get_debug_type;
 use function is_int;
 use function is_string;
 use function sleep;
@@ -97,6 +99,7 @@ class DatabaseQueue extends PullQueue
     /**
      * @inheritDoc
      *
+     * @throws QueueServerInvalidRowKeyException
      * @throws QueueServerNotConnectedException
      */
     #[Override]
@@ -247,6 +250,9 @@ class DatabaseQueue extends PullQueue
     /**
      * Find the next job whose hold has elapsed and that no worker holds.
      *
+     * @throws QueueServerInvalidRowKeyException
+     * @throws QueueServerNotConnectedException
+     *
      * @return array{0: int|string, 1: string}|null
      */
     protected static function findEligible(): array|null
@@ -278,12 +284,19 @@ class DatabaseQueue extends PullQueue
         $id       = $row['id'] ?? null;
         $envelope = $row['envelope'] ?? null;
 
-        // Without a key there is nothing to name the row by, and an unqualified
-        // update would park whichever row is at the head instead. The row
-        // therefore stays, and the queue stalls on it. The documented DDL makes
-        // `id` the primary key, so this needs a table that allows it to be null.
-        if (! is_int($id) && ! is_string($id)) {
+        // No value names this row, so the set it belongs to is parked instead
+        if ($id === null) {
+            static::parkKeyless();
+
             return null;
+        }
+
+        // The claim, the park and the delete all bind an integer or a string,
+        // so a key of any other type can be given none of the three
+        if (! is_int($id) && ! is_string($id)) {
+            throw new QueueServerInvalidRowKeyException(
+                "A $table row keys on a type the queue cannot name: " . get_debug_type($id)
+            );
         }
 
         if (! is_string($envelope)) {
@@ -358,6 +371,29 @@ class DatabaseQueue extends PullQueue
         $statement->bindValue(new Value('parkedReserved', self::PARKED_AT_MS));
         $statement->bindValue(new Value('parkedAvailable', self::PARKED_AT_MS));
         $statement->bindValue(new Value('id', $id));
+        $statement->execute();
+    }
+
+    /**
+     * Hold every row this queue cannot name out of the claim's reach.
+     *
+     * @throws QueueServerNotConnectedException
+     */
+    protected static function parkKeyless(): void
+    {
+        $table = static::$table;
+
+        $statement = static::getConnection()->prepare(
+            "UPDATE $table SET reserved_at_ms = :parkedReserved, available_at_ms = :parkedAvailable"
+            . ' WHERE queue = :queue AND id IS NULL'
+        );
+
+        $statement->bindValue(new Value('parkedReserved', self::PARKED_AT_MS));
+        $statement->bindValue(new Value('parkedAvailable', self::PARKED_AT_MS));
+        $statement->bindValue(new Value('queue', static::$queue));
+
+        // Best effort, as the claim is: a worker that lost the race rewrites a
+        // value already parked, which mysql counts as nothing changed
         $statement->execute();
     }
 
