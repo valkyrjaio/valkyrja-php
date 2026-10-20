@@ -94,9 +94,8 @@ class DatabaseClient extends Client
         $statement->bindValue(new Value('available_at_ms', Microtime::getMilliseconds() + $delayMs));
 
         if (! $statement->execute()) {
-            // The driver names the constraint, the column or the lock it
-            // stopped on. It reports no message for a failure PDO itself
-            // raised, and an empty exception tells an operator nothing.
+            // PDO reports no message for a failure it raised itself, and an
+            // empty exception tells an operator nothing
             $message = $statement->getErrorMessage();
 
             throw new QueueClientPushFailedException(
