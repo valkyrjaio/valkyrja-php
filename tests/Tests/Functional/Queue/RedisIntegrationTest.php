@@ -22,6 +22,7 @@ use Valkyrja\Queue\Client\Manager\RedisClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Queue\Message\Payload\Payload;
 use Valkyrja\Tests\Fixtures\Application\Data\RedisWorkerConfigFixture;
 use Valkyrja\Tests\Fixtures\Application\Entry\RedisQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
@@ -171,6 +172,28 @@ final class RedisIntegrationTest extends TestCase
         $envelope = new JobFactory()->toJson(
             new Job(name: QueueRoutingProviderFixture::ALWAYS_ACK)
         );
+
+        $this->redis->zadd(self::QUEUE . RedisClient::DELAYED_SUFFIX, [$envelope => 1]);
+
+        $received = RedisQueueFixture::receive();
+
+        self::assertNotNull($received);
+        self::assertSame(QueueRoutingProviderFixture::ALWAYS_ACK, $received->getName());
+    }
+
+    public function testATokenlessMemberHoldingTheSeparatorPromotesWhole(): void
+    {
+        // The separator is legal inside an envelope, so a pattern that read
+        // the token as everything before the first one would cut this member
+        // down to a fragment and park it as unreadable
+        $envelope = new JobFactory()->toJson(
+            new Job(
+                name: QueueRoutingProviderFixture::ALWAYS_ACK,
+                payload: new Payload(['label' => 'Report|Daily'])
+            )
+        );
+
+        self::assertStringContainsString(RedisClient::DELAYED_SEPARATOR, $envelope);
 
         $this->redis->zadd(self::QUEUE . RedisClient::DELAYED_SUFFIX, [$envelope => 1]);
 

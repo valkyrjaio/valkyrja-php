@@ -31,10 +31,6 @@ class RedisClient extends Client
     /**
      * What separates a delayed member's uniqueness token from its envelope.
      *
-     * An envelope is JSON, so it opens with a brace and carries no token of
-     * its own. The first occurrence therefore ends the token, whatever the
-     * payload holds after it.
-     *
      * @var non-empty-string
      */
     public const string DELAYED_SEPARATOR = '|';
@@ -91,11 +87,8 @@ class RedisClient extends Client
         $encoded = $this->factory->toJson($job);
 
         if ($delayMs > 0) {
-            // A sorted set holds one copy of a member, and an envelope is the
-            // whole member here, so two pushes of one job in a single
-            // millisecond would score the same member twice and deliver once.
-            // The token makes every member distinct, and the promote script
-            // takes it back off.
+            // A sorted set holds one copy of a member, so the token is what
+            // keeps two pushes of one job from scoring the same string
             $member = VlidV1Factory::generate() . static::DELAYED_SEPARATOR . $encoded;
 
             $this->redis->zadd($this->getDelayedQueue(), [$member => Microtime::getMilliseconds() + $delayMs]);

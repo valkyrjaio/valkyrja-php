@@ -560,11 +560,13 @@ delivery by itself, so only redis needs the list.
 
 A job with a hold waits on a sorted set rather than the ready list, scored by
 the instant it becomes eligible. A sorted set keeps one copy of a member, so
-each member is a uniqueness token, a `|`, and then the envelope; the promote
-script takes everything after the first `|`. Without the token two pushes of
-one job inside a single millisecond would write the same member twice and
-deliver it once. A member with no `|` promotes whole, which is what an envelope
-an older client wrote needs.
+each member is a uniqueness token, a `|`, and then the envelope. Without the
+token, two pushes of one job inside a single millisecond write the same member
+twice and the queue delivers it once.
+
+The promote script reads the token by its own alphabet, which holds no brace.
+An envelope opens with one, so a member an older client wrote carries no token
+the script can read and promotes whole, however many `|` its payload holds.
 
 Warning: an SQS redrive policy never sees a job the framework dead-letters.
 `SqsQueue` deletes the message on `FAIL` and on `DEAD_LETTER`, and SQS routes to

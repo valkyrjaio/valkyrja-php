@@ -192,8 +192,9 @@ final class RedisQueueTest extends TestCase
                 '100',
                 // Everything past the first separator, so the ready list takes
                 // the envelope and not the uniqueness token in front of it
-                '^[^' . RedisClient::DELAYED_SEPARATOR . ']*'
-                . RedisClient::DELAYED_SEPARATOR . '(.*)$',
+                // Spelled out rather than rebuilt: sharing the expression
+                // with the source would move both sides together
+                '^[0123456789ABCDEFGHJKMNPQRSTVWXYZabcdefghjkmnpqrstvwxyz]+|(.*)$',
             ]],
             $this->redis->getCalls('eval')
         );

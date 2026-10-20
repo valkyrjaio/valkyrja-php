@@ -27,6 +27,7 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
+use Valkyrja\Type\Ulid\Factory\UlidFactory;
 
 use function is_string;
 
@@ -46,9 +47,8 @@ class RedisQueue extends PullQueue
      * worker that dies between them cannot leave the job on neither key. The
      * limit bounds the walk, so a backlog cannot stall the poll loop.
      *
-     * A delayed member carries a uniqueness token, which the pattern takes off
-     * before the envelope reaches the ready list. A member written before the
-     * token existed has none, and falls through to the whole member.
+     * The pattern takes a delayed member's token off before the envelope
+     * reaches the ready list, and a member that carries none falls through.
      */
     protected const string PROMOTE_SCRIPT = <<<'LUA'
         local due = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, ARGV[2])
@@ -302,7 +302,10 @@ class RedisQueue extends PullQueue
             static::$queue,
             (string) Microtime::getMilliseconds(),
             (string) static::$promoteLimit,
-            '^[^' . RedisClient::DELAYED_SEPARATOR . ']*' . RedisClient::DELAYED_SEPARATOR . '(.*)$',
+            // Anchored on the token's own alphabet: an envelope opens with a
+            // brace, so a member written before the token cannot match it
+            '^[' . UlidFactory::VALID_CHARACTERS . ']+'
+            . RedisClient::DELAYED_SEPARATOR . '(.*)$',
         );
     }
 }
