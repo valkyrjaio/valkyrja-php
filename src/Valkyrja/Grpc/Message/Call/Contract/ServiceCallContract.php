@@ -34,12 +34,12 @@ interface ServiceCallContract
     public function getMetadata(): MetadataContract;
 
     /**
-     * Get the call deadline. Never null; may be `Deadline::none()`.
+     * Get the call deadline. Never null; a sentinel stands in for no deadline.
      */
     public function getDeadline(): DeadlineContract;
 
     /**
-     * Get the cancellation token. Never null; may be `CancellationToken::never()`.
+     * Get the cancellation token. Never null; a sentinel stands in for no cancellation.
      */
     public function getCancellation(): CancellationTokenContract;
 
