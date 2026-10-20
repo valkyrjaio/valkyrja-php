@@ -1,7 +1,7 @@
 # Grpc
 
 Implements
-[`GRPC.md`](https://github.com/valkyrjaio/architecture/blob/26.x/component/grpc/GRPC.md).
+[`GRPC.md`](https://github.com/valkyrjaio/architecture/blob/26.x/component/GRPC.md).
 
 ## Introduction
 
@@ -541,10 +541,10 @@ handler is a singleton, so the middleware a method appends at a stage reaches th
 handler that runs it. Two instances means that middleware never runs, and
 nothing reports it.
 
-The service handler declares `run` as the entry point an adapter calls, and
-`handle` as the method that produces the response from the first five stages.
-The terminal methods carry their stage names, `sendingResponse` and
-`responseSent`, and the adapter calls each one around its own write.
+The service handler declares `run` as the entry point an adapter calls. `run`
+runs `handle`, which produces the response from the first five stages, and then
+`sending`. The adapter writes the response `run` returns, then calls
+`terminate`.
 
 Warning: a port that invokes the handler reflectively **rethrows the handler's
 own throwable**. A reflective call wraps whatever the target threw, so
