@@ -12,20 +12,31 @@ declare(strict_types=1);
 
 namespace Valkyrja\Queue\Client\Manager;
 
+use InvalidArgumentException;
 use JsonException;
 use Override;
 use Predis\ClientInterface;
+use Random\RandomException;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Queue\Client\Manager\Abstract\Client;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Support\Time\Microtime;
+use Valkyrja\Type\Throwable\Exception\Abstract\TypeRuntimeException;
+use Valkyrja\Type\Vlid\Factory\VlidV1Factory;
 
 class RedisClient extends Client
 {
     /** @var non-empty-string */
     public const string DELAYED_SUFFIX = ':delayed';
+
+    /**
+     * What separates a delayed member's uniqueness token from its envelope.
+     *
+     * @var non-empty-string
+     */
+    public const string DELAYED_SEPARATOR = '|';
 
     /**
      * @param non-empty-string $queue           The list key jobs are pushed onto
@@ -49,6 +60,9 @@ class RedisClient extends Client
      * @inheritDoc
      *
      * @throws JsonException
+     * @throws RandomException
+     * @throws InvalidArgumentException
+     * @throws TypeRuntimeException
      */
     #[Override]
     protected function publish(JobContract $job): void
@@ -60,6 +74,9 @@ class RedisClient extends Client
      * @inheritDoc
      *
      * @throws JsonException
+     * @throws RandomException
+     * @throws InvalidArgumentException
+     * @throws TypeRuntimeException
      */
     #[Override]
     protected function republish(JobContract $job, int $delayMs): void
@@ -73,13 +90,20 @@ class RedisClient extends Client
      * @param int<0, max> $delayMs The hold in milliseconds
      *
      * @throws JsonException
+     * @throws RandomException
+     * @throws InvalidArgumentException
+     * @throws TypeRuntimeException
      */
     protected function enqueue(JobContract $job, int $delayMs): void
     {
         $encoded = $this->factory->toJson($job);
 
         if ($delayMs > 0) {
-            $this->redis->zadd($this->getDelayedQueue(), [$encoded => Microtime::getMilliseconds() + $delayMs]);
+            // A sorted set holds one copy of a member, so the token is what
+            // keeps two pushes of one job from scoring the same string
+            $member = VlidV1Factory::generate() . static::DELAYED_SEPARATOR . $encoded;
+
+            $this->redis->zadd($this->getDelayedQueue(), [$member => Microtime::getMilliseconds() + $delayMs]);
 
             return;
         }

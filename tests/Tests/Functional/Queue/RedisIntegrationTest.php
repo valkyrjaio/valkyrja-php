@@ -22,6 +22,7 @@ use Valkyrja\Queue\Client\Manager\RedisClient;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
+use Valkyrja\Queue\Message\Payload\Payload;
 use Valkyrja\Tests\Fixtures\Application\Data\RedisWorkerConfigFixture;
 use Valkyrja\Tests\Fixtures\Application\Entry\RedisQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultLogMiddlewareFixture;
@@ -144,6 +145,61 @@ final class RedisIntegrationTest extends TestCase
         self::assertNotNull($received);
         self::assertSame(QueueRoutingProviderFixture::ALWAYS_ACK, $received->getName());
         self::assertSame(0, (int) $this->redis->zcard(self::QUEUE . RedisClient::DELAYED_SUFFIX));
+    }
+
+    public function testTwoPushesOfOneDelayedJobBothSurvive(): void
+    {
+        // Two pushes inside one millisecond write byte-equal envelopes, so
+        // only the token keeps them apart
+        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_ACK, delayMs: 1);
+
+        $this->client()->push($job);
+        $this->client()->push($job);
+
+        self::assertSame(2, (int) $this->redis->zcard(self::QUEUE . RedisClient::DELAYED_SUFFIX));
+
+        usleep(5_000);
+
+        self::assertNotNull(RedisQueueFixture::receive());
+        self::assertNotNull(RedisQueueFixture::receive());
+    }
+
+    public function testADelayedMemberWrittenBeforeTheTokenStillPromotes(): void
+    {
+        // A deployment carries jobs that an older client already wrote with no
+        // token, and the promote script has to hand those on unchanged
+        $envelope = new JobFactory()->toJson(
+            new Job(name: QueueRoutingProviderFixture::ALWAYS_ACK)
+        );
+
+        $this->redis->zadd(self::QUEUE . RedisClient::DELAYED_SUFFIX, [$envelope => 1]);
+
+        $received = RedisQueueFixture::receive();
+
+        self::assertNotNull($received);
+        self::assertSame(QueueRoutingProviderFixture::ALWAYS_ACK, $received->getName());
+    }
+
+    public function testATokenlessMemberHoldingTheSeparatorPromotesWhole(): void
+    {
+        // The separator is legal inside an envelope, so a token read as
+        // everything before the first one would cut this member to a fragment
+        $envelope = new JobFactory()->toJson(
+            new Job(
+                name: QueueRoutingProviderFixture::ALWAYS_ACK,
+                payload: new Payload(['label' => 'Report|Daily'])
+            )
+        );
+
+        self::assertStringContainsString(RedisClient::DELAYED_SEPARATOR, $envelope);
+
+        $this->redis->zadd(self::QUEUE . RedisClient::DELAYED_SUFFIX, [$envelope => 1]);
+
+        $received = RedisQueueFixture::receive();
+
+        self::assertNotNull($received);
+        // Whole, not merely decodable: a fragment would lose the payload
+        self::assertSame('Report|Daily', $received->getPayload()->get('label'));
     }
 
     public function testARetryIsHeldForItsRetryDelayNotTheProducersDelay(): void

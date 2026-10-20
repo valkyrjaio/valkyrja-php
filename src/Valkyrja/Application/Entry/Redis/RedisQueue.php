@@ -27,6 +27,7 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
+use Valkyrja\Type\Vlid\Factory\VlidV1Factory;
 
 use function is_string;
 
@@ -45,13 +46,18 @@ class RedisQueue extends PullQueue
      * promote the same job twice, and running both inside one script means a
      * worker that dies between them cannot leave the job on neither key. The
      * limit bounds the walk, so a backlog cannot stall the poll loop.
+     *
+     * The pattern takes a delayed member's token off before the envelope
+     * reaches the ready list, and a member that carries none falls through.
      */
     protected const string PROMOTE_SCRIPT = <<<'LUA'
         local due = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, ARGV[2])
 
         for index = 1, #due do
             if redis.call('ZREM', KEYS[1], due[index]) == 1 then
-                redis.call('RPUSH', KEYS[2], due[index])
+                local envelope = string.match(due[index], ARGV[3]) or due[index]
+
+                redis.call('RPUSH', KEYS[2], envelope)
             end
         end
 
@@ -296,6 +302,10 @@ class RedisQueue extends PullQueue
             static::$queue,
             (string) Microtime::getMilliseconds(),
             (string) static::$promoteLimit,
+            // Anchored on the token's own alphabet: an envelope opens with a
+            // brace, so a member written before the token cannot match it
+            '^[' . VlidV1Factory::VALID_CHARACTERS . ']+'
+            . RedisClient::DELAYED_SEPARATOR . '(.*)$',
         );
     }
 }
