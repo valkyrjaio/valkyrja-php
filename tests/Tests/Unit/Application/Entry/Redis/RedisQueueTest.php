@@ -190,6 +190,10 @@ final class RedisQueueTest extends TestCase
                 self::QUEUE,
                 '1768564798000',
                 '100',
+                // Everything past the first separator, so the ready list takes
+                // the envelope and not the uniqueness token in front of it
+                '^[^' . RedisClient::DELAYED_SEPARATOR . ']*'
+                . RedisClient::DELAYED_SEPARATOR . '(.*)$',
             ]],
             $this->redis->getCalls('eval')
         );

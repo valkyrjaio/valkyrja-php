@@ -558,6 +558,14 @@ An envelope no factory can read is parked on an unreadable list instead of being
 discarded. A broker that owns its own acknowledgement returns an unacknowledged
 delivery by itself, so only redis needs the list.
 
+A job with a hold waits on a sorted set rather than the ready list, scored by
+the instant it becomes eligible. A sorted set keeps one copy of a member, so
+each member is a uniqueness token, a `|`, and then the envelope; the promote
+script takes everything after the first `|`. Without the token two pushes of
+one job inside a single millisecond would write the same member twice and
+deliver it once. A member with no `|` promotes whole, which is what an envelope
+an older client wrote needs.
+
 Warning: an SQS redrive policy never sees a job the framework dead-letters.
 `SqsQueue` deletes the message on `FAIL` and on `DEAD_LETTER`, and SQS routes to
 a dead-letter queue on the receive count at receive time, so a message deleted

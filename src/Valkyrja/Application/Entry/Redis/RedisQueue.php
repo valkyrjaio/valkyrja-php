@@ -45,13 +45,19 @@ class RedisQueue extends PullQueue
      * promote the same job twice, and running both inside one script means a
      * worker that dies between them cannot leave the job on neither key. The
      * limit bounds the walk, so a backlog cannot stall the poll loop.
+     *
+     * A delayed member carries a uniqueness token, which the pattern takes off
+     * before the envelope reaches the ready list. A member written before the
+     * token existed has none, and falls through to the whole member.
      */
     protected const string PROMOTE_SCRIPT = <<<'LUA'
         local due = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, ARGV[2])
 
         for index = 1, #due do
             if redis.call('ZREM', KEYS[1], due[index]) == 1 then
-                redis.call('RPUSH', KEYS[2], due[index])
+                local envelope = string.match(due[index], ARGV[3]) or due[index]
+
+                redis.call('RPUSH', KEYS[2], envelope)
             end
         end
 
@@ -296,6 +302,7 @@ class RedisQueue extends PullQueue
             static::$queue,
             (string) Microtime::getMilliseconds(),
             (string) static::$promoteLimit,
+            '^[^' . RedisClient::DELAYED_SEPARATOR . ']*' . RedisClient::DELAYED_SEPARATOR . '(.*)$',
         );
     }
 }

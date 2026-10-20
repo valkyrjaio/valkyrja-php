@@ -22,7 +22,10 @@ use Valkyrja\Tests\Fixtures\Queue\Client\RedisFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 use function array_key_first;
+use function explode;
 use function json_decode;
+
+use const JSON_THROW_ON_ERROR;
 
 final class RedisClientTest extends TestCase
 {
@@ -84,6 +87,42 @@ final class RedisClientTest extends TestCase
         self::assertSame(self::QUEUE . RedisClient::DELAYED_SUFFIX, $calls[0][0]);
         // Scored by the instant it becomes eligible
         self::assertSame(self::FROZEN_MS + 5000, $calls[0][1][array_key_first($calls[0][1])]);
+    }
+
+    public function testTwoPushesOfOneJobHoldTwoDelayedMembers(): void
+    {
+        // A sorted set keeps one copy of a member, and the clock is frozen
+        // here, so an envelope used as the member whole would score the same
+        // string twice and deliver one of the two jobs
+        $job = new Job(name: self::NAME, delayMs: 5000);
+
+        $this->client()->push($job);
+        $this->client()->push($job);
+
+        $calls = $this->redis->getCalls('zadd');
+
+        self::assertCount(2, $calls);
+        self::assertNotSame(
+            array_key_first($calls[0][1]),
+            array_key_first($calls[1][1])
+        );
+    }
+
+    public function testADelayedMemberCarriesTheEnvelopeAfterItsToken(): void
+    {
+        // The promote script hands the ready list everything past the first
+        // separator, so that remainder has to be the envelope exactly
+        $this->client()->push(new Job(name: self::NAME, delayMs: 5000));
+
+        $member = array_key_first($this->redis->getCalls('zadd')[0][1]);
+
+        [$token, $envelope] = explode(RedisClient::DELAYED_SEPARATOR, $member, 2);
+
+        self::assertNotSame('', $token);
+        self::assertSame(
+            self::NAME,
+            json_decode($envelope, true, flags: JSON_THROW_ON_ERROR)[EnvelopeField::NAME]
+        );
     }
 
     public function testRetryHoldsTheJobUntilTheSuppliedDelayElapses(): void

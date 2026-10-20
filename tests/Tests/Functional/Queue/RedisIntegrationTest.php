@@ -146,6 +146,40 @@ final class RedisIntegrationTest extends TestCase
         self::assertSame(0, (int) $this->redis->zcard(self::QUEUE . RedisClient::DELAYED_SUFFIX));
     }
 
+    public function testTwoPushesOfOneDelayedJobBothSurvive(): void
+    {
+        // A sorted set keeps one copy of a member. The envelope used whole as
+        // the member made two pushes inside one millisecond score the same
+        // string, and the second push silently replaced the first.
+        $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_ACK, delayMs: 1);
+
+        $this->client()->push($job);
+        $this->client()->push($job);
+
+        self::assertSame(2, (int) $this->redis->zcard(self::QUEUE . RedisClient::DELAYED_SUFFIX));
+
+        usleep(5_000);
+
+        self::assertNotNull(RedisQueueFixture::receive());
+        self::assertNotNull(RedisQueueFixture::receive());
+    }
+
+    public function testADelayedMemberWrittenBeforeTheTokenStillPromotes(): void
+    {
+        // A deployment carries jobs that an older client already wrote with no
+        // token, and the promote script has to hand those on unchanged
+        $envelope = new JobFactory()->toJson(
+            new Job(name: QueueRoutingProviderFixture::ALWAYS_ACK)
+        );
+
+        $this->redis->zadd(self::QUEUE . RedisClient::DELAYED_SUFFIX, [$envelope => 1]);
+
+        $received = RedisQueueFixture::receive();
+
+        self::assertNotNull($received);
+        self::assertSame(QueueRoutingProviderFixture::ALWAYS_ACK, $received->getName());
+    }
+
     public function testARetryIsHeldForItsRetryDelayNotTheProducersDelay(): void
     {
         // The producer's delay is intent recorded at first publish; a retry is

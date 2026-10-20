@@ -21,11 +21,23 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Support\Time\Microtime;
+use Valkyrja\Type\Vlid\Factory\VlidV1Factory;
 
 class RedisClient extends Client
 {
     /** @var non-empty-string */
     public const string DELAYED_SUFFIX = ':delayed';
+
+    /**
+     * What separates a delayed member's uniqueness token from its envelope.
+     *
+     * An envelope is JSON, so it opens with a brace and carries no token of
+     * its own. The first occurrence therefore ends the token, whatever the
+     * payload holds after it.
+     *
+     * @var non-empty-string
+     */
+    public const string DELAYED_SEPARATOR = '|';
 
     /**
      * @param non-empty-string $queue           The list key jobs are pushed onto
@@ -79,7 +91,14 @@ class RedisClient extends Client
         $encoded = $this->factory->toJson($job);
 
         if ($delayMs > 0) {
-            $this->redis->zadd($this->getDelayedQueue(), [$encoded => Microtime::getMilliseconds() + $delayMs]);
+            // A sorted set holds one copy of a member, and an envelope is the
+            // whole member here, so two pushes of one job in a single
+            // millisecond would score the same member twice and deliver once.
+            // The token makes every member distinct, and the promote script
+            // takes it back off.
+            $member = VlidV1Factory::generate() . static::DELAYED_SEPARATOR . $encoded;
+
+            $this->redis->zadd($this->getDelayedQueue(), [$member => Microtime::getMilliseconds() + $delayMs]);
 
             return;
         }
