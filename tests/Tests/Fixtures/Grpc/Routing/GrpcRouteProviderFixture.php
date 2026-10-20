@@ -14,6 +14,7 @@ namespace Valkyrja\Tests\Fixtures\Grpc\Routing;
 
 use Override;
 use Valkyrja\Grpc\Routing\Provider\Contract\GrpcRouteProviderContract;
+use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\CancellingControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\CounterControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\EchoControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\GreeterControllerFixture;
@@ -30,6 +31,7 @@ final class GrpcRouteProviderFixture implements GrpcRouteProviderContract
             GreeterControllerFixture::class,
             EchoControllerFixture::class,
             CounterControllerFixture::class,
+            CancellingControllerFixture::class,
         ];
     }
 

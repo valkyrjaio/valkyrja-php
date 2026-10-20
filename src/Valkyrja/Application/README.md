@@ -8,7 +8,7 @@ This component also carries the entry classes, the config classes, the
 `Directory` path helper, and the built-in component providers. This document
 covers each in turn:
 
-- [Entry Points](#entry-points) — HTTP, CLI, queue, and the persistent
+- [Entry Points](#entry-points) — HTTP, CLI, queue, gRPC, and the persistent
   worker runtimes
 - [Configuration](#configuration) — the config classes, environment
   sourcing, your own config class, and callbacks
@@ -42,6 +42,7 @@ Do not instantiate `Valkyrja` directly. Use an entry class:
   `Valkyrja\Application\Entry\Amqp\AmqpQueue`
 - `Valkyrja\Application\Entry\PushQueue` — a job that a broker pushes over
   HTTP
+- `Valkyrja\Application\Entry\Grpc` — a single gRPC call, and tests
 - Worker entry classes — persistent worker runtimes (see
   [Persistent Worker Lifecycle](#persistent-worker-lifecycle))
 
@@ -316,12 +317,13 @@ way that a job from a broker runs.
 
 Configuration is a typed PHP object. There is no `.env` reader and no flat
 array registry. One config class exists for each entry type. `HttpConfig`,
-`CliConfig` and `QueueConfig` do not extend `Config`. Each one implements its
-own contract (`HttpConfigContract`, `CliConfigContract`, `QueueConfigContract`)
-and repeats the base properties. Every contract extends `ConfigContract`, and
-the entry classes discriminate on the contract: `Http::run()` requires an
-`HttpConfigContract`, `Cli::run()` requires a `CliConfigContract`, and a queue
-entry requires a `QueueConfigContract`.
+`CliConfig`, `QueueConfig` and `GrpcConfig` do not extend `Config`. Each one
+implements its own contract (`HttpConfigContract`, `CliConfigContract`,
+`QueueConfigContract`, `GrpcConfigContract`) and repeats the base properties.
+Every contract extends `ConfigContract`, and the entry classes discriminate on
+the contract: `Http::run()` requires an `HttpConfigContract`, `Cli::run()`
+requires a `CliConfigContract`, a queue entry requires a `QueueConfigContract`,
+and `Grpc::handle()` requires a `GrpcConfigContract`.
 
 Convention: hold your application's real values in the config object that the
 entry point builds. Create one config file per environment, or read the values
@@ -386,6 +388,27 @@ the binary name in version and help output.
 | `routeDispatchedMiddleware` | `[]`                                                                            |
 | `throwableCaughtMiddleware` | `[LogThrowableCaughtMiddleware::class, OutputThrowableCaughtMiddleware::class]` |
 | `processExitingMiddleware`  | `[]`                                                                            |
+
+### gRPC Properties
+
+`Valkyrja\Application\Data\GrpcConfig` repeats the base properties, changes the
+`providers` default to `[GrpcApplicationComponentProvider]`, and adds one cap
+and seven middleware lists:
+
+| Property                    | Default                                              |
+| --------------------------- | ---------------------------------------------------- |
+| `maxInboundMessages`        | `1000` — the most messages one call may send inbound |
+| `callReceivedMiddleware`    | `[]`                                                 |
+| `routeMatchedMiddleware`    | `[]`                                                 |
+| `routeNotMatchedMiddleware` | `[]`                                                 |
+| `routeDispatchedMiddleware` | `[]`                                                 |
+| `throwableCaughtMiddleware` | `[LogThrowableCaughtMiddleware::class]`              |
+| `sendingResponseMiddleware` | `[]`                                                 |
+| `responseSentMiddleware`    | `[]`                                                 |
+
+Warning: `maxInboundMessages` bounds the inbound direction only. The framework
+puts no bound on the outbound direction, so a worker adapter applies its own
+backpressure when the transport cannot accept another message.
 
 ### Sourcing Values From the Environment
 
@@ -744,6 +767,7 @@ The framework ships the following aggregators in
 | `CliWithHttpApplicationComponentProvider` | `CliApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server           | `CliConfig`   |
 | `HttpApplicationComponentProvider`        | `ApplicationComponentProvider` + HTTP Message, Middleware, Routing, RoutingCli, Server + Log + View | `HttpConfig`  |
 | `QueueApplicationComponentProvider`       | `ApplicationComponentProvider` + Queue Message, Middleware, Routing + Log                           | `QueueConfig` |
+| `GrpcApplicationComponentProvider`        | `ApplicationComponentProvider` + gRPC Middleware, Routing, Server + Log                             | `GrpcConfig`  |
 
 Choose by application shape:
 
@@ -759,6 +783,8 @@ Choose by application shape:
   components.
 - `QueueApplicationComponentProvider` serves a queue consumer, which runs jobs
   and carries neither an HTTP nor a CLI surface.
+- `GrpcApplicationComponentProvider` serves a gRPC worker. It omits every HTTP
+  and CLI component, and omits View, because a gRPC call renders no template.
 
 List an aggregator alongside your own provider:
 
@@ -874,6 +900,18 @@ three concrete classes in the table above supply each runtime's request loop.
 The invariant: **the parent application and its container are frozen after
 `bootstrap()` returns.** Every request gets its own `ChildContainer` and
 `ChildApplication`, and the worker discards both when the request ends.
+
+`Valkyrja\Application\Entry\Abstract\WorkerGrpc` holds the same invariant for
+gRPC. It bootstraps once, freezes the parent, and gives every call its own child
+container. Its own surface differs:
+
+- `bootstrap()` takes a `GrpcConfigContract`.
+- `dispatch()` handles one buffered call and hands the response to a writer.
+- `dispatchStreaming()` handles one streaming call against an outbound stream.
+
+The steps below describe `WorkerHttp`. `WorkerGrpc` shares the three child
+steps and `bootstrapParentServices()`, but it has no `handle()` or
+`handleRequest()`.
 
 ```mermaid
 flowchart TD
