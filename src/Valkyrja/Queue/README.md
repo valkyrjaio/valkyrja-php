@@ -317,16 +317,20 @@ broker answers it directly from `settle`, and never calls
 `ClientContract::requeue()`.
 
 The entry still supplies the hold, where the broker accepts one. `SqsQueue` sets
-the visibility timeout from the ramp, and `BeanstalkdQueue` passes the same ramp
-to the release, so the hold is the job's own and not the queue's default.
+the visibility timeout from the ramp, `PubSubQueue` sets the acknowledgement
+deadline from it, and `BeanstalkdQueue` passes the same ramp to the release, so
+the hold is the job's own and not the queue's default.
 `AmqpQueue` passes none, because a nack gives the broker no place to put one, so
 that broker redelivers on its own schedule.
 
 Warning: the count such a broker reports has to reach the ceiling, or nothing
 dead-letters. A classic AMQP queue reports only that a delivery is a
 redelivery, not which one, so `AmqpQueue` cannot count past the second attempt.
-A quorum queue reports every attempt, so use one when the ceiling has to hold.
-Set the vhost's `default_queue_type` to `quorum` to get it. The framework
+Pub/Sub reports its count only on a subscription that carries a dead-letter
+policy, and without one `PubSubQueue` never advances the attempt at all.
+
+A quorum queue reports every attempt, so use one when the AMQP ceiling has to
+hold. Set the vhost's `default_queue_type` to `quorum` to get it. The framework
 declares the queue with no `x-queue-type`, so a queue the operator declared as
 quorum answers `PRECONDITION_FAILED` on the next declare and the worker cannot
 start; the vhost default carries no such argument and so cannot collide. The
@@ -355,6 +359,7 @@ quorum queue, or give the job a `max_attempts` of 2.
 | `SqsClient`        | SQS        | processor  |
 | `BeanstalkdClient` | beanstalkd | processor  |
 | `DatabaseClient`   | a database | framework  |
+| `PubSubClient`     | Pub/Sub    | processor  |
 
 `SyncClient` and `DeferredClient` hand each job to the `InternalQueue` entry of
 the application. The entry runs a separate queue application, so the job runs
@@ -387,11 +392,16 @@ changing its visibility rather than by publishing again.
 `BeanstalkdClient` refuses both as well. The job stays reserved, so the entry
 answers a retry by releasing it with a priority and a hold.
 
-`AmqpClient` publishes without a hold. AMQP carries no per-message delay, and
-giving it one needs a delay queue and a dead-letter exchange that the broker
-owner declares rather than the client. A job pushed with `delay_ms` is therefore
-consumable as soon as it lands. Every other broker client applies the hold at
-enqueue.
+`PubSubClient` refuses both for the same reason. The delivery is still
+unacknowledged, so the entry answers a retry by moving its acknowledgement
+deadline rather than by publishing again.
+
+`AmqpClient` and `PubSubClient` publish without a hold, because neither broker
+carries a per-message delay. Giving AMQP one needs a delay queue and a
+dead-letter exchange that the broker owner declares rather than the client, and
+Cloud Pub/Sub has no equivalent at all. A job pushed with `delay_ms` is
+therefore consumable as soon as it lands on either. The Redis, SQS, beanstalkd,
+and database clients each apply the hold at enqueue.
 
 `SqsClient` takes whole seconds, so a `delay_ms` below one second becomes no
 delay at all and the job is consumable at once. A retry hold rounds the other
@@ -520,6 +530,7 @@ signal it is — and delete them once you have read them.
 | `SqsQueue`        | a worker that long-polls an SQS queue                 |
 | `BeanstalkdQueue` | a worker that reserves jobs from a tube               |
 | `DatabaseQueue`   | a worker that claims rows from a table                |
+| `PubSubQueue`     | a worker that pulls a Pub/Sub subscription            |
 | `PushQueue`       | one job that a broker delivers over HTTP              |
 | `InternalQueue`   | each job that `SyncClient` or `DeferredClient` pushes |
 
@@ -548,6 +559,40 @@ Warning: `BeanstalkdQueue` buries a body no factory can read. A buried job
 stays on the tube for inspection, so nothing is lost, but nothing in the
 framework kicks or deletes it either: a producer that emits bad bytes
 accumulates buried jobs until an operator kicks or deletes them.
+
+Warning: a Pub/Sub dead-letter topic never sees a job the framework
+dead-letters. `PubSubQueue` acknowledges the message on `FAIL` and on
+`DEAD_LETTER`, and Pub/Sub routes to a dead-letter topic on the delivery
+attempt, so a message acknowledged here never reaches one. This is sharper than
+it reads: the attempt ceiling needs that same dead-letter policy to count at
+all, so the policy an operator adds for the ceiling is the one the ceiling then
+bypasses. A deployment that needs the copy sets `maxDeliveryAttempts` below the
+job's `max_attempts`, so Pub/Sub routes it first.
+
+Warning: that only works above the default. Pub/Sub takes a
+`maxDeliveryAttempts` between 5 and 100, and a job's `max_attempts` defaults to
+5, so there is no value below it to set. Raise `max_attempts` past 5 on the job
+before the dead-letter topic can see anything.
+
+`PubSubQueue` pulls the subscription named after the topic. An application
+whose subscription carries another name sets `PubSubQueue::$subscriptionName`
+on its own entry, and sets `PubSubQueue::$timeoutMs` there to change how long
+one pull waits. A name that matches no subscription fails the first pull.
+
+Warning: on the REST transport the entry cannot tell an idle poll from an
+endpoint that drops traffic. The deadline it sets bounds the whole transfer, so
+a connect that never completes times out at the same cURL code and the same
+instant as a pull that found nothing. Such a worker keeps polling an endpoint
+that answers nothing, and keeps reporting healthy. The gRPC transport names the
+deadline and does not have this problem, so prefer it where a silent outage
+costs more than the dependency.
+
+Warning: `PubSubQueue` acknowledges a body no factory can read rather than
+parking it, as `SqsQueue` does, and nothing keeps a copy. A dead-letter topic
+does not help here: it takes a message on the delivery attempt, and an
+acknowledgement removes the message before any attempt count can route it. A
+producer that emits bytes no factory reads therefore loses them, so read the
+envelope at the producer rather than relying on the subscription to hold it.
 
 Warning: `SqsQueue` deletes a body no factory can read rather than parking it.
 Nothing settles an unreadable body, so SQS would hand the same message back on
@@ -794,6 +839,24 @@ still going, and both settle it. The first worker's delete is fenced on its own
 claim stamp, so it takes nothing the second one owns, but the job has run twice
 by then. Set the value above the longest job the table carries.
 
+#### `QueuePubSubClientConfigContract`
+
+| Property                     | Default      | Description                          |
+| :--------------------------- | :----------- | :----------------------------------- |
+| `queuePubSubClientProjectId` | `'valkyrja'` | The Google Cloud project             |
+| `queuePubSubClientTopic`     | `'default'`  | The topic that jobs are published to |
+
+Warning: a job that runs longer than the acknowledgement deadline loses the
+delivery. Pub/Sub hands the message to a second worker while the first is still
+going, and the job runs twice. The deadline belongs to the subscription rather
+than to this config, so set it there, above the longest job the topic carries.
+A worker that finishes late also finds its acknowledgement refused, and
+`settle()` does not catch that, so the refusal ends the worker.
+
+Warning: the Google client reads the Application Default Credentials when the
+service provider builds the client. An application that resolves `PubSubClient`
+needs credentials in its environment, such as `GOOGLE_APPLICATION_CREDENTIALS`.
+
 A host application registers `QueueClientComponentProvider` itself. `HttpConfig`
 defaults its providers to the HTTP component provider alone, which does not
 publish the client services, so an application that only implements the two
@@ -853,6 +916,7 @@ A broker adapter needs its own package, and the framework does not require one:
 | AMQP       | `php-amqplib/php-amqplib` |
 | SQS        | `async-aws/sqs`           |
 | beanstalkd | `pda/pheanstalk`          |
+| Pub/Sub    | `google/cloud-pubsub`     |
 
 `RedisQueue` moves an envelope between two lists in one step with `BLMOVE` and
 `LMOVE`, so a redis server of 6.2 or newer is required to consume. `RedisClient`
