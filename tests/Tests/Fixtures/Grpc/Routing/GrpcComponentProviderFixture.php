@@ -67,6 +67,15 @@ final class GrpcComponentProviderFixture implements ComponentProviderContract
      * @inheritDoc
      */
     #[Override]
+    public function getQueueProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
     public function getGrpcProviders(ApplicationContract $app): array
     {
         return [
