@@ -57,6 +57,13 @@ final class ComponentProviderTest extends TestCase
         self::assertEmpty(new GrpcServerComponentProvider()->getHttpProviders($app));
     }
 
+    public function testGetQueueProviders(): void
+    {
+        $app = self::createStub(ApplicationContract::class);
+
+        self::assertEmpty(new GrpcServerComponentProvider()->getQueueProviders($app));
+    }
+
     public function testGetGrpcProviders(): void
     {
         $app = self::createStub(ApplicationContract::class);
