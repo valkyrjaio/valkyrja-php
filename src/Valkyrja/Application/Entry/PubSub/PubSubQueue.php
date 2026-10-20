@@ -184,8 +184,9 @@ class PubSubQueue extends PullQueue
      *
      * An unreadable body never reaches the handler, so nothing settles it. The
      * subscription would redeliver the same message on every acknowledgement
-     * deadline, and nothing ends that. An acknowledgement retires it, the same
-     * answer a dead-lettered job takes on this processor.
+     * deadline, and only a dead-letter policy the operator may not have would
+     * end that. An acknowledgement retires it, the same answer a dead-lettered
+     * job takes on this processor. The README says what that costs.
      */
     protected static function decode(Message $message): JobContract|null
     {

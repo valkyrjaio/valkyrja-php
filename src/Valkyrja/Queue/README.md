@@ -569,6 +569,11 @@ all, so the policy an operator adds for the ceiling is the one the ceiling then
 bypasses. A deployment that needs the copy sets `maxDeliveryAttempts` below the
 job's `max_attempts`, so Pub/Sub routes it first.
 
+Warning: that only works above the default. Pub/Sub takes a
+`maxDeliveryAttempts` between 5 and 100, and a job's `max_attempts` defaults to
+5, so there is no value below it to set. Raise `max_attempts` past 5 on the job
+before the dead-letter topic can see anything.
+
 `PubSubQueue` pulls the subscription named after the topic. An application
 whose subscription carries another name sets `PubSubQueue::$subscriptionName`
 on its own entry, and sets `PubSubQueue::$timeoutMs` there to change how long
@@ -840,6 +845,13 @@ by then. Set the value above the longest job the table carries.
 | :--------------------------- | :----------- | :----------------------------------- |
 | `queuePubSubClientProjectId` | `'valkyrja'` | The Google Cloud project             |
 | `queuePubSubClientTopic`     | `'default'`  | The topic that jobs are published to |
+
+Warning: a job that runs longer than the acknowledgement deadline loses the
+delivery. Pub/Sub hands the message to a second worker while the first is still
+going, and the job runs twice. The deadline belongs to the subscription rather
+than to this config, so set it there, above the longest job the topic carries.
+A worker that finishes late also finds its acknowledgement refused, which the
+teardown swallows because the redelivery already happened.
 
 Warning: the Google client reads the Application Default Credentials when the
 service provider builds the client. An application that resolves `PubSubClient`
