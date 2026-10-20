@@ -25,8 +25,6 @@ use function array_key_first;
 use function explode;
 use function json_decode;
 
-use const JSON_THROW_ON_ERROR;
-
 final class RedisClientTest extends TestCase
 {
     /** @var non-empty-string */
@@ -91,9 +89,8 @@ final class RedisClientTest extends TestCase
 
     public function testTwoPushesOfOneJobHoldTwoDelayedMembers(): void
     {
-        // A sorted set keeps one copy of a member, and the clock is frozen
-        // here, so an envelope used as the member whole would score the same
-        // string twice and deliver one of the two jobs
+        // The clock is frozen, so the two envelopes are byte-equal and only
+        // the token can tell the members apart
         $job = new Job(name: self::NAME, delayMs: 5000);
 
         $this->client()->push($job);
@@ -110,19 +107,18 @@ final class RedisClientTest extends TestCase
 
     public function testADelayedMemberCarriesTheEnvelopeAfterItsToken(): void
     {
-        // The promote script hands the ready list everything past the first
-        // separator, so that remainder has to be the envelope exactly
-        $this->client()->push(new Job(name: self::NAME, delayMs: 5000));
+        // The promote script hands the ready list what follows the token, so
+        // that remainder has to be the envelope exactly
+        $client = $this->client();
+
+        $client->push(new Job(name: self::NAME, delayMs: 5000));
 
         $member = array_key_first($this->redis->getCalls('zadd')[0][1]);
 
         [$token, $envelope] = explode(RedisClient::DELAYED_SEPARATOR, $member, 2);
 
         self::assertNotSame('', $token);
-        self::assertSame(
-            self::NAME,
-            json_decode($envelope, true, flags: JSON_THROW_ON_ERROR)[EnvelopeField::NAME]
-        );
+        self::assertSame(new JobFactory()->toJson($client->getPushed()[0]), $envelope);
     }
 
     public function testRetryHoldsTheJobUntilTheSuppliedDelayElapses(): void

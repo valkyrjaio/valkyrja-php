@@ -149,9 +149,8 @@ final class RedisIntegrationTest extends TestCase
 
     public function testTwoPushesOfOneDelayedJobBothSurvive(): void
     {
-        // A sorted set keeps one copy of a member. The envelope used whole as
-        // the member made two pushes inside one millisecond score the same
-        // string, and the second push silently replaced the first.
+        // Two pushes inside one millisecond write byte-equal envelopes, so
+        // only the token keeps them apart
         $job = new Job(name: QueueRoutingProviderFixture::ALWAYS_ACK, delayMs: 1);
 
         $this->client()->push($job);
@@ -183,9 +182,8 @@ final class RedisIntegrationTest extends TestCase
 
     public function testATokenlessMemberHoldingTheSeparatorPromotesWhole(): void
     {
-        // The separator is legal inside an envelope, so a pattern that read
-        // the token as everything before the first one would cut this member
-        // down to a fragment and park it as unreadable
+        // The separator is legal inside an envelope, so a token read as
+        // everything before the first one would cut this member to a fragment
         $envelope = new JobFactory()->toJson(
             new Job(
                 name: QueueRoutingProviderFixture::ALWAYS_ACK,
@@ -200,7 +198,8 @@ final class RedisIntegrationTest extends TestCase
         $received = RedisQueueFixture::receive();
 
         self::assertNotNull($received);
-        self::assertSame(QueueRoutingProviderFixture::ALWAYS_ACK, $received->getName());
+        // Whole, not merely decodable: a fragment would lose the payload
+        self::assertSame('Report|Daily', $received->getPayload()->get('label'));
     }
 
     public function testARetryIsHeldForItsRetryDelayNotTheProducersDelay(): void

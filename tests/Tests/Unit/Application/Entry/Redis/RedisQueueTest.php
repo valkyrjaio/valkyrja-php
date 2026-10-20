@@ -184,16 +184,27 @@ final class RedisQueueTest extends TestCase
         // neither key, and the limit stops a backlog stalling the poll
         self::assertSame(
             [[
-                RedisQueueFixture::promoteScript(),
+                <<<'LUA'
+                    local due = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, ARGV[2])
+
+                    for index = 1, #due do
+                        if redis.call('ZREM', KEYS[1], due[index]) == 1 then
+                            local envelope = string.match(due[index], ARGV[3]) or due[index]
+
+                            redis.call('RPUSH', KEYS[2], envelope)
+                        end
+                    end
+
+                    return #due
+                    LUA,
                 2,
                 self::QUEUE . RedisClient::DELAYED_SUFFIX,
                 self::QUEUE,
                 '1768564798000',
                 '100',
-                // Everything past the first separator, so the ready list takes
-                // the envelope and not the uniqueness token in front of it
-                // Spelled out rather than rebuilt: sharing the expression
-                // with the source would move both sides together
+                // A token is a run of the VLID alphabet, so an envelope's
+                // leading brace cannot start one. Spelled out rather than
+                // rebuilt, which would move both sides together.
                 '^[0123456789ABCDEFGHJKMNPQRSTVWXYZabcdefghjkmnpqrstvwxyz]+|(.*)$',
             ]],
             $this->redis->getCalls('eval')

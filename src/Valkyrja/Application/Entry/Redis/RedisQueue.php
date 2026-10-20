@@ -27,7 +27,7 @@ use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Throwable\Exception\QueueMessageInvalidEnvelopeException;
 use Valkyrja\Queue\Server\Throwable\Exception\QueueServerNotConnectedException;
 use Valkyrja\Support\Time\Microtime;
-use Valkyrja\Type\Ulid\Factory\UlidFactory;
+use Valkyrja\Type\Vlid\Factory\VlidV1Factory;
 
 use function is_string;
 
@@ -304,7 +304,7 @@ class RedisQueue extends PullQueue
             (string) static::$promoteLimit,
             // Anchored on the token's own alphabet: an envelope opens with a
             // brace, so a member written before the token cannot match it
-            '^[' . UlidFactory::VALID_CHARACTERS . ']+'
+            '^[' . VlidV1Factory::VALID_CHARACTERS . ']+'
             . RedisClient::DELAYED_SEPARATOR . '(.*)$',
         );
     }
