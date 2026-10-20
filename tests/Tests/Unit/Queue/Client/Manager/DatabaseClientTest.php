@@ -150,9 +150,8 @@ final class DatabaseClientTest extends TestCase
 
     public function testAPushTheDatabaseRefusesSurfaces(): void
     {
-        // An application that overrides PDO::ATTR_ERRMODE gets false back from
-        // execute rather than a throw, and an unchecked return would report
-        // the job as pushed while the row was never written
+        // An application that overrides PDO::ATTR_ERRMODE gets false rather
+        // than a throw, so an unchecked return would report a row never written
         $this->manager->failExecute = true;
 
         $this->expectException(QueueClientPushFailedException::class);
