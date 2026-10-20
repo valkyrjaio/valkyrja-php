@@ -27,9 +27,6 @@ use Valkyrja\Log\Logger\Contract\LoggerContract;
 use Valkyrja\PhpUnit\Abstract\ServiceProviderTestCase;
 use Valkyrja\Tests\Fixtures\Application\Data\GrpcConfigFixture;
 
-/**
- * Test the ServiceProvider.
- */
 final class ServiceProviderTest extends ServiceProviderTestCase
 {
     /** @inheritDoc */
