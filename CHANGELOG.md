@@ -1,6 +1,16 @@
 # Release Notes for 26.x
 
-## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.21.0...26.x)
+## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.22.0...26.x)
+
+## [v26.22.0](https://github.com/valkyrjaio/valkyrja/compare/v26.21.0...v26.22.0) - 2026-10-20
+
+* [Grpc] feat: Add the gRPC message implementations and cancellation support by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1158
+* [Grpc] feat: Add the gRPC middleware pipeline and its stage handlers by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1159
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1388
+* [Grpc] feat: Add the gRPC service map, router, and route collection by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1160
+* [Grpc] feat: Add the gRPC service handler kernel by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1161
+* [Grpc] feat: Add the gRPC application config, component provider, and entry points by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1162
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1389
 
 ## [v26.21.0](https://github.com/valkyrjaio/valkyrja/compare/v26.20.0...v26.21.0) - 2026-10-19
 
