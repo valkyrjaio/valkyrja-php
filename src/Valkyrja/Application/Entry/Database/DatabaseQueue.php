@@ -291,10 +291,8 @@ class DatabaseQueue extends PullQueue
             return null;
         }
 
-        // This entry claims, parks and deletes by an integer or a string key,
-        // so a key of any other type can be given none of the three. It stops
-        // rather than hand the row back on every poll for the life of the
-        // table.
+        // The claim, the park and the delete all bind an integer or a string,
+        // so a key of any other type can be given none of the three
         if (! is_int($id) && ! is_string($id)) {
             throw new QueueServerInvalidRowKeyException(
                 "A $table row keys on a type the queue cannot name: " . get_debug_type($id)
@@ -379,11 +377,6 @@ class DatabaseQueue extends PullQueue
     /**
      * Hold every row this queue cannot name out of the claim's reach.
      *
-     * The predicate names the set rather than the row, which is the one write
-     * a keyless row can be given. The write is best effort, as the claim is: a
-     * second worker that raced to the same row rewrites a value that is
-     * already parked, and mysql reports nothing changed for it.
-     *
      * @throws QueueServerNotConnectedException
      */
     protected static function parkKeyless(): void
@@ -398,6 +391,9 @@ class DatabaseQueue extends PullQueue
         $statement->bindValue(new Value('parkedReserved', self::PARKED_AT_MS));
         $statement->bindValue(new Value('parkedAvailable', self::PARKED_AT_MS));
         $statement->bindValue(new Value('queue', static::$queue));
+
+        // Best effort, as the claim is: a worker that lost the race rewrites a
+        // value already parked, which mysql counts as nothing changed
         $statement->execute();
     }
 
