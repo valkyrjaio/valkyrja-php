@@ -1,6 +1,19 @@
 # Release Notes for 26.x
 
-## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.20.0...26.x)
+## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.21.0...26.x)
+
+## [v26.21.0](https://github.com/valkyrjaio/valkyrja/compare/v26.20.0...v26.21.0) - 2026-10-19
+
+* [Queue] feat: Add the Pub/Sub processor by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/983
+* [Queue] fix: Correct three defects in the database processor by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1381
+* [Queue] docs(#1382): Correct what an SQS redrive policy can reach by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1385
+* [Grpc] feat: Add the gRPC message contracts, enums, and throwables by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/976
+* [Grpc] feat: Add the gRPC middleware and route contracts by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/977
+* [Grpc] feat: Add the gRPC routing contracts and routing data by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/978
+* [Grpc] feat: Add the gRPC server contracts by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/979
+* [Queue] fix: Keep a delayed redis job from replacing another by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1386
+* [Grpc] feat!: Add the gRPC application config and component provider contracts by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/980
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1387
 
 ## [v26.20.0](https://github.com/valkyrjaio/valkyrja/compare/v26.19.1...v26.20.0) - 2026-10-19
 
