@@ -39,6 +39,8 @@ use Valkyrja\Tests\Fixtures\Application\Provider\CliRouteProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\CliRoutingDataProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\ComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\EventComponentProviderFixture;
+use Valkyrja\Tests\Fixtures\Application\Provider\GrpcRouteComponentProviderFixture;
+use Valkyrja\Tests\Fixtures\Application\Provider\GrpcRouteProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\HttpComponentProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\HttpContainerDataProviderFixture;
 use Valkyrja\Tests\Fixtures\Application\Provider\HttpRouteComponentProviderFixture;
@@ -301,6 +303,20 @@ final class ApplicationTest extends TestCase
     }
 
     /**
+     * Test that getGrpcProviders collects results from all expanded providers.
+     */
+    public function testGetGrpcProviders(): void
+    {
+        $config      = new Config(providers: [new GrpcRouteComponentProviderFixture()]);
+        $application = new Valkyrja(container: new Container(), config: $config);
+
+        self::assertSame(
+            [GrpcRouteProviderFixture::class],
+            $application->getGrpcProviders(),
+        );
+    }
+
+    /**
      * Test that getHttpProviders populates the internal cache and subsequent calls use it.
      */
     public function testGetHttpProvidersIsCached(): void
@@ -336,6 +352,25 @@ final class ApplicationTest extends TestCase
         self::assertSame([QueueRouteProviderFixture::class], $result);
         self::assertSame($result, $property->getValue($application));
         self::assertSame($result, $application->getQueueProviders());
+    }
+
+    /**
+     * Test that getGrpcProviders populates the internal cache and subsequent calls use it.
+     */
+    public function testGetGrpcProvidersIsCached(): void
+    {
+        $config      = new Config(providers: [new GrpcRouteComponentProviderFixture()]);
+        $application = new Valkyrja(container: new Container(), config: $config);
+        $reflection  = new ReflectionClass($application);
+        $property    = $reflection->getProperty('grpcRouteProviders');
+
+        self::assertSame([], $property->getValue($application));
+
+        $result = $application->getGrpcProviders();
+
+        self::assertSame([GrpcRouteProviderFixture::class], $result);
+        self::assertSame($result, $property->getValue($application));
+        self::assertSame($result, $application->getGrpcProviders());
     }
 
     /**
@@ -379,6 +414,7 @@ final class ApplicationTest extends TestCase
         self::assertSame([], $application->getCliProviders());
         self::assertSame([], $application->getHttpProviders());
         self::assertSame([], $application->getQueueProviders());
+        self::assertSame([], $application->getGrpcProviders());
     }
 
     /**

@@ -20,6 +20,7 @@ use Valkyrja\Cli\Routing\Provider\Contract\CliRouteProviderContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
 use Valkyrja\Event\Provider\Contract\ListenerProviderContract;
+use Valkyrja\Grpc\Routing\Provider\Contract\GrpcRouteProviderContract;
 use Valkyrja\Http\Routing\Provider\Contract\HttpRouteProviderContract;
 use Valkyrja\Queue\Routing\Provider\Contract\QueueRouteProviderContract;
 
@@ -40,6 +41,9 @@ class Valkyrja implements ApplicationContract
     protected array $httpRouteProviders = [];
     /** @var QueueRouteProviderContract[] */
     protected array $queueRouteProviders = [];
+
+    /** @var GrpcRouteProviderContract[] */
+    protected array $grpcRouteProviders = [];
 
     public function __construct(
         protected ContainerContract $container,
@@ -198,6 +202,29 @@ class Valkyrja implements ApplicationContract
             : [];
 
         return $this->queueRouteProviders;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getGrpcProviders(): array
+    {
+        if ($this->grpcRouteProviders !== []) {
+            return $this->grpcRouteProviders;
+        }
+
+        $providers = [];
+
+        foreach ($this->getProviders() as $provider) {
+            $providers[] = $provider->getGrpcProviders($this);
+        }
+
+        $this->grpcRouteProviders = $providers !== []
+            ? array_merge(...$providers)
+            : [];
+
+        return $this->grpcRouteProviders;
     }
 
     /**

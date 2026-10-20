@@ -70,4 +70,11 @@ final class ComponentProviderTest extends TestCase
 
         self::assertEmpty(new CliRoutingComponentProvider()->getQueueProviders($app));
     }
+
+    public function testGetGrpcProviders(): void
+    {
+        $app = self::createStub(ApplicationContract::class);
+
+        self::assertEmpty(new CliRoutingComponentProvider()->getGrpcProviders($app));
+    }
 }

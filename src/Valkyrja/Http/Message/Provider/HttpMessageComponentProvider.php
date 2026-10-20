@@ -73,4 +73,13 @@ class HttpMessageComponentProvider implements ComponentProviderContract
     {
         return [];
     }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getGrpcProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }

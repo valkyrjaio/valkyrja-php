@@ -1042,7 +1042,7 @@ class AppServiceProvider implements ServiceProviderContract
 }
 ```
 
-`ComponentProviderContract` declares six methods, and no base class supplies a default, so `AppComponentProvider` implements all six:
+`ComponentProviderContract` declares one method per kind of provider, and no base class supplies a default, so `AppComponentProvider` implements every one:
 
 ```php
 use Override;
@@ -1083,6 +1083,15 @@ class AppComponentProvider implements ComponentProviderContract
 
     #[Override]
     public function getQueueProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getGrpcProviders(ApplicationContract $app): array
     {
         return [];
     }
