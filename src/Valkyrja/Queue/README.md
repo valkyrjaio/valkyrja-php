@@ -850,8 +850,8 @@ Warning: a job that runs longer than the acknowledgement deadline loses the
 delivery. Pub/Sub hands the message to a second worker while the first is still
 going, and the job runs twice. The deadline belongs to the subscription rather
 than to this config, so set it there, above the longest job the topic carries.
-A worker that finishes late also finds its acknowledgement refused, which the
-teardown swallows because the redelivery already happened.
+A worker that finishes late also finds its acknowledgement refused, and
+`settle()` does not catch that, so the refusal ends the worker.
 
 Warning: the Google client reads the Application Default Credentials when the
 service provider builds the client. An application that resolves `PubSubClient`
