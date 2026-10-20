@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Valkyrja\Queue\Client\Manager;
 
+use InvalidArgumentException;
 use JsonException;
 use Override;
 use Predis\ClientInterface;
@@ -22,7 +23,6 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Message\Job\Factory\Contract\JobFactoryContract;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Support\Time\Microtime;
-use Valkyrja\Type\Throwable\Exception\Abstract\TypeInvalidArgumentException;
 use Valkyrja\Type\Throwable\Exception\Abstract\TypeRuntimeException;
 use Valkyrja\Type\Vlid\Factory\VlidV1Factory;
 
@@ -61,7 +61,7 @@ class RedisClient extends Client
      *
      * @throws JsonException
      * @throws RandomException
-     * @throws TypeInvalidArgumentException
+     * @throws InvalidArgumentException
      * @throws TypeRuntimeException
      */
     #[Override]
@@ -75,7 +75,7 @@ class RedisClient extends Client
      *
      * @throws JsonException
      * @throws RandomException
-     * @throws TypeInvalidArgumentException
+     * @throws InvalidArgumentException
      * @throws TypeRuntimeException
      */
     #[Override]
@@ -91,7 +91,7 @@ class RedisClient extends Client
      *
      * @throws JsonException
      * @throws RandomException
-     * @throws TypeInvalidArgumentException
+     * @throws InvalidArgumentException
      * @throws TypeRuntimeException
      */
     protected function enqueue(JobContract $job, int $delayMs): void
