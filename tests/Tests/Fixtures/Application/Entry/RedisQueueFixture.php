@@ -46,14 +46,6 @@ final class RedisQueueFixture extends RedisQueue
     }
 
     /**
-     * The promotion script, so a test can assert the call carries it.
-     */
-    public static function promoteScript(): string
-    {
-        return self::PROMOTE_SCRIPT;
-    }
-
-    /**
      * The reclaim script, so a test can assert the call carries it.
      */
     public static function reclaimScript(): string

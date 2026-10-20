@@ -568,6 +568,12 @@ The promote script reads the token by its own alphabet, which holds no brace.
 An envelope opens with one, so a member an older client wrote carries no token
 the script can read and promotes whole, however many `|` its payload holds.
 
+Warning: upgrade the workers before the producers. A worker reads the token
+with the script it was deployed with, so a worker still running an older one
+hands a tokenized member to the ready list whole, and the token in front of the
+envelope is what makes it unreadable. Taking the workers first leaves them
+ready for both shapes, because the older shape promotes whole either way.
+
 Warning: an SQS redrive policy never sees a job the framework dead-letters.
 `SqsQueue` deletes the message on `FAIL` and on `DEAD_LETTER`, and SQS routes to
 a dead-letter queue on the receive count at receive time, so a message deleted
