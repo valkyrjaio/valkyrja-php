@@ -355,6 +355,25 @@ final class ApplicationTest extends TestCase
     }
 
     /**
+     * Test that getGrpcProviders populates the internal cache and subsequent calls use it.
+     */
+    public function testGetGrpcProvidersIsCached(): void
+    {
+        $config      = new Config(providers: [new GrpcRouteComponentProviderFixture()]);
+        $application = new Valkyrja(container: new Container(), config: $config);
+        $reflection  = new ReflectionClass($application);
+        $property    = $reflection->getProperty('grpcRouteProviders');
+
+        self::assertSame([], $property->getValue($application));
+
+        $result = $application->getGrpcProviders();
+
+        self::assertSame([GrpcRouteProviderFixture::class], $result);
+        self::assertSame($result, $property->getValue($application));
+        self::assertSame($result, $application->getGrpcProviders());
+    }
+
+    /**
      * Test that publishProviderCallbacks invokes each callback with the application.
      */
     public function testPublishProviderCallbacks(): void
@@ -395,6 +414,7 @@ final class ApplicationTest extends TestCase
         self::assertSame([], $application->getCliProviders());
         self::assertSame([], $application->getHttpProviders());
         self::assertSame([], $application->getQueueProviders());
+        self::assertSame([], $application->getGrpcProviders());
     }
 
     /**
