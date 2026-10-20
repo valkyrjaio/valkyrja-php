@@ -82,4 +82,13 @@ final class QueueTestComponentProviderFixture implements ComponentProviderContra
             new QueueRoutingProviderFixture(),
         ];
     }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getGrpcProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }

@@ -76,4 +76,13 @@ final class QueueRouteComponentProviderFixture implements ComponentProviderContr
             QueueRouteProviderFixture::class,
         ];
     }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function getGrpcProviders(ApplicationContract $app): array
+    {
+        return [];
+    }
 }
