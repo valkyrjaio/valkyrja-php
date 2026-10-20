@@ -594,10 +594,13 @@ acknowledgement removes the message before any attempt count can route it. A
 producer that emits bytes no factory reads therefore loses them, so read the
 envelope at the producer rather than relying on the subscription to hold it.
 
-Warning: `SqsQueue` deletes a body no factory can read rather than parking it.
-Nothing settles an unreadable body, so SQS would hand the same message back on
-every visibility timeout, and a queue with no redrive policy has nothing to end
-that. Give the queue a redrive policy to keep a copy of what was deleted.
+Warning: `SqsQueue` deletes a body no factory can read rather than parking it,
+and nothing keeps a copy. A redrive policy does not help here: it moves a
+message on the receive count, and a delete removes the message before that
+count can route it. Nothing settles an unreadable body, so the delete is what
+stops SQS handing the same message back on every visibility timeout. A producer
+that emits bytes no factory reads therefore loses them, so read the envelope at
+the producer rather than relying on the queue to hold it.
 
 The in-flight list belongs to one worker slot, named by
 `queueRedisClientWorkerName`. That
