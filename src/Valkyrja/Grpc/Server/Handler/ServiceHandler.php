@@ -62,16 +62,13 @@ class ServiceHandler implements ServiceHandlerContract
                 throw $throwable;
             }
 
-            $mapped   = $this->getResponseFromThrowable($throwable);
-            $response = $mapped;
+            $response = $this->getResponseFromThrowable($throwable);
 
             try {
                 // A middleware runs here, so the stage belongs under a guard of its own.
                 $response = $this->throwableCaughtHandler->throwableCaught($this->getCurrentCall($call), $response, $throwable);
             } catch (Throwable) {
-                // Fall back to the mapped response rather than a fresh INTERNAL, so a failed
-                // recovery cannot downgrade a status the mapping already got right.
-                $response = $mapped;
+                // The mapped response stands, because the assignment above never ran.
             }
         }
 
