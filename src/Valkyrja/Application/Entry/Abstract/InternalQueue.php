@@ -19,8 +19,8 @@ use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Data\ContainerData;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
-use Valkyrja\Queue\Client\Manager\Abstract\InternalClient;
 use Valkyrja\Queue\Client\Manager\Contract\ClientContract;
+use Valkyrja\Queue\Client\Manager\Contract\InternalClientContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 use Valkyrja\Queue\Server\Handler\Contract\JobHandlerContract;
@@ -95,8 +95,9 @@ abstract class InternalQueue extends WorkerQueue
     #[Override]
     public static function settle(JobContract $job, JobResult $result, ClientContract $client): void
     {
-        // The in-process client is the processor here, so it owns settlement
-        if ($client instanceof InternalClient) {
+        // The in-process client is the processor here, so it owns settlement.
+        // A client a broker redelivers for is settled by that broker instead.
+        if ($client instanceof InternalClientContract) {
             $client->settle($job, $result);
         }
     }

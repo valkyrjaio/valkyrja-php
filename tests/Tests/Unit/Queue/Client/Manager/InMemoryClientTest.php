@@ -14,6 +14,7 @@ namespace Valkyrja\Tests\Unit\Queue\Client\Manager;
 
 use Override;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
+use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Queue\Message\Job\Job;
 use Valkyrja\Support\Time\Microtime;
@@ -112,6 +113,28 @@ final class InMemoryClientTest extends TestCase
         $client->retry(new Job(name: self::NAME, attempts: 2), 0);
 
         self::assertCount(1, $client->getBuffered());
+    }
+
+    public function testSettlingARetryPutsTheJobBackInTheBuffer(): void
+    {
+        // No processor holds this job, so the framework redelivers it, and the
+        // buffer is the only place it can go back to
+        $client = new InMemoryClient();
+
+        $client->settle(new Job(name: self::NAME, attempts: 2), JobResult::RETRY);
+
+        self::assertCount(1, $client->getBuffered());
+    }
+
+    public function testSettlingATerminalOutcomeBuffersNothing(): void
+    {
+        $client = new InMemoryClient();
+
+        $client->settle(new Job(name: self::NAME, attempts: 2), JobResult::ACK);
+        $client->settle(new Job(name: self::NAME, attempts: 2), JobResult::FAIL);
+        $client->settle(new Job(name: self::NAME, attempts: 2), JobResult::DEAD_LETTER);
+
+        self::assertSame([], $client->getBuffered());
     }
 
     public function testDrainEmptiesTheBufferButNotTheRecord(): void
