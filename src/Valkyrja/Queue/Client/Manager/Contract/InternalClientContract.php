@@ -19,9 +19,6 @@ interface InternalClientContract extends ClientContract
 {
     /**
      * Settle an outcome for a job that ran in this process.
-     *
-     * A client reaches this only where no processor owns redelivery, so the
-     * client answers a retry itself rather than signaling a broker.
      */
     public function settle(JobContract $job, JobResult $result): void;
 }
