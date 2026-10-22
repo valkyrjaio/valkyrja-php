@@ -1,6 +1,12 @@
 # Release Notes for 26.x
 
-## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.22.0...26.x)
+## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.22.1...26.x)
+
+## [v26.22.1](https://github.com/valkyrjaio/valkyrja/compare/v26.22.0...v26.22.1) - 2026-10-21
+
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1390
+* [Queue] fix: Settle through a client that holds the job in process by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1392
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1391
 
 ## [v26.22.0](https://github.com/valkyrjaio/valkyrja/compare/v26.21.0...v26.22.0) - 2026-10-20
 
