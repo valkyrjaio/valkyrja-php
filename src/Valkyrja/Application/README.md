@@ -308,10 +308,11 @@ the shape of the config and the full rule.
 `PushQueue` answers a broker that delivers a job over HTTP. It maps the inbound
 request onto a job, runs it, and returns the outcome as the response status.
 
-`InternalQueue` runs each job that a `SyncClient` or a `DeferredClient` pushes.
-The class is abstract. An application extends it and returns its queue config
-from `getConfig()`, so the job runs in a separate queue application, the same
-way that a job from a broker runs.
+`InternalQueue` runs each job that a client holds in this process, which a
+`SyncClient` or a `DeferredClient` pushes and a test feeds from an
+`InMemoryClient`. The class is abstract. An application extends it and returns
+its queue config from `getConfig()`, so the job runs in a separate queue
+application, the same way that a job from a broker runs.
 
 ## Configuration
 

@@ -95,7 +95,7 @@ abstract class InternalQueue extends WorkerQueue
     #[Override]
     public static function settle(JobContract $job, JobResult $result, ClientContract $client): void
     {
-        // The in-process client is the processor here, so it owns settlement
+        // The job ran in this process, so the client holding it settles it
         if ($client instanceof InternalClientContract) {
             $client->settle($job, $result);
         }
