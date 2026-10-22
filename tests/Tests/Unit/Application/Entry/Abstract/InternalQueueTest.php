@@ -13,10 +13,13 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Application\Entry\Abstract;
 
 use Override;
+use PhpAmqpLib\Connection\AbstractConnection;
 use Throwable;
 use Valkyrja\Application\Directory\Directory;
 use Valkyrja\Container\Data\ContainerData;
+use Valkyrja\Queue\Client\Manager\AmqpClient;
 use Valkyrja\Queue\Client\Manager\InMemoryClient;
+use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Factory\JobFactory;
 use Valkyrja\Tests\Fixtures\Application\Entry\ProcessStateInternalQueueFixture;
 use Valkyrja\Tests\Fixtures\Queue\Routing\Handler\ProcessStateFixture;
@@ -79,6 +82,36 @@ final class InternalQueueTest extends TestCase
         self::assertSame(ProcessStateInternalQueueFixture::TIMEZONE, ProcessStateFixture::$timezone);
         self::assertSame($this->basePath, Directory::$basePath);
         self::assertSame($this->timezone, date_default_timezone_get());
+    }
+
+    public function testSettleRedeliversThroughAClientNoProcessorOwns(): void
+    {
+        // The buffer is not an entry-driving client, so a guard written against
+        // that class alone leaves its retry unsettled and the job disappears
+        $client = new InMemoryClient();
+
+        ProcessStateInternalQueueFixture::settle(
+            new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK),
+            JobResult::RETRY,
+            $client,
+        );
+
+        self::assertCount(1, $client->getBuffered());
+    }
+
+    public function testSettleLeavesAProcessorOwnedClientAlone(): void
+    {
+        // This broker answers a retry from its own settlement, and refuses a
+        // requeue, so reaching it here would throw rather than redeliver
+        $client = new AmqpClient(connection: self::createStub(AbstractConnection::class));
+
+        ProcessStateInternalQueueFixture::settle(
+            new JobFactory()->create(QueueRoutingProviderFixture::ALWAYS_ACK),
+            JobResult::RETRY,
+            $client,
+        );
+
+        self::assertSame([], $client->getPushed());
     }
 
     public function testTheExceptionHandlerOfTheHostStaysInPlace(): void

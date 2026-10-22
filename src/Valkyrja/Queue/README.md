@@ -365,6 +365,14 @@ quorum queue, or give the job a `max_attempts` of 2.
 the application. The entry runs a separate queue application, so the job runs
 the same way that a job from a broker runs.
 
+`InternalQueue` is the one entry that settles through its client, and a client
+it can settle through implements `InternalClientContract`. `SyncClient`,
+`DeferredClient` and `InMemoryClient` carry it, because each holds the job in
+this process, so the outcome goes back to whatever holds it. Every other entry
+settles against its own broker or store, and the ones the framework redelivers
+for call `ClientContract::requeue()` themselves rather than through the
+client's settlement.
+
 `SyncClient` runs the job inline and blocks, and it runs the whole retry chain.
 There is no durable place to hold a retry delay, so the delay is skipped and the
 incremented job runs again at once. Only the timing differs from production, and

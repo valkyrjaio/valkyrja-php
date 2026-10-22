@@ -12,14 +12,16 @@ declare(strict_types=1);
 
 namespace Valkyrja\Queue\Client\Manager\Abstract;
 
+use Override;
 use Valkyrja\Application\Constant\ApplicationInfo;
 use Valkyrja\Application\Entry\Abstract\InternalQueue;
 use Valkyrja\Application\Kernel\Contract\ApplicationContract;
 use Valkyrja\Container\Data\ContainerData;
+use Valkyrja\Queue\Client\Manager\Contract\InternalClientContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Message\Job\Contract\JobContract;
 
-abstract class InternalClient extends Client
+abstract class InternalClient extends Client implements InternalClientContract
 {
     protected ApplicationContract|null $application = null;
 
@@ -42,12 +44,9 @@ abstract class InternalClient extends Client
     }
 
     /**
-     * Settle an outcome for a job this client ran in process.
-     *
-     * The in-process processor has nothing to signal, so a retry is simply
-     * published again. `InternalQueue` caps a retry the job cannot take before
-     * it reaches here, so a retry at this point always has an attempt left.
+     * @inheritDoc
      */
+    #[Override]
     public function settle(JobContract $job, JobResult $result): void
     {
         if ($result === JobResult::RETRY) {
