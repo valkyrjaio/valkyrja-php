@@ -460,16 +460,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.401.4",
+            "version": "3.401.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "b5941e2da9fb860f06ad5046d96219c4288ab6b8"
+                "reference": "4d304660ba59e185e86a17946c6be6ab07bf8546"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/b5941e2da9fb860f06ad5046d96219c4288ab6b8",
-                "reference": "b5941e2da9fb860f06ad5046d96219c4288ab6b8",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/4d304660ba59e185e86a17946c6be6ab07bf8546",
+                "reference": "4d304660ba59e185e86a17946c6be6ab07bf8546",
                 "shasum": ""
             },
             "require": {
@@ -551,9 +551,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.401.4"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.401.5"
             },
-            "time": "2026-10-20T18:15:27+00:00"
+            "time": "2026-10-21T18:10:10+00:00"
         },
         {
             "name": "brick/math",
@@ -3987,16 +3987,16 @@
         },
         {
             "name": "roadrunner/roadrunner",
-            "version": "v3.0.0",
+            "version": "v3.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/roadrunner-server/roadrunner.git",
-                "reference": "c8f9cfd9510b748238b2fc6dd009ad3726f09e36"
+                "reference": "ed89c2ec991f64b072297fcbee5ad7f058779199"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/roadrunner-server/roadrunner/zipball/c8f9cfd9510b748238b2fc6dd009ad3726f09e36",
-                "reference": "c8f9cfd9510b748238b2fc6dd009ad3726f09e36",
+                "url": "https://api.github.com/repos/roadrunner-server/roadrunner/zipball/ed89c2ec991f64b072297fcbee5ad7f058779199",
+                "reference": "ed89c2ec991f64b072297fcbee5ad7f058779199",
                 "shasum": ""
             },
             "type": "metapackage",
@@ -4024,7 +4024,7 @@
                 "chat": "https://discord.gg/V6EK4he",
                 "docs": "https://docs.roadrunner.dev/",
                 "issues": "https://github.com/roadrunner-server/roadrunner/issues",
-                "source": "https://github.com/roadrunner-server/roadrunner/tree/v3.0.0"
+                "source": "https://github.com/roadrunner-server/roadrunner/tree/v3.0.1"
             },
             "funding": [
                 {
@@ -4032,7 +4032,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-09T12:52:49+00:00"
+            "time": "2026-10-21T19:33:12+00:00"
         },
         {
             "name": "roadrunner/worker",
