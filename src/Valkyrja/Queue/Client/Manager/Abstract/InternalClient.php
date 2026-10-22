@@ -44,11 +44,7 @@ abstract class InternalClient extends Client implements InternalClientContract
     }
 
     /**
-     * Settle an outcome for a job this client ran in process.
-     *
-     * The in-process processor has nothing to signal, so a retry is simply
-     * published again. `InternalQueue` caps a retry the job cannot take before
-     * it reaches here, so a retry at this point always has an attempt left.
+     * @inheritDoc
      */
     #[Override]
     public function settle(JobContract $job, JobResult $result): void

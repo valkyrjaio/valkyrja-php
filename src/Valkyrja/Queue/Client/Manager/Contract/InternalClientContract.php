@@ -18,7 +18,7 @@ use Valkyrja\Queue\Message\Job\Contract\JobContract;
 interface InternalClientContract extends ClientContract
 {
     /**
-     * Settle an outcome for a job that ran in this process.
+     * Settle an outcome for a job this client holds.
      */
     public function settle(JobContract $job, JobResult $result): void;
 }
