@@ -399,15 +399,15 @@ points back at a static handler on this provider.
 Annotate a controller method with `#[Route]` to register a command. The
 attribute constructor takes:
 
-| Parameter                                                                                                      | Purpose                                                           |
-| -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `name` (required)                                                                                              | The command name                                                  |
-| `description` (required)                                                                                       | The one-line description shown by `list` and `help`               |
+| Parameter                                                                                                      | Purpose                                                      |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `name` (required)                                                                                              | The command name                                             |
+| `description` (required)                                                                                       | The one-line description shown by `list` and `help`          |
 | `handler`                                                                                                      | The handler callable, required unless `#[Handler]` names one |
-| `helpText`                                                                                                     | An array callable that returns a `MessageContract`                |
-| `routeMatchedMiddleware`, `routeDispatchedMiddleware`, `throwableCaughtMiddleware`, `processExitingMiddleware` | Per-route middleware class lists                                  |
-| `arguments`                                                                                                    | `ArgumentParameterContract[]`                                     |
-| `options`                                                                                                      | `OptionParameterContract[]`                                       |
+| `helpText`                                                                                                     | An array callable that returns a `MessageContract`           |
+| `routeMatchedMiddleware`, `routeDispatchedMiddleware`, `throwableCaughtMiddleware`, `processExitingMiddleware` | Per-route middleware class lists                             |
+| `arguments`                                                                                                    | `ArgumentParameterContract[]`                                |
+| `options`                                                                                                      | `OptionParameterContract[]`                                  |
 
 The attribute is repeatable. Stack the attribute to serve several command
 names from one method:

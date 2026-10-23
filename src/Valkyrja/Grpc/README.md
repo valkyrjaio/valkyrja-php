@@ -48,12 +48,12 @@ final class GreeterController
 }
 ```
 
-| Marker            | On       | States                                           |
-| ----------------- | -------- | ------------------------------------------------ |
-| `#[Service]`      | a class  | the full service name, such as `example.Greeter` |
-| `#[Route]`        | a method | every field of the route, less the service name  |
-| `#[Middleware]`   | a method | one middleware class of this method              |
-| `#[Handler]` | a method | the route's handler                              |
+| Marker          | On       | States                                           |
+| --------------- | -------- | ------------------------------------------------ |
+| `#[Service]`    | a class  | the full service name, such as `example.Greeter` |
+| `#[Route]`      | a method | every field of the route, less the service name  |
+| `#[Middleware]` | a method | one middleware class of this method              |
+| `#[Handler]`    | a method | the route's handler                              |
 
 `#[Middleware]` is repeatable, so a method may carry several.
 
