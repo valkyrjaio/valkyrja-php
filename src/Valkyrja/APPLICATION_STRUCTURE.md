@@ -9,7 +9,7 @@ entities, test helpers, asset files, etc.) are optional additions.
 
 ## Prerequisites
 
-- PHP >= 8.4
+- PHP >= 8.4.27
 - Composer
 
 **`composer.json`** — defines dependencies and the PSR-4 autoload map.
@@ -17,7 +17,7 @@ entities, test helpers, asset files, etc.) are optional additions.
 ```json
 {
    "require"  : {
-      "php"               : ">=8.4",
+      "php"               : ">=8.4.27",
       "monolog/monolog"   : "^3.10.0",
       "valkyrja/valkyrja" : "^26.0.0"
    },
