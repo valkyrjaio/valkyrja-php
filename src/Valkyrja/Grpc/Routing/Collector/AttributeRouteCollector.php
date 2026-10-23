@@ -96,6 +96,9 @@ class AttributeRouteCollector implements RouteCollectorContract
 
         return new Route(
             method: $fullMethod,
+            // The route validates its own method on construction, and the attribute declares only
+            // the remote method's name, so the handler is resolved before the route exists rather
+            // than replaced on a built one.
             handler: $this->getHandler($attribute, $class, $method),
             requestType: $attribute->requestType,
             responseType: $attribute->responseType,
@@ -110,14 +113,8 @@ class AttributeRouteCollector implements RouteCollectorContract
     }
 
     /**
-     * Resolve the handler the route attribute or a `#[RouteHandler]` names.
-     *
-     * The handler is resolved before the route is built, rather than replaced on a built route as
-     * Cli, Http and Queue do. A gRPC route validates its own method at construction, and the
-     * attribute declares only the remote method's name, so the collector is what joins the service
-     * name to it and builds the route. A route that names no handler cannot be built at all,
-     * because the route's handler is not nullable. The collector rejects it first, so the failure
-     * names the route, the class and the method rather than coming from a constructor.
+     * Resolve the handler, which a `#[RouteHandler]` names ahead of the route attribute's own
+     * argument.
      *
      * @param class-string     $class  The class name
      * @param non-empty-string $method The method name
@@ -135,6 +132,8 @@ class AttributeRouteCollector implements RouteCollectorContract
         $handler = $routeHandler->handler ?? $attribute->handler;
 
         if ($handler === null) {
+            // The route's handler is not nullable, so rejecting here names the route, the class
+            // and the method, where the constructor would name none of them.
             throw new GrpcRoutingNoRouteHandlerException(
                 'Route `' . $attribute->name . '` on ' . $class . '::' . $method . ' names no handler'
             );
