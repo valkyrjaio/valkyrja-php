@@ -15,7 +15,7 @@ namespace Valkyrja\Tests\Fixtures\Queue\Routing\Controller;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Routing\Attribute\Route;
-use Valkyrja\Queue\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Queue\Routing\Attribute\Route\Handler;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 
 /**
@@ -29,7 +29,7 @@ final class UnnamedJobControllerFixture
     }
 
     #[Route(name: 'RebuildIndex', description: 'Rebuild the index')]
-    #[RouteHandler([self::class, 'handle'])]
+    #[Handler([self::class, 'handle'])]
     public function rebuildIndex(): JobResult
     {
         return JobResult::ACK;

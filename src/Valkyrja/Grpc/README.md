@@ -48,12 +48,12 @@ final class GreeterController
 }
 ```
 
-| Marker            | On       | States                                           |
-| ----------------- | -------- | ------------------------------------------------ |
-| `#[Service]`      | a class  | the full service name, such as `example.Greeter` |
-| `#[Route]`        | a method | every field of the route, less the service name  |
-| `#[Middleware]`   | a method | one middleware class of this method              |
-| `#[RouteHandler]` | a method | the route's handler                              |
+| Marker          | On       | States                                           |
+| --------------- | -------- | ------------------------------------------------ |
+| `#[Service]`    | a class  | the full service name, such as `example.Greeter` |
+| `#[Route]`      | a method | every field of the route, less the service name  |
+| `#[Middleware]` | a method | one middleware class of this method              |
+| `#[Handler]`    | a method | the route's handler                              |
 
 `#[Middleware]` is repeatable, so a method may carry several.
 
@@ -65,7 +65,7 @@ Every other attribute on the method applies to all routes that the method
 declares. Give a route its own configuration through that route's own arguments.
 
 **Every route names a handler.** `#[Route]` takes it as an optional `handler`
-argument, `#[RouteHandler]` is the second spelling of the same field, and the
+argument, `#[Handler]` is the second spelling of the same field, and the
 handler attribute wins when a method carries both. The collector rejects a route
 that names neither, and the failure names the route, the class and the method.
 

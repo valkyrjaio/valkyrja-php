@@ -10,7 +10,7 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Event\Attribute;
+namespace Valkyrja\Event\Attribute\Listener;
 
 use Attribute;
 use Valkyrja\Attribute\Contract\ReflectionAwareAttributeContract;
@@ -18,7 +18,7 @@ use Valkyrja\Attribute\Trait\ReflectionAwareAttribute;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 
 #[Attribute(Attribute::TARGET_METHOD | Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
-class ListenerHandler implements ReflectionAwareAttributeContract
+class Handler implements ReflectionAwareAttributeContract
 {
     use ReflectionAwareAttribute;
 

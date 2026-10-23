@@ -280,7 +280,7 @@ The CLI routing component registers the built-in commands through the same
 contract. `CliRoutingComponentProvider::getCliProviders()` returns
 `Valkyrja\Cli\Routing\Provider\CliRoutingCliRouteProvider`, which lists the
 four built-in command classes and carries the four static handlers that their
-`#[RouteHandler]` attributes name.
+`#[Handler]` attributes name.
 
 A component provider returns route providers from its `getCliProviders()`
 method, and `CliConfig`'s `providers` array lists the component providers:
@@ -315,7 +315,7 @@ holds the collected routes in memory as closures.
 `getRoutes()` returns `Valkyrja\Cli\Routing\Data\Route` objects. The
 constructor takes the same values as the `#[Route]` attribute, plus a required
 `handler`. A handler on a pre-built route may be a closure; an attribute
-cannot hold one, so attributed commands wire handlers with `#[RouteHandler]`
+cannot hold one, so attributed commands wire handlers with `#[Handler]`
 instead:
 
 ```php
@@ -391,7 +391,7 @@ class AppCliRouteProvider implements CliRouteProviderContract
 ```
 
 `GreetCommand` and `UserPurgeCommand` are the attributed commands shown under
-[Attribute Registration](#attribute-registration); each one's `#[RouteHandler]`
+[Attribute Registration](#attribute-registration); each one's `#[Handler]`
 points back at a static handler on this provider.
 
 ### Attribute Registration
@@ -399,15 +399,15 @@ points back at a static handler on this provider.
 Annotate a controller method with `#[Route]` to register a command. The
 attribute constructor takes:
 
-| Parameter                                                                                                      | Purpose                                                           |
-| -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `name` (required)                                                                                              | The command name                                                  |
-| `description` (required)                                                                                       | The one-line description shown by `list` and `help`               |
-| `handler`                                                                                                      | The handler callable, required unless `#[RouteHandler]` names one |
-| `helpText`                                                                                                     | An array callable that returns a `MessageContract`                |
-| `routeMatchedMiddleware`, `routeDispatchedMiddleware`, `throwableCaughtMiddleware`, `processExitingMiddleware` | Per-route middleware class lists                                  |
-| `arguments`                                                                                                    | `ArgumentParameterContract[]`                                     |
-| `options`                                                                                                      | `OptionParameterContract[]`                                       |
+| Parameter                                                                                                      | Purpose                                                      |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `name` (required)                                                                                              | The command name                                             |
+| `description` (required)                                                                                       | The one-line description shown by `list` and `help`          |
+| `handler`                                                                                                      | The handler callable, required unless `#[Handler]` names one |
+| `helpText`                                                                                                     | An array callable that returns a `MessageContract`           |
+| `routeMatchedMiddleware`, `routeDispatchedMiddleware`, `throwableCaughtMiddleware`, `processExitingMiddleware` | Per-route middleware class lists                             |
+| `arguments`                                                                                                    | `ArgumentParameterContract[]`                                |
+| `options`                                                                                                      | `OptionParameterContract[]`                                  |
 
 The attribute is repeatable. Stack the attribute to serve several command
 names from one method:
@@ -415,13 +415,13 @@ names from one method:
 ```php
 use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 
 class UserPurgeCommand
 {
     #[Route(name: 'user:purge', description: 'Purge deleted users')]
     #[Route(name: 'user:prune', description: 'Purge deleted users')]
-    #[RouteHandler([AppCliRouteProvider::class, 'userPurgeHandler'])]
+    #[Handler([AppCliRouteProvider::class, 'userPurgeHandler'])]
     public function run(): OutputContract
     {
         // php myapp user:purge
@@ -442,7 +442,7 @@ use Valkyrja\Cli\Interaction\Output\Factory\Contract\OutputFactoryContract;
 use Valkyrja\Cli\Routing\Attribute\ArgumentParameter;
 use Valkyrja\Cli\Routing\Attribute\OptionParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Routing\Enum\ArgumentMode;
 
@@ -464,7 +464,7 @@ class GreetCommand
     #[Route(name: 'user:greet', description: 'Greet a user', helpText: [self::class, 'help'])]
     #[ArgumentParameter(name: 'name', description: 'The name to greet', mode: ArgumentMode::REQUIRED)]
     #[OptionParameter(name: 'shout', description: 'Greet in upper case', shortNames: ['S'])]
-    #[RouteHandler([AppCliRouteProvider::class, 'greetHandler'])]
+    #[Handler([AppCliRouteProvider::class, 'greetHandler'])]
     public function run(): OutputContract
     {
         // php myapp user:greet Melech
@@ -501,7 +501,7 @@ callable(ContainerContract $container, RouteContract $route): OutputContract
 
 The `Router` calls the handler with the container and the matched route after
 the `RouteMatched` middleware has run. Wire the handler with the
-`#[RouteHandler]` attribute, or pass `handler:` to `#[Route]` directly. PHP
+`#[Handler]` attribute, or pass `handler:` to `#[Route]` directly. PHP
 attributes only accept constant expressions, so an attribute handler is always
 an array callable. An attribute takes the handler as a `[$class, $method]`
 pair, and PHP accepts that pair as a `callable` only for a public static
@@ -525,7 +525,7 @@ that names none, and it throws `CliRoutingNoRouteHandlerException` while it
 collects. The message names the route, the class and the method. A command
 that registers and then does nothing is harder to find than a command that
 fails to register. A method that carries both forms keeps the one the
-`#[RouteHandler]` attribute names, and the `handler:` argument is ignored.
+`#[Handler]` attribute names, and the `handler:` argument is ignored.
 
 The route carries the parsed argument and option values. Read them by
 parameter name:
@@ -589,13 +589,13 @@ a controller's commands without repeating the group in every `#[Route]`:
 ```php
 use Valkyrja\Cli\Routing\Attribute\Route;
 use Valkyrja\Cli\Routing\Attribute\Route\Name;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 
 #[Name('user')]
 class UserCommands
 {
     #[Route(name: 'greet', description: 'Greet a user')]
-    #[RouteHandler([AppCliRouteProvider::class, 'greetHandler'])]
+    #[Handler([AppCliRouteProvider::class, 'greetHandler'])]
     public function greet(): OutputContract
     {
         // Registered as `user.greet`
@@ -624,7 +624,7 @@ stage turns into an error output.
 ```php
 use Valkyrja\Cli\Routing\Attribute\ArgumentParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Enum\ArgumentMode;
 
 #[Route(name: 'user:show', description: 'Show a user')]
@@ -633,7 +633,7 @@ use Valkyrja\Cli\Routing\Enum\ArgumentMode;
     description: 'The user id',
     mode:        ArgumentMode::REQUIRED,
 )]
-#[RouteHandler([AppCliRouteProvider::class, 'userShowHandler'])]
+#[Handler([AppCliRouteProvider::class, 'userShowHandler'])]
 public function run(): OutputContract
 {
     // php myapp user:show 42       -> getFirstValue() === '42'
@@ -647,7 +647,7 @@ the last declared argument:
 ```php
 use Valkyrja\Cli\Routing\Attribute\ArgumentParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Enum\ArgumentMode;
 use Valkyrja\Cli\Routing\Enum\ArgumentValueMode;
 
@@ -658,7 +658,7 @@ use Valkyrja\Cli\Routing\Enum\ArgumentValueMode;
     mode:        ArgumentMode::REQUIRED,
     valueMode:   ArgumentValueMode::ARRAY,
 )]
-#[RouteHandler([AppCliRouteProvider::class, 'filesProcessHandler'])]
+#[Handler([AppCliRouteProvider::class, 'filesProcessHandler'])]
 public function run(): OutputContract
 {
     // php myapp files:process a.txt b.txt c.txt
@@ -701,7 +701,7 @@ A `DEFAULT` option takes one value:
 ```php
 use Valkyrja\Cli\Routing\Attribute\OptionParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 
 #[Route(name: 'user:export', description: 'Export users')]
 #[OptionParameter(
@@ -712,7 +712,7 @@ use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
     shortNames:       ['f'],
     validValues:      ['json', 'csv'],
 )]
-#[RouteHandler([AppCliRouteProvider::class, 'userExportHandler'])]
+#[Handler([AppCliRouteProvider::class, 'userExportHandler'])]
 public function run(): OutputContract
 {
     // php myapp user:export --format=csv
@@ -734,7 +734,7 @@ A `NONE` option takes no value. This option is a pure flag, so
 ```php
 use Valkyrja\Cli\Routing\Attribute\OptionParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Enum\OptionValueMode;
 
 #[Route(name: 'db:migrate', description: 'Run database migrations')]
@@ -744,7 +744,7 @@ use Valkyrja\Cli\Routing\Enum\OptionValueMode;
     shortNames:  ['d'],
     valueMode:   OptionValueMode::NONE,
 )]
-#[RouteHandler([AppCliRouteProvider::class, 'dbMigrateHandler'])]
+#[Handler([AppCliRouteProvider::class, 'dbMigrateHandler'])]
 public function run(): OutputContract
 {
     // php myapp db:migrate --dry-run
@@ -758,7 +758,7 @@ An `ARRAY` option accepts repeated flags and collects every value:
 ```php
 use Valkyrja\Cli\Routing\Attribute\OptionParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Enum\OptionValueMode;
 
 #[Route(name: 'app:deploy', description: 'Deploy the application')]
@@ -768,7 +768,7 @@ use Valkyrja\Cli\Routing\Enum\OptionValueMode;
     shortNames:  ['t'],
     valueMode:   OptionValueMode::ARRAY,
 )]
-#[RouteHandler([AppCliRouteProvider::class, 'appDeployHandler'])]
+#[Handler([AppCliRouteProvider::class, 'appDeployHandler'])]
 public function run(): OutputContract
 {
     // php myapp app:deploy --tag=web --tag=api -t=worker
@@ -784,7 +784,7 @@ it:
 ```php
 use Valkyrja\Cli\Routing\Attribute\OptionParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Enum\OptionMode;
 
 #[Route(name: 'report:build', description: 'Build a report')]
@@ -794,7 +794,7 @@ use Valkyrja\Cli\Routing\Enum\OptionMode;
     valueDisplayName: 'directory',
     mode:             OptionMode::REQUIRED,
 )]
-#[RouteHandler([AppCliRouteProvider::class, 'reportBuildHandler'])]
+#[Handler([AppCliRouteProvider::class, 'reportBuildHandler'])]
 public function run(): OutputContract
 {
     // php myapp report:build --destination=/tmp/reports
@@ -828,7 +828,7 @@ Pass a `Cast` to a parameter, then ask the caster for the values:
 use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
 use Valkyrja\Cli\Routing\Attribute\ArgumentParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Caster\Contract\CasterContract;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Routing\Enum\ArgumentMode;
@@ -848,7 +848,7 @@ public function __construct(
     cast:        new Cast(CastType::int),
     mode:        ArgumentMode::REQUIRED,
 )]
-#[RouteHandler([AppCliRouteProvider::class, 'queueWorkHandler'])]
+#[Handler([AppCliRouteProvider::class, 'queueWorkHandler'])]
 public function run(): OutputContract
 {
     // php myapp queue:work 4
@@ -910,7 +910,7 @@ public static function help(): MessageContract
 
 ```php
 #[Route(name: 'user:greet', description: 'Greet a user', helpText: [self::class, 'help'])]
-#[RouteHandler([AppCliRouteProvider::class, 'greetHandler'])]
+#[Handler([AppCliRouteProvider::class, 'greetHandler'])]
 ```
 
 `php myapp help --command=user:greet` shows the help text together with the
@@ -1495,7 +1495,7 @@ whose contract it implements:
 ```php
 use Valkyrja\Cli\Routing\Attribute\Route;
 use Valkyrja\Cli\Routing\Attribute\Route\Middleware;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 
 #[Route(
     name:                   'db:migrate',
@@ -1503,7 +1503,7 @@ use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
     routeMatchedMiddleware: [ProductionGuardMiddleware::class],
 )]
 #[Middleware(CommandAuditMiddleware::class)]
-#[RouteHandler([AppCliRouteProvider::class, 'dbMigrateHandler'])]
+#[Handler([AppCliRouteProvider::class, 'dbMigrateHandler'])]
 public function run(): OutputContract
 {
     // ...

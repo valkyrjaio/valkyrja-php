@@ -301,19 +301,19 @@ use Valkyrja\Http\Message\Enum\StatusCode;
 use Valkyrja\Http\Message\Response\Contract\ResponseContract;
 use Valkyrja\Http\Message\Response\JsonResponse;
 use Valkyrja\Http\Routing\Attribute\Route;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 
 class UserController
 {
     #[Route(path: '/users', name: 'users.index')]
-    #[RouteHandler([UserRouteProvider::class, 'indexHandler'])]
+    #[Handler([UserRouteProvider::class, 'indexHandler'])]
     public function index(): ResponseContract
     {
         return new JsonResponse(['users' => []]);
     }
 
     #[Route(path: '/users', name: 'users.store', requestMethods: [RequestMethod::POST])]
-    #[RouteHandler([UserRouteProvider::class, 'storeHandler'])]
+    #[Handler([UserRouteProvider::class, 'storeHandler'])]
     public function store(): ResponseContract
     {
         return new JsonResponse([], StatusCode::CREATED);
@@ -324,7 +324,7 @@ class UserController
 The attribute declares the route. It does not make the framework call the
 routed method. The route's [handler](#route-handlers) makes that call. Each
 route needs its own handler. The collector rejects an attributed route that
-names none. Wire the handler with `#[RouteHandler]`, as every routed method
+names none. Wire the handler with `#[Handler]`, as every routed method
 in this README does. The named handlers follow the `indexHandler` and
 `showHandler` pattern from
 [pre-built routes](#pre-built-routes-from-getroutes). A handler reads the
@@ -336,7 +336,7 @@ declares its own route with its own name:
 ```php
 #[Route(path: '/', name: 'home')]
 #[Route(path: '/welcome', name: 'welcome')]
-#[RouteHandler([HomeRouteProvider::class, 'homeHandler'])]
+#[Handler([HomeRouteProvider::class, 'homeHandler'])]
 public function home(): ResponseContract
 {
     return new JsonResponse(['message' => 'Welcome']);
@@ -361,15 +361,15 @@ controller that a handler resolves needs a service registration.
 binds `UserController`. Each route needs its own handler. The collector
 throws `HttpRoutingNoRouteHandlerException` for an attributed route that
 names none, and the message names the class and the method. Wire a handler
-with `#[RouteHandler([UserRouteProvider::class, 'showHandler'])]` on the
+with `#[Handler([UserRouteProvider::class, 'showHandler'])]` on the
 routed method, or pass the `handler` argument of `#[Route]` directly:
 
 ```php
 use Valkyrja\Http\Routing\Attribute\Route;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 
 #[Route(path: '/users', name: 'users.index')]
-#[RouteHandler([UserRouteProvider::class, 'indexHandler'])]
+#[Handler([UserRouteProvider::class, 'indexHandler'])]
 public function index(): ResponseContract
 {
     return new JsonResponse(['users' => []]);
@@ -410,7 +410,7 @@ use Valkyrja\Http\Routing\Constant\Regex;
 
 #[Route(path: '/articles/{slug}', name: 'articles.show')]
 #[Parameter(name: 'slug', regex: Regex::SLUG)]
-#[RouteHandler([ArticleRouteProvider::class, 'showHandler'])]
+#[Handler([ArticleRouteProvider::class, 'showHandler'])]
 public function show(string $slug): ResponseContract
 {
     return new JsonResponse(['slug' => $slug]);
@@ -421,7 +421,7 @@ Or place it on the PHP parameter itself. Both spots collect the same way:
 
 ```php
 #[Route(path: '/articles/{slug}', name: 'articles.show')]
-#[RouteHandler([ArticleRouteProvider::class, 'showHandler'])]
+#[Handler([ArticleRouteProvider::class, 'showHandler'])]
 public function show(
     #[Parameter(name: 'slug', regex: Regex::SLUG)]
     string $slug
@@ -450,7 +450,7 @@ use Valkyrja\Http\Routing\Data\Parameter;
     parameters: [new Parameter(name: 'id', regex: Regex::ID)],
     requestMethods: [RequestMethod::DELETE],
 )]
-#[RouteHandler([UserRouteProvider::class, 'deleteHandler'])]
+#[Handler([UserRouteProvider::class, 'deleteHandler'])]
 public function delete(int $id): ResponseContract
 {
     return new JsonResponse(['id' => $id]);
@@ -471,7 +471,7 @@ use Valkyrja\Type\Enum\CastType;
 
 #[Route(path: '/users/{id}', name: 'users.show')]
 #[Parameter(name: 'id', regex: Regex::ID, cast: new Cast(CastType::int))]
-#[RouteHandler([UserRouteProvider::class, 'showHandler'])]
+#[Handler([UserRouteProvider::class, 'showHandler'])]
 public function show(int $id): ResponseContract
 {
     return new JsonResponse(['id' => $id]);
@@ -504,7 +504,7 @@ matcher uses `default` when the segment is absent:
 ```php
 #[Route(path: '/articles/{page?}', name: 'articles.list')]
 #[Parameter(name: 'page', regex: Regex::NUM, isOptional: true, default: '1')]
-#[RouteHandler([ArticleRouteProvider::class, 'listHandler'])]
+#[Handler([ArticleRouteProvider::class, 'listHandler'])]
 public function list(): ResponseContract
 {
     return new JsonResponse([]);
@@ -548,14 +548,14 @@ appends a path to that method's routes:
 ```php
 use Valkyrja\Http\Routing\Attribute\Route;
 use Valkyrja\Http\Routing\Attribute\Route\Path;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 
 #[Path('/admin')]
 class AdminController
 {
     // The final path is /admin/dashboard.
     #[Route(path: '/dashboard', name: 'admin.dashboard')]
-    #[RouteHandler([AdminRouteProvider::class, 'dashboardHandler'])]
+    #[Handler([AdminRouteProvider::class, 'dashboardHandler'])]
     public function dashboard(): ResponseContract
     {
         return new JsonResponse([]);
@@ -564,7 +564,7 @@ class AdminController
     // The method-level Path appends: /admin/reports/export.
     #[Path('/export')]
     #[Route(path: '/reports', name: 'admin.reports.export')]
-    #[RouteHandler([AdminRouteProvider::class, 'exportHandler'])]
+    #[Handler([AdminRouteProvider::class, 'exportHandler'])]
     public function export(): ResponseContract
     {
         return new JsonResponse([]);
@@ -580,14 +580,14 @@ method, it suffixes that method's route names with `.value`:
 ```php
 use Valkyrja\Http\Routing\Attribute\Route;
 use Valkyrja\Http\Routing\Attribute\Route\Name;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 
 #[Name('admin')]
 class AdminController
 {
     // The final name is admin.dashboard.
     #[Route(path: '/dashboard', name: 'dashboard')]
-    #[RouteHandler([AdminRouteProvider::class, 'dashboardHandler'])]
+    #[Handler([AdminRouteProvider::class, 'dashboardHandler'])]
     public function dashboard(): ResponseContract
     {
         return new JsonResponse([]);
@@ -608,14 +608,14 @@ use Valkyrja\Http\Routing\Attribute\Parameter;
 use Valkyrja\Http\Routing\Attribute\Route;
 use Valkyrja\Http\Routing\Attribute\Route\RequestMethod as RequestMethodAttribute;
 use Valkyrja\Http\Routing\Attribute\Route\RequestMethod\Patch;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 use Valkyrja\Http\Routing\Constant\Regex;
 
 // PATCH joins the default HEAD and GET.
 #[Patch]
 #[Route(path: '/users/{id}', name: 'users.update')]
 #[Parameter(name: 'id', regex: Regex::ID)]
-#[RouteHandler([UserRouteProvider::class, 'updateHandler'])]
+#[Handler([UserRouteProvider::class, 'updateHandler'])]
 public function update(int $id): ResponseContract
 {
     return new JsonResponse(['id' => $id]);
@@ -625,7 +625,7 @@ public function update(int $id): ResponseContract
 #[RequestMethodAttribute(RequestMethod::PUT, RequestMethod::PATCH)]
 #[Route(path: '/users/{id}', name: 'users.replace')]
 #[Parameter(name: 'id', regex: Regex::ID)]
-#[RouteHandler([UserRouteProvider::class, 'replaceHandler'])]
+#[Handler([UserRouteProvider::class, 'replaceHandler'])]
 public function replace(int $id): ResponseContract
 {
     return new JsonResponse(['id' => $id]);
@@ -1014,7 +1014,7 @@ the middleware calls only static methods:
 ```php
 #[Route(path: '/users', name: 'users.store', requestMethods: [RequestMethod::POST])]
 #[Route\RequestStruct(CreateUserRequestStruct::username)]
-#[RouteHandler([UserRouteProvider::class, 'storeHandler'])]
+#[Handler([UserRouteProvider::class, 'storeHandler'])]
 public function store(): ResponseContract
 {
     return new JsonResponse([], StatusCode::CREATED);
@@ -1063,7 +1063,7 @@ data by the case values, and re-encodes:
 #[Route(path: '/users/{id}', name: 'users.show')]
 #[Parameter(name: 'id', regex: Regex::ID)]
 #[Route\ResponseStruct(UserResponseStruct::id)]
-#[RouteHandler([UserRouteProvider::class, 'showHandler'])]
+#[Handler([UserRouteProvider::class, 'showHandler'])]
 public function show(int $id): ResponseContract
 {
     // The middleware reshapes this to {"userId": 1, "userName": "melech"}.
@@ -1419,12 +1419,12 @@ stages. The attribute is repeatable:
 ```php
 use Valkyrja\Http\Routing\Attribute\Route;
 use Valkyrja\Http\Routing\Attribute\Route\Middleware;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 
 #[Route(path: '/admin', name: 'admin.dashboard')]
 #[Middleware(AuthMiddleware::class)]
 #[Middleware(AuditLogMiddleware::class)]
-#[RouteHandler([AdminRouteProvider::class, 'dashboardHandler'])]
+#[Handler([AdminRouteProvider::class, 'dashboardHandler'])]
 public function dashboard(): ResponseContract
 {
     return new JsonResponse([]);
@@ -1441,7 +1441,7 @@ out:
     routeMatchedMiddleware: [AuthMiddleware::class],
     responseSentMiddleware: [AuditLogMiddleware::class],
 )]
-#[RouteHandler([AdminRouteProvider::class, 'dashboardHandler'])]
+#[Handler([AdminRouteProvider::class, 'dashboardHandler'])]
 public function dashboard(): ResponseContract
 {
     return new JsonResponse([]);
@@ -1472,7 +1472,7 @@ visible in one place:
 use Attribute;
 use Valkyrja\Http\Routing\Attribute\Parameter;
 use Valkyrja\Http\Routing\Attribute\Route;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 use Valkyrja\Http\Routing\Constant\Regex;
 
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
@@ -1492,7 +1492,7 @@ class UserController
 {
     #[UserRoute(path: '/{id}', name: 'show')]
     #[Parameter(name: 'id', regex: Regex::ID)]
-    #[RouteHandler([UserRouteProvider::class, 'showHandler'])]
+    #[Handler([UserRouteProvider::class, 'showHandler'])]
     public function show(): ResponseContract
     {
         // ...
@@ -1617,7 +1617,7 @@ to that route. It sets the `Cache-Control`, `Pragma`, and `Expires` headers:
 use Valkyrja\Http\Server\Middleware\SendingResponse\NoCacheResponseMiddleware;
 
 #[Route(path: '/account', name: 'account.show', sendingResponseMiddleware: [NoCacheResponseMiddleware::class])]
-#[RouteHandler([AccountRouteProvider::class, 'accountHandler'])]
+#[Handler([AccountRouteProvider::class, 'accountHandler'])]
 public function account(): ResponseContract
 {
     return new JsonResponse(['account' => []]);

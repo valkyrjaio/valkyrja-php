@@ -67,7 +67,7 @@ final class AttributeRouteCollectorTest extends TestCase
     public function testKeepsAHandlerNamedOnTheRouteAttribute(): void
     {
         // The route attribute takes a handler of its own, so a route that
-        // names one there needs no RouteHandler attribute
+        // names one there needs no Handler attribute
         $routes = $this->collector->getRoutes(JobControllerInlineHandlerFixture::class);
         $inline = array_values(array_filter(
             $routes,

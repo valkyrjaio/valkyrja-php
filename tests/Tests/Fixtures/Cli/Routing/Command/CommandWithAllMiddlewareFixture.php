@@ -17,8 +17,8 @@ use Valkyrja\Cli\Interaction\Message\Message;
 use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
 use Valkyrja\Cli\Interaction\Output\Factory\Contract\OutputFactoryContract;
 use Valkyrja\Cli\Routing\Attribute\Route;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Attribute\Route\Middleware;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Tests\Fixtures\Cli\Middleware\AllMiddlewareFixture;
@@ -57,7 +57,7 @@ final class CommandWithAllMiddlewareFixture
         description: self::DESCRIPTION,
         helpText: [self::class, 'help'],
     )]
-    #[RouteHandler([self::class, 'handler'])]
+    #[Handler([self::class, 'handler'])]
     #[Middleware(AllMiddlewareFixture::class)]
     public function run(OutputFactoryContract $outputFactory): OutputContract
     {

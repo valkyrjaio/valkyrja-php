@@ -24,8 +24,8 @@ use Valkyrja\Grpc\Middleware\Contract\RouteMatchedMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\SendingResponseMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 use Valkyrja\Grpc\Routing\Attribute\Route as Attribute;
+use Valkyrja\Grpc\Routing\Attribute\Route\Handler;
 use Valkyrja\Grpc\Routing\Attribute\Route\Middleware;
-use Valkyrja\Grpc\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Grpc\Routing\Attribute\Service;
 use Valkyrja\Grpc\Routing\Collector\Contract\RouteCollectorContract;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
@@ -110,7 +110,7 @@ class AttributeRouteCollector implements RouteCollectorContract
     }
 
     /**
-     * Resolve the handler, which a `#[RouteHandler]` names ahead of the route attribute's own
+     * Resolve the handler, which a `#[Handler]` names ahead of the route attribute's own
      * argument.
      *
      * @param class-string     $class  The class name
@@ -122,8 +122,8 @@ class AttributeRouteCollector implements RouteCollectorContract
      */
     protected function getHandler(Attribute $attribute, string $class, string $method): callable
     {
-        /** @var RouteHandler[] $routeHandlers */
-        $routeHandlers = $this->attributes->forMethod($class, $method, RouteHandler::class);
+        /** @var Handler[] $routeHandlers */
+        $routeHandlers = $this->attributes->forMethod($class, $method, Handler::class);
         $routeHandler  = $routeHandlers[0] ?? null;
 
         $handler = $routeHandler->handler ?? $attribute->handler;

@@ -15,7 +15,7 @@ namespace Valkyrja\Tests\Fixtures\Queue\Routing\Controller;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Routing\Attribute\Route;
-use Valkyrja\Queue\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Queue\Routing\Attribute\Route\Handler;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 
 /** A controller whose route names its handler on the route attribute itself. */
@@ -38,7 +38,7 @@ final class JobControllerInlineHandlerFixture
     }
 
     #[Route(name: 'Both', description: 'Both forms', handler: [self::class, 'handle'])]
-    #[RouteHandler([self::class, 'viaAttribute'])]
+    #[Handler([self::class, 'viaAttribute'])]
     public function both(): JobResult
     {
         return JobResult::ACK;

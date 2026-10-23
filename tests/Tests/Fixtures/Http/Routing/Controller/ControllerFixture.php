@@ -19,13 +19,13 @@ use Valkyrja\Http\Message\Response\Response;
 use Valkyrja\Http\Routing\Attribute\DynamicRoute;
 use Valkyrja\Http\Routing\Attribute\Parameter;
 use Valkyrja\Http\Routing\Attribute\Route;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 use Valkyrja\Http\Routing\Attribute\Route\Middleware;
 use Valkyrja\Http\Routing\Attribute\Route\RequestMethod\Get;
 use Valkyrja\Http\Routing\Attribute\Route\RequestMethod\Head;
 use Valkyrja\Http\Routing\Attribute\Route\RequestMethod\Post;
 use Valkyrja\Http\Routing\Attribute\Route\RequestStruct;
 use Valkyrja\Http\Routing\Attribute\Route\ResponseStruct;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Http\Routing\Constant\Regex;
 use Valkyrja\Http\Routing\Data\Contract\RouteContract;
 use Valkyrja\Tests\Fixtures\Http\Middleware\ResponseSentMiddlewareFixture;
@@ -75,7 +75,7 @@ final class ControllerFixture
             new Parameter(name: self::DYNAMIC_PARAMETER_NAME, regex: Regex::ALPHA, cast: new Cast(TypeContract::class)),
         ]
     )]
-    #[RouteHandler([self::class, 'handler'])]
+    #[Handler([self::class, 'handler'])]
     #[Middleware(RouteDispatchedMiddlewareFixture::class)]
     #[Middleware(RouteMatchedMiddlewareFixture::class)]
     #[Middleware(SendingResponseMiddlewareFixture::class)]
@@ -95,7 +95,7 @@ final class ControllerFixture
     }
 
     #[Route(path: self::WELCOME_PATH, name: self::WELCOME_NAME)]
-    #[RouteHandler([self::class, 'handler'])]
+    #[Handler([self::class, 'handler'])]
     public function welcome(): ResponseContract
     {
         return Response::create('welcome');
@@ -105,7 +105,7 @@ final class ControllerFixture
     #[Head]
     #[Post]
     #[Route(path: self::PARAMETERS_PATH, name: self::PARAMETERS_NAME)]
-    #[RouteHandler([RouteProviderFixture::class, 'handler'])]
+    #[Handler([RouteProviderFixture::class, 'handler'])]
     #[Middleware(RouteDispatchedMiddlewareFixture::class)]
     #[Middleware(RouteMatchedMiddlewareFixture::class)]
     #[Middleware(SendingResponseMiddlewareFixture::class)]

@@ -25,7 +25,7 @@ use Valkyrja\Cli\Interaction\Message\NewLine;
 use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
 use Valkyrja\Cli\Interaction\Output\Factory\Contract\OutputFactoryContract;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Server\Command\VersionCommand;
 use Valkyrja\Http\Message\Enum\RequestMethod;
 use Valkyrja\Http\Routing\Cli\Command\Constant\CommandName;
@@ -51,7 +51,7 @@ class ListCommand
         description: 'List all routes',
         helpText: [self::class, 'help'],
     )]
-    #[RouteHandler([HttpRoutingCliRouteProvider::class, 'listHandler'])]
+    #[Handler([HttpRoutingCliRouteProvider::class, 'listHandler'])]
     public function run(VersionCommand $version, RouteCollectionContract $collection, OutputFactoryContract $outputFactory): OutputContract
     {
         $output = $outputFactory

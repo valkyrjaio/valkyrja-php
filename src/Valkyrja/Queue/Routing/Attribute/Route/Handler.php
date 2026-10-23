@@ -18,7 +18,7 @@ use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-class RouteHandler
+class Handler
 {
     /** @var callable(ContainerContract, RouteContract):JobResult */
     public $handler;

@@ -17,7 +17,7 @@ use Valkyrja\Cli\Interaction\Message\Message;
 use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
 use Valkyrja\Cli\Interaction\Output\Factory\Contract\OutputFactoryContract;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Cli\Routing\Data\ArgumentParameter;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
@@ -63,7 +63,7 @@ class ListBashCommand
             ),
         ]
     )]
-    #[RouteHandler([CliRoutingCliRouteProvider::class, 'listBashHandler'])]
+    #[Handler([CliRoutingCliRouteProvider::class, 'listBashHandler'])]
     public function run(): OutputContract
     {
         $output = $this->outputFactory

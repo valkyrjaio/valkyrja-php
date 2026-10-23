@@ -15,9 +15,9 @@ namespace Valkyrja\Tests\Fixtures\Queue\Routing\Controller;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Queue\Message\Enum\JobResult;
 use Valkyrja\Queue\Routing\Attribute\Route;
+use Valkyrja\Queue\Routing\Attribute\Route\Handler;
 use Valkyrja\Queue\Routing\Attribute\Route\Middleware;
 use Valkyrja\Queue\Routing\Attribute\Route\Name;
-use Valkyrja\Queue\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\ResultSettledMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Queue\Middleware\RouteDispatchedMiddlewareFixture;
@@ -34,14 +34,14 @@ final class JobControllerFixture
     }
 
     #[Route(name: 'SendWelcomeEmail', description: 'Send the welcome email')]
-    #[RouteHandler([self::class, 'handle'])]
+    #[Handler([self::class, 'handle'])]
     public function sendWelcomeEmail(): JobResult
     {
         return JobResult::ACK;
     }
 
     #[Route(name: 'ChargeCard', description: 'Charge the card')]
-    #[RouteHandler([self::class, 'handle'])]
+    #[Handler([self::class, 'handle'])]
     #[Name('v2')]
     #[Middleware(RouteMatchedMiddlewareFixture::class)]
     #[Middleware(RouteDispatchedMiddlewareFixture::class)]

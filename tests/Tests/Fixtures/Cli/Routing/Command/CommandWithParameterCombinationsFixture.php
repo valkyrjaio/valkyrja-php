@@ -19,7 +19,7 @@ use Valkyrja\Cli\Interaction\Output\Factory\Contract\OutputFactoryContract;
 use Valkyrja\Cli\Routing\Attribute\ArgumentParameter;
 use Valkyrja\Cli\Routing\Attribute\OptionParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Routing\Enum\ArgumentMode;
 use Valkyrja\Cli\Routing\Enum\ArgumentValueMode;
@@ -62,7 +62,7 @@ final class CommandWithParameterCombinationsFixture
         description: self::DESCRIPTION,
         helpText: [self::class, 'help'],
     )]
-    #[RouteHandler([self::class, 'handler'])]
+    #[Handler([self::class, 'handler'])]
     #[ArgumentParameter(
         name: 'required',
         description: 'A required single-value argument',

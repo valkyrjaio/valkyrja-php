@@ -14,7 +14,7 @@ namespace Valkyrja\Tests\Unit\Cli\Routing\Collector;
 
 use ReflectionException;
 use Valkyrja\Attribute\Collector\Collector;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Collector\AttributeRouteCollector;
 use Valkyrja\Cli\Routing\Data\ArgumentParameter;
 use Valkyrja\Cli\Routing\Data\OptionParameter;
@@ -107,9 +107,9 @@ final class AttributeRouteCollectorTest extends TestCase
             reflection: new Reflector()
         );
 
-        // Were this fixture to gain a RouteHandler anywhere, the rejection
+        // Were this fixture to gain a Handler anywhere, the rejection
         // above would pass against a guard that tests the attribute instead
-        self::assertSame([], $attributes->forClassMembers(CommandFixture::class, RouteHandler::class));
+        self::assertSame([], $attributes->forClassMembers(CommandFixture::class, Handler::class));
 
         $commands = $collector->getRoutes(CommandFixture::class);
 

@@ -17,8 +17,8 @@ use Valkyrja\Http\Message\Response\Contract\ResponseContract;
 use Valkyrja\Http\Message\Response\Response;
 use Valkyrja\Http\Routing\Attribute\DynamicRoute;
 use Valkyrja\Http\Routing\Attribute\Route;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 use Valkyrja\Http\Routing\Attribute\Route\Middleware;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Http\Routing\Data\Contract\RouteContract;
 use Valkyrja\Http\Routing\Data\Parameter;
 use Valkyrja\Tests\Fixtures\Http\Middleware\AllMiddlewareFixture;
@@ -51,7 +51,7 @@ final class ControllerWithAllMiddlewareFixture
         requestStruct: IndexedJsonRequestStructEnum::first,
         responseStruct: ResponseStructEnum::first,
     )]
-    #[RouteHandler([self::class, 'handler'])]
+    #[Handler([self::class, 'handler'])]
     #[Middleware(AllMiddlewareFixture::class)]
     public function welcome(): ResponseContract
     {
@@ -65,7 +65,7 @@ final class ControllerWithAllMiddlewareFixture
         requestStruct: IndexedJsonRequestStructEnum::first,
         responseStruct: ResponseStructEnum::first,
     )]
-    #[RouteHandler([self::class, 'handler'])]
+    #[Handler([self::class, 'handler'])]
     #[Middleware(AllMiddlewareFixture::class)]
     public function welcomeDynamic(int $dynamic): ResponseContract
     {
