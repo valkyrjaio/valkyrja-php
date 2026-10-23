@@ -10,7 +10,7 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Grpc\Routing\Attribute\Method;
+namespace Valkyrja\Grpc\Routing\Attribute\Route;
 
 use Attribute;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
@@ -18,7 +18,7 @@ use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-class MethodHandler
+class RouteHandler
 {
     /** @var callable(ContainerContract, RouteContract):ServiceResponseContract */
     public $handler;

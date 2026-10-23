@@ -15,8 +15,8 @@ namespace Valkyrja\Tests\Fixtures\Grpc\Routing\Controller;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Message\Response\ServiceResponse;
-use Valkyrja\Grpc\Routing\Attribute\Method;
-use Valkyrja\Grpc\Routing\Attribute\Method\Middleware;
+use Valkyrja\Grpc\Routing\Attribute\Route;
+use Valkyrja\Grpc\Routing\Attribute\Route\Middleware;
 use Valkyrja\Grpc\Routing\Attribute\Service;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
@@ -28,19 +28,24 @@ use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
 #[Service(service: 'pkg.Greeter')]
 final class GreeterControllerFixture
 {
-    #[Method(name: 'SayHello')]
+    #[Route(name: 'SayHello', handler: [self::class, 'sayHello'])]
     public static function sayHello(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         return ServiceResponse::ok('hello');
     }
 
-    #[Method(name: 'Chat', clientStreaming: true, serverStreaming: true)]
+    #[Route(
+        name: 'Chat',
+        handler: [self::class, 'chat'],
+        clientStreaming: true,
+        serverStreaming: true
+    )]
     public static function chat(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         return ServiceResponse::ok('chat');
     }
 
-    #[Method(name: 'Guarded')]
+    #[Route(name: 'Guarded', handler: [self::class, 'guarded'])]
     #[Middleware(name: AllMiddlewareFixture::class)]
     public static function guarded(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {

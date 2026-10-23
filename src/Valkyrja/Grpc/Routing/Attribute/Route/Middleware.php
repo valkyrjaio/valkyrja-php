@@ -10,7 +10,7 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Grpc\Routing\Attribute\Method;
+namespace Valkyrja\Grpc\Routing\Attribute\Route;
 
 use Attribute;
 use Valkyrja\Grpc\Middleware\Contract\ResponseSentMiddlewareContract;

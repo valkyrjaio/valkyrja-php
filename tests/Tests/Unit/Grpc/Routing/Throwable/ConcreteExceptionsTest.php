@@ -13,8 +13,8 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Grpc\Routing\Throwable;
 
 use Valkyrja\Grpc\Routing\Throwable\Exception\Abstract\GrpcRoutingRuntimeException;
-use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingInvalidHandlerException;
 use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingInvalidMethodException;
+use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingNoRouteHandlerException;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 final class ConcreteExceptionsTest extends TestCase
@@ -24,8 +24,8 @@ final class ConcreteExceptionsTest extends TestCase
         self::isA(GrpcRoutingRuntimeException::class, GrpcRoutingInvalidMethodException::class);
     }
 
-    public function testInvalidHandlerException(): void
+    public function testNoRouteHandlerException(): void
     {
-        self::isA(GrpcRoutingRuntimeException::class, GrpcRoutingInvalidHandlerException::class);
+        self::isA(GrpcRoutingRuntimeException::class, GrpcRoutingNoRouteHandlerException::class);
     }
 }

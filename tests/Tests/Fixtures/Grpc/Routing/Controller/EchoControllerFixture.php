@@ -16,7 +16,7 @@ use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Message\Response\ServiceResponse;
-use Valkyrja\Grpc\Routing\Attribute\Method;
+use Valkyrja\Grpc\Routing\Attribute\Route;
 use Valkyrja\Grpc\Routing\Attribute\Service;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 
@@ -28,7 +28,12 @@ use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 #[Service(service: 'pkg.Echo')]
 final class EchoControllerFixture
 {
-    #[Method(name: 'Echo', clientStreaming: true, serverStreaming: true)]
+    #[Route(
+        name: 'Echo',
+        handler: [self::class, 'echo'],
+        clientStreaming: true,
+        serverStreaming: true
+    )]
     public static function echo(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         $call = $container->getSingleton(ServiceCallContract::class);
