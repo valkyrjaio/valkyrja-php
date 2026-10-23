@@ -15,18 +15,23 @@ namespace Valkyrja\Tests\Unit\Grpc\Routing\Collector;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Valkyrja\Container\Manager\Container;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
+use Valkyrja\Grpc\Message\Response\ServiceResponse;
+use Valkyrja\Grpc\Message\Status\Status;
 use Valkyrja\Grpc\Routing\Collector\AttributeRouteCollector;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
-use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingInvalidHandlerException;
+use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingNoRouteHandlerException;
 use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\ResponseSentMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteDispatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareFixture;
-use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\BadHandlerControllerFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\SendingResponseMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\ThrowableCaughtMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\AliasedRouteControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\CancellingControllerFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\DeclaredMiddlewareControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\GreeterControllerFixture;
-use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\NonPublicHandlerControllerFixture;
-use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\NonStaticHandlerControllerFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\NoHandlerControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\OverriddenHandlerControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\SingleStageMiddlewareControllerFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\UnattributedControllerFixture;
@@ -45,6 +50,42 @@ final class AttributeRouteCollectorTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, class-string, string}>
+     */
+    public static function provideSingleStageMethods(): iterable
+    {
+        yield 'route matched' => [
+            '/pkg.SingleStage/Matched',
+            RouteMatchedMiddlewareFixture::class,
+            'routeMatched',
+        ];
+
+        yield 'route dispatched' => [
+            '/pkg.SingleStage/Dispatched',
+            RouteDispatchedMiddlewareFixture::class,
+            'routeDispatched',
+        ];
+
+        yield 'throwable caught' => [
+            '/pkg.SingleStage/Caught',
+            ThrowableCaughtMiddlewareFixture::class,
+            'throwableCaught',
+        ];
+
+        yield 'sending response' => [
+            '/pkg.SingleStage/Sending',
+            SendingResponseMiddlewareFixture::class,
+            'sendingResponse',
+        ];
+
+        yield 'response sent' => [
+            '/pkg.SingleStage/Sent',
+            ResponseSentMiddlewareFixture::class,
+            'responseSent',
+        ];
+    }
+
+    /**
      * @param RouteContract[] $routes
      */
     private static function byMethod(array $routes, string $method): RouteContract
@@ -58,7 +99,7 @@ final class AttributeRouteCollectorTest extends TestCase
         self::fail("No route collected for `$method`");
     }
 
-    public function testCollectsOneRoutePerAttributedMethod(): void
+    public function testCollectsARouteForEachRouteAttribute(): void
     {
         $routes = new AttributeRouteCollector()->getRoutes(GreeterControllerFixture::class);
 
@@ -89,7 +130,7 @@ final class AttributeRouteCollectorTest extends TestCase
         self::assertTrue($bidirectional->isServerStreaming());
     }
 
-    public function testWiresTheAttributedMethodAsTheHandler(): void
+    public function testCarriesTheHandlerTheRouteAttributeNames(): void
     {
         $routes = new AttributeRouteCollector()->getRoutes(GreeterControllerFixture::class);
         $route  = self::byMethod($routes, '/pkg.Greeter/SayHello');
@@ -111,13 +152,14 @@ final class AttributeRouteCollectorTest extends TestCase
         self::assertSame([OverriddenHandlerControllerFixture::OVERRIDDEN], $response->getMessages());
     }
 
-    public function testAnOverriddenHandlerExemptsTheAttributedMethodFromTheStaticCheck(): void
+    public function testAHandlerAttributeAloneNamesTheHandler(): void
     {
         $routes = new AttributeRouteCollector()->getRoutes(OverriddenHandlerControllerFixture::class);
         $route  = self::byMethod($routes, '/pkg.Overridden/DoInstanceThing');
 
-        // The method is an instance method, which the scan rejects only when the scan-derived
-        // handler would call it statically.
+        // The route attribute names no handler, so the handler attribute is the only spelling that
+        // supplies one. The attributed method is an instance method, which the collector never
+        // calls.
         $handler = $route->getHandler();
 
         self::assertSame(
@@ -138,28 +180,36 @@ final class AttributeRouteCollectorTest extends TestCase
         self::assertSame([AllMiddlewareFixture::class], $route->getResponseSentMiddleware());
     }
 
-    public function testASingleStageMiddlewareLandsInOnlyItsOwnBucket(): void
+    /**
+     * @param class-string     $middleware The middleware
+     * @param non-empty-string $stage      The stage the middleware's contract names
+     */
+    #[DataProvider('provideSingleStageMethods')]
+    public function testAMiddlewareLandsOnlyInTheStageItsContractNames(string $method, string $middleware, string $stage): void
     {
         $routes = new AttributeRouteCollector()->getRoutes(SingleStageMiddlewareControllerFixture::class);
-        $route  = self::byMethod($routes, '/pkg.SingleStage/Matched');
+        $route  = self::byMethod($routes, $method);
 
-        self::assertSame([RouteMatchedMiddlewareFixture::class], $route->getRouteMatchedMiddleware());
-        self::assertSame([], $route->getRouteDispatchedMiddleware());
-        self::assertSame([], $route->getThrowableCaughtMiddleware());
-        self::assertSame([], $route->getSendingResponseMiddleware());
-        self::assertSame([], $route->getResponseSentMiddleware());
-    }
+        /** @var array<non-empty-string, class-string[]> $expected */
+        $expected = [
+            'routeMatched'    => [],
+            'routeDispatched' => [],
+            'throwableCaught' => [],
+            'sendingResponse' => [],
+            'responseSent'    => [],
+        ];
 
-    public function testAResponseSentOnlyMiddlewareSkipsTheRouteMatchedBucket(): void
-    {
-        $routes = new AttributeRouteCollector()->getRoutes(SingleStageMiddlewareControllerFixture::class);
-        $route  = self::byMethod($routes, '/pkg.SingleStage/Sent');
+        $expected[$stage] = [$middleware];
 
-        self::assertSame([ResponseSentMiddlewareFixture::class], $route->getResponseSentMiddleware());
-        self::assertSame([], $route->getRouteMatchedMiddleware());
-        self::assertSame([], $route->getRouteDispatchedMiddleware());
-        self::assertSame([], $route->getThrowableCaughtMiddleware());
-        self::assertSame([], $route->getSendingResponseMiddleware());
+        // Every bucket is asserted, so a stage read from the wrong contract fails here, and so does
+        // a stage that accepts a second contract as well as its own.
+        self::assertSame($expected, [
+            'routeMatched'    => $route->getRouteMatchedMiddleware(),
+            'routeDispatched' => $route->getRouteDispatchedMiddleware(),
+            'throwableCaught' => $route->getThrowableCaughtMiddleware(),
+            'sendingResponse' => $route->getSendingResponseMiddleware(),
+            'responseSent'    => $route->getResponseSentMiddleware(),
+        ]);
     }
 
     public function testAMethodWithoutMiddlewareGetsNone(): void
@@ -191,30 +241,83 @@ final class AttributeRouteCollectorTest extends TestCase
         self::assertSame([], new AttributeRouteCollector()->getRoutes());
     }
 
-    public function testAHandlerThatDoesNotReturnAResponseIsRejected(): void
+    public function testARouteThatNamesNoHandlerIsRejectedAtScanTime(): void
     {
-        $routes = new AttributeRouteCollector()->getRoutes(BadHandlerControllerFixture::class);
-        $route  = self::byMethod($routes, '/pkg.Bad/DoThing');
+        $this->expectException(GrpcRoutingNoRouteHandlerException::class);
+        $this->expectExceptionMessage(
+            'Route `DoThing` on ' . NoHandlerControllerFixture::class . '::doThing names no handler'
+        );
+
+        new AttributeRouteCollector()->getRoutes(NoHandlerControllerFixture::class);
+    }
+
+    public function testCarriesTheMessageTypesTheRouteAttributeNames(): void
+    {
+        $routes = new AttributeRouteCollector()->getRoutes(DeclaredMiddlewareControllerFixture::class);
+        $route  = self::byMethod($routes, '/pkg.Declared/EveryStage');
+
+        self::assertSame(ServiceResponse::class, $route->getRequestType());
+        self::assertSame(Status::class, $route->getResponseType());
+    }
+
+    public function testCarriesEveryMiddlewareStageListTheRouteAttributeNames(): void
+    {
+        $routes = new AttributeRouteCollector()->getRoutes(DeclaredMiddlewareControllerFixture::class);
+        $route  = self::byMethod($routes, '/pkg.Declared/EveryStage');
+
+        // Each stage names its own class, so an argument wired to the wrong stage fails here.
+        self::assertSame([RouteMatchedMiddlewareFixture::class], $route->getRouteMatchedMiddleware());
+        self::assertSame([RouteDispatchedMiddlewareFixture::class], $route->getRouteDispatchedMiddleware());
+        self::assertSame([ThrowableCaughtMiddlewareFixture::class], $route->getThrowableCaughtMiddleware());
+        self::assertSame([SendingResponseMiddlewareFixture::class], $route->getSendingResponseMiddleware());
+        self::assertSame([ResponseSentMiddlewareFixture::class], $route->getResponseSentMiddleware());
+    }
+
+    public function testARepeatedRouteAttributeCollectsARouteForEachName(): void
+    {
+        $routes = new AttributeRouteCollector()->getRoutes(AliasedRouteControllerFixture::class);
+
+        self::assertCount(2, $routes);
+
+        $first  = self::byMethod($routes, '/pkg.Aliased/SayHello');
+        $second = self::byMethod($routes, '/pkg.Aliased/Greet');
+
+        // One method answers two remote methods, and each route carries its own field set.
+        self::assertFalse($first->isServerStreaming());
+        self::assertTrue($second->isServerStreaming());
+        self::assertSame(['hello'], ($first->getHandler())(new Container(), $first)->getMessages());
+        self::assertSame(['hello'], ($second->getHandler())(new Container(), $second)->getMessages());
+    }
+
+    public function testCarriesTheHandlerTheRouteAttributeNamesRatherThanTheAttributedMethod(): void
+    {
+        $routes = new AttributeRouteCollector()->getRoutes(DeclaredMiddlewareControllerFixture::class);
+        $route  = self::byMethod($routes, '/pkg.Declared/EveryStage');
 
         $handler = $route->getHandler();
 
-        $this->expectException(GrpcRoutingInvalidHandlerException::class);
-
-        $handler(new Container(), $route);
+        self::assertSame(
+            [DeclaredMiddlewareControllerFixture::DECLARED],
+            $handler(new Container(), $route)->getMessages()
+        );
     }
 
-    public function testANonPublicAttributedMethodIsRejectedAtScanTime(): void
+    public function testAMiddlewareAttributeAppendsToTheStageListTheRouteAttributeNames(): void
     {
-        $this->expectException(GrpcRoutingInvalidHandlerException::class);
+        $routes = new AttributeRouteCollector()->getRoutes(DeclaredMiddlewareControllerFixture::class);
+        $route  = self::byMethod($routes, '/pkg.Declared/Appended');
 
-        new AttributeRouteCollector()->getRoutes(NonPublicHandlerControllerFixture::class);
-    }
-
-    public function testANonStaticAttributedMethodIsRejectedAtScanTime(): void
-    {
-        $this->expectException(GrpcRoutingInvalidHandlerException::class);
-
-        new AttributeRouteCollector()->getRoutes(NonStaticHandlerControllerFixture::class);
+        // The argument already names the attributed middleware, and the stage list keeps both, so
+        // a collector that deduplicated would fail here.
+        self::assertSame(
+            [
+                RouteMatchedMiddlewareFixture::class,
+                AllMiddlewareFixture::class,
+                AllMiddlewareFixture::class,
+            ],
+            $route->getRouteMatchedMiddleware()
+        );
+        self::assertSame([AllMiddlewareFixture::class], $route->getResponseSentMiddleware());
     }
 
     #[DataProvider('provideCancellingMethods')]
@@ -230,8 +333,8 @@ final class AttributeRouteCollectorTest extends TestCase
 
             self::fail('The cancellation must reach the caller.');
         } catch (GrpcCancelledException $exception) {
-            // Reflective dispatch must not wrap the controller's own throwable, or the status
-            // mapping cannot see the cancellation.
+            // The collector must not wrap the handler it collected, or the status mapping cannot
+            // see the cancellation.
             self::assertSame($reason, $exception->getReason());
         }
     }

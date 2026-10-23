@@ -15,30 +15,55 @@ namespace Valkyrja\Tests\Fixtures\Grpc\Routing\Controller;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Message\Response\ServiceResponse;
-use Valkyrja\Grpc\Routing\Attribute\Method;
-use Valkyrja\Grpc\Routing\Attribute\Method\Middleware;
+use Valkyrja\Grpc\Routing\Attribute\Route;
+use Valkyrja\Grpc\Routing\Attribute\Route\Middleware;
 use Valkyrja\Grpc\Routing\Attribute\Service;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\ResponseSentMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteDispatchedMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\SendingResponseMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\ThrowableCaughtMiddlewareFixture;
 
 /**
  * A gRPC service controller whose middleware each serve one stage, so a test can prove the
- * collector leaves the other four buckets empty.
+ * collector reads the stage from the contracts the class implements and leaves the other four
+ * buckets empty.
  */
 #[Service(service: 'pkg.SingleStage')]
 final class SingleStageMiddlewareControllerFixture
 {
-    #[Method(name: 'Matched')]
+    #[Route(name: 'Matched', handler: [self::class, 'matched'])]
     #[Middleware(name: RouteMatchedMiddlewareFixture::class)]
     public static function matched(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         return ServiceResponse::ok();
     }
 
-    #[Method(name: 'Sent')]
+    #[Route(name: 'Sent', handler: [self::class, 'sent'])]
     #[Middleware(name: ResponseSentMiddlewareFixture::class)]
     public static function sent(ContainerContract $container, RouteContract $route): ServiceResponseContract
+    {
+        return ServiceResponse::ok();
+    }
+
+    #[Route(name: 'Dispatched', handler: [self::class, 'dispatched'])]
+    #[Middleware(name: RouteDispatchedMiddlewareFixture::class)]
+    public static function dispatched(ContainerContract $container, RouteContract $route): ServiceResponseContract
+    {
+        return ServiceResponse::ok();
+    }
+
+    #[Route(name: 'Caught', handler: [self::class, 'caught'])]
+    #[Middleware(name: ThrowableCaughtMiddlewareFixture::class)]
+    public static function caught(ContainerContract $container, RouteContract $route): ServiceResponseContract
+    {
+        return ServiceResponse::ok();
+    }
+
+    #[Route(name: 'Sending', handler: [self::class, 'sending'])]
+    #[Middleware(name: SendingResponseMiddlewareFixture::class)]
+    public static function sending(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         return ServiceResponse::ok();
     }

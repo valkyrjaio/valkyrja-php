@@ -23,14 +23,14 @@ use Valkyrja\Grpc\Middleware\Contract\RouteDispatchedMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\RouteMatchedMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\SendingResponseMiddlewareContract;
 use Valkyrja\Grpc\Middleware\Contract\ThrowableCaughtMiddlewareContract;
-use Valkyrja\Grpc\Routing\Attribute\Method;
-use Valkyrja\Grpc\Routing\Attribute\Method\MethodHandler;
-use Valkyrja\Grpc\Routing\Attribute\Method\Middleware;
+use Valkyrja\Grpc\Routing\Attribute\Route as Attribute;
+use Valkyrja\Grpc\Routing\Attribute\Route\Middleware;
+use Valkyrja\Grpc\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Grpc\Routing\Attribute\Service;
 use Valkyrja\Grpc\Routing\Collector\Contract\RouteCollectorContract;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Routing\Data\Route;
-use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingInvalidHandlerException;
+use Valkyrja\Grpc\Routing\Throwable\Exception\GrpcRoutingNoRouteHandlerException;
 use Valkyrja\Reflection\Reflector\Contract\ReflectorContract;
 use Valkyrja\Reflection\Reflector\Reflector;
 
@@ -47,6 +47,8 @@ class AttributeRouteCollector implements RouteCollectorContract
 
     /**
      * @inheritDoc
+     *
+     * @throws GrpcRoutingNoRouteHandlerException
      */
     #[Override]
     public function getRoutes(string ...$classes): array
@@ -62,25 +64,16 @@ class AttributeRouteCollector implements RouteCollectorContract
                 continue;
             }
 
-            /** @var Method[] $methodAttributes */
-            $methodAttributes = $this->attributes->forClassMembers($class, Method::class);
+            /** @var Attribute[] $attributes */
+            $attributes = $this->attributes->forClassMembers($class, Attribute::class);
 
-            foreach ($methodAttributes as $methodAttribute) {
+            foreach ($attributes as $attribute) {
                 /** @var ReflectionMethod $reflection */
-                $reflection = $methodAttribute->getReflection();
+                $reflection = $attribute->getReflection();
                 /** @var non-empty-string $method */
                 $method = $reflection->getName();
 
-                $route    = $this->convertAttributeToData($service, $methodAttribute, $class, $method);
-                $override = $this->updateHandler($route, $class, $method);
-
-                // An override replaces the scan-derived handler, so the attributed method is never
-                // called statically and its visibility stops mattering.
-                if ($override === $route) {
-                    $this->validateHandler($class, $method);
-                }
-
-                $route = $override;
+                $route = $this->convertAttributeToData($service, $attribute, $class, $method);
 
                 $routes[] = $this->updateMiddleware($route, $class, $method);
             }
@@ -90,92 +83,60 @@ class AttributeRouteCollector implements RouteCollectorContract
     }
 
     /**
-     * Reject an attributed method the scan-derived handler could never call.
-     *
-     * The scan-derived handler calls the method statically, so a non-public or non-static method
-     * fails at dispatch as a raw `Error` that the status mapping reports as INTERNAL. The scan is
-     * where the developer can still act on it.
+     * Build a route from a service and route attribute pair.
      *
      * @param class-string     $class  The class name
      * @param non-empty-string $method The method name
      *
-     * @throws GrpcRoutingInvalidHandlerException
+     * @throws GrpcRoutingNoRouteHandlerException
      */
-    protected function validateHandler(string $class, string $method): void
-    {
-        $reflection = $this->reflection->forClassMethod($class, $method);
-
-        if (! $reflection->isPublic() || ! $reflection->isStatic()) {
-            throw new GrpcRoutingInvalidHandlerException("The gRPC handler `$class::$method()` must be a public static method");
-        }
-    }
-
-    /**
-     * Build a route from a service and method attribute pair.
-     *
-     * @param class-string     $class  The class name
-     * @param non-empty-string $method The method name
-     */
-    protected function convertAttributeToData(Service $service, Method $attribute, string $class, string $method): RouteContract
+    protected function convertAttributeToData(Service $service, Attribute $attribute, string $class, string $method): RouteContract
     {
         $fullMethod = '/' . $service->service . '/' . $attribute->name;
 
         return new Route(
             method: $fullMethod,
-            handler: $this->handlerFor($class, $method),
+            handler: $this->getHandler($attribute, $class, $method),
             requestType: $attribute->requestType,
             responseType: $attribute->responseType,
             clientStreaming: $attribute->clientStreaming,
             serverStreaming: $attribute->serverStreaming,
+            routeMatchedMiddleware: $attribute->routeMatchedMiddleware,
+            routeDispatchedMiddleware: $attribute->routeDispatchedMiddleware,
+            throwableCaughtMiddleware: $attribute->throwableCaughtMiddleware,
+            sendingResponseMiddleware: $attribute->sendingResponseMiddleware,
+            responseSentMiddleware: $attribute->responseSentMiddleware,
         );
     }
 
     /**
-     * Wire an attributed method as the route's handler.
-     *
-     * The method is called directly rather than through a reflection wrapper, so a throwable it
-     * raises — a cancellation, say — propagates as itself instead of behind a type the status
-     * mapping cannot see. Its return value is checked here because the signature is a runtime
-     * contract discovered by the scan, not one the compiler can hold the controller to.
+     * Resolve the handler, which a `#[RouteHandler]` names ahead of the route attribute's own
+     * argument.
      *
      * @param class-string     $class  The class name
      * @param non-empty-string $method The method name
+     *
+     * @throws GrpcRoutingNoRouteHandlerException
      *
      * @return callable(ContainerContract, RouteContract):ServiceResponseContract
      */
-    protected function handlerFor(string $class, string $method): callable
+    protected function getHandler(Attribute $attribute, string $class, string $method): callable
     {
-        return static function (ContainerContract $container, RouteContract $route) use ($class, $method): ServiceResponseContract {
-            /** @psalm-suppress MixedMethodCall The scan resolved the class and method by reflection */
-            $response = $class::$method($container, $route);
+        /** @var RouteHandler[] $routeHandlers */
+        $routeHandlers = $this->attributes->forMethod($class, $method, RouteHandler::class);
+        $routeHandler  = $routeHandlers[0] ?? null;
 
-            if (! $response instanceof ServiceResponseContract) {
-                throw new GrpcRoutingInvalidHandlerException("The gRPC handler `$class::$method()` must return a service response for the route `{$route->getMethod()}`");
-            }
-
-            return $response;
-        };
-    }
-
-    /**
-     * Apply an explicit handler override, when one is attributed.
-     *
-     * @param class-string     $class  The class name
-     * @param non-empty-string $method The method name
-     */
-    protected function updateHandler(RouteContract $route, string $class, string $method): RouteContract
-    {
-        /** @var MethodHandler[] $methodHandlers */
-        $methodHandlers = $this->attributes->forMethod($class, $method, MethodHandler::class);
-        $methodHandler  = $methodHandlers[0] ?? null;
-
-        $handler = $methodHandler->handler ?? null;
+        $handler = $routeHandler->handler ?? $attribute->handler;
 
         if ($handler === null) {
-            return $route;
+            // The route's handler is not nullable, so rejecting here names the route, the class
+            // and the method, where the constructor would name none of them.
+            throw new GrpcRoutingNoRouteHandlerException(
+                'Route `' . $attribute->name . '` on ' . $class . '::' . $method . ' names no handler'
+            );
         }
 
-        return $route->withHandler($handler);
+        return $handler;
     }
 
     /**

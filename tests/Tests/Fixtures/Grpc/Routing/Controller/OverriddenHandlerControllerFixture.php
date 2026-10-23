@@ -15,14 +15,15 @@ namespace Valkyrja\Tests\Fixtures\Grpc\Routing\Controller;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Message\Response\ServiceResponse;
-use Valkyrja\Grpc\Routing\Attribute\Method;
-use Valkyrja\Grpc\Routing\Attribute\Method\MethodHandler;
+use Valkyrja\Grpc\Routing\Attribute\Route;
+use Valkyrja\Grpc\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Grpc\Routing\Attribute\Service;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 
 /**
- * A gRPC service controller whose route handler is supplied explicitly rather than derived from the
- * attributed method.
+ * A gRPC service controller whose handler comes from `#[RouteHandler]`, so a test can prove that
+ * spelling wins over the route attribute's own handler argument, and that it supplies the handler
+ * of a route whose attribute names none.
  */
 #[Service(service: 'pkg.Overridden')]
 final class OverriddenHandlerControllerFixture
@@ -35,15 +36,15 @@ final class OverriddenHandlerControllerFixture
         return ServiceResponse::ok(self::OVERRIDDEN);
     }
 
-    #[Method(name: 'DoThing')]
-    #[MethodHandler([self::class, 'actualHandler'])]
+    #[Route(name: 'DoThing', handler: [self::class, 'doThing'])]
+    #[RouteHandler([self::class, 'actualHandler'])]
     public static function doThing(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         return ServiceResponse::ok('not used');
     }
 
-    #[Method(name: 'DoInstanceThing')]
-    #[MethodHandler([self::class, 'actualHandler'])]
+    #[Route(name: 'DoInstanceThing')]
+    #[RouteHandler([self::class, 'actualHandler'])]
     public function doInstanceThing(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         return ServiceResponse::ok('not used either');

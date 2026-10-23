@@ -16,7 +16,7 @@ use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
 use Valkyrja\Grpc\Message\Response\ServiceResponse;
-use Valkyrja\Grpc\Routing\Attribute\Method;
+use Valkyrja\Grpc\Routing\Attribute\Route;
 use Valkyrja\Grpc\Routing\Attribute\Service;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 
@@ -37,7 +37,7 @@ final class CounterControllerFixture
         self::$produced = 0;
     }
 
-    #[Method(name: 'Count', serverStreaming: true)]
+    #[Route(name: 'Count', handler: [self::class, 'count'], serverStreaming: true)]
     public static function count(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         $call = $container->getSingleton(ServiceCallContract::class);

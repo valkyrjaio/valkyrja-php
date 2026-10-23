@@ -14,6 +14,6 @@ namespace Valkyrja\Grpc\Routing\Throwable\Exception;
 
 use Valkyrja\Grpc\Routing\Throwable\Exception\Abstract\GrpcRoutingRuntimeException;
 
-class GrpcRoutingInvalidHandlerException extends GrpcRoutingRuntimeException
+class GrpcRoutingNoRouteHandlerException extends GrpcRoutingRuntimeException
 {
 }

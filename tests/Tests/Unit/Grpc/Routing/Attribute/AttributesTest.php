@@ -13,12 +13,17 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Unit\Grpc\Routing\Attribute;
 
 use ReflectionMethod;
-use Valkyrja\Grpc\Routing\Attribute\Method;
-use Valkyrja\Grpc\Routing\Attribute\Method\MethodHandler;
-use Valkyrja\Grpc\Routing\Attribute\Method\Middleware;
+use Valkyrja\Grpc\Routing\Attribute\Route;
+use Valkyrja\Grpc\Routing\Attribute\Route\Middleware;
+use Valkyrja\Grpc\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Grpc\Routing\Attribute\Service;
-use Valkyrja\Grpc\Routing\Data\Route;
+use Valkyrja\Grpc\Routing\Data\Route as DataRoute;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\ResponseSentMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteDispatchedMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\RouteMatchedMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\SendingResponseMiddlewareFixture;
+use Valkyrja\Tests\Fixtures\Grpc\Middleware\ThrowableCaughtMiddlewareFixture;
 use Valkyrja\Tests\Fixtures\Grpc\Routing\Controller\GreeterControllerFixture;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
@@ -29,41 +34,61 @@ final class AttributesTest extends TestCase
         self::assertSame('pkg.Greeter', new Service('pkg.Greeter')->service);
     }
 
-    public function testMethodDefaults(): void
+    public function testRouteDefaults(): void
     {
-        $method = new Method('SayHello');
+        $route = new Route('SayHello');
 
-        self::assertSame('SayHello', $method->name);
-        self::assertFalse($method->clientStreaming);
-        self::assertFalse($method->serverStreaming);
-        self::assertNull($method->requestType);
-        self::assertNull($method->responseType);
+        self::assertSame('SayHello', $route->name);
+        self::assertNull($route->handler);
+        self::assertFalse($route->clientStreaming);
+        self::assertFalse($route->serverStreaming);
+        self::assertNull($route->requestType);
+        self::assertNull($route->responseType);
+        self::assertSame([], $route->routeMatchedMiddleware);
+        self::assertSame([], $route->routeDispatchedMiddleware);
+        self::assertSame([], $route->throwableCaughtMiddleware);
+        self::assertSame([], $route->sendingResponseMiddleware);
+        self::assertSame([], $route->responseSentMiddleware);
     }
 
-    public function testMethodWithEverything(): void
+    public function testRouteWithEverything(): void
     {
-        $method = new Method(
+        $handler = [GreeterControllerFixture::class, 'sayHello'];
+
+        $route = new Route(
             name: 'Chat',
+            handler: $handler,
+            requestType: DataRoute::class,
+            responseType: Service::class,
             clientStreaming: true,
             serverStreaming: true,
-            requestType: Route::class,
-            responseType: Route::class,
+            routeMatchedMiddleware: [RouteMatchedMiddlewareFixture::class],
+            routeDispatchedMiddleware: [RouteDispatchedMiddlewareFixture::class],
+            throwableCaughtMiddleware: [ThrowableCaughtMiddlewareFixture::class],
+            sendingResponseMiddleware: [SendingResponseMiddlewareFixture::class],
+            responseSentMiddleware: [ResponseSentMiddlewareFixture::class],
         );
 
-        self::assertTrue($method->clientStreaming);
-        self::assertTrue($method->serverStreaming);
-        self::assertSame(Route::class, $method->requestType);
-        self::assertSame(Route::class, $method->responseType);
+        self::assertSame($handler, $route->handler);
+        self::assertTrue($route->clientStreaming);
+        self::assertTrue($route->serverStreaming);
+        self::assertSame(DataRoute::class, $route->requestType);
+        self::assertSame(Service::class, $route->responseType);
+        self::assertSame([RouteMatchedMiddlewareFixture::class], $route->routeMatchedMiddleware);
+        self::assertSame([RouteDispatchedMiddlewareFixture::class], $route->routeDispatchedMiddleware);
+        self::assertSame([ThrowableCaughtMiddlewareFixture::class], $route->throwableCaughtMiddleware);
+        self::assertSame([SendingResponseMiddlewareFixture::class], $route->sendingResponseMiddleware);
+        self::assertSame([ResponseSentMiddlewareFixture::class], $route->responseSentMiddleware);
     }
 
-    public function testMethodCarriesItsReflection(): void
+    public function testRouteCarriesItsReflection(): void
     {
-        $method     = new Method('SayHello');
+        $route      = new Route('SayHello');
         $reflection = new ReflectionMethod(GreeterControllerFixture::class, 'sayHello');
 
-        $method->setReflection($reflection);
+        $route->setReflection($reflection);
 
-        self::assertSame($reflection, $method->getReflection());
+        self::assertSame($reflection, $route->getReflection());
     }
 
     public function testMiddleware(): void
@@ -71,10 +96,10 @@ final class AttributesTest extends TestCase
         self::assertSame(AllMiddlewareFixture::class, new Middleware(AllMiddlewareFixture::class)->name);
     }
 
-    public function testMethodHandler(): void
+    public function testRouteHandler(): void
     {
         $handler = [GreeterControllerFixture::class, 'sayHello'];
 
-        self::assertSame($handler, new MethodHandler($handler)->handler);
+        self::assertSame($handler, new RouteHandler($handler)->handler);
     }
 }

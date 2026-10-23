@@ -16,19 +16,19 @@ use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Grpc\Message\Call\Contract\ServiceCallContract;
 use Valkyrja\Grpc\Message\Enum\CancellationReason;
 use Valkyrja\Grpc\Message\Response\Contract\ServiceResponseContract;
-use Valkyrja\Grpc\Routing\Attribute\Method;
+use Valkyrja\Grpc\Routing\Attribute\Route;
 use Valkyrja\Grpc\Routing\Attribute\Service;
 use Valkyrja\Grpc\Routing\Data\Contract\RouteContract;
 use Valkyrja\Grpc\Throwable\Exception\GrpcCancelledException;
 
 /**
- * A gRPC service controller that cancels, so a test can drive cancellation through the scan-derived
+ * A gRPC service controller that cancels, so a test can drive cancellation through a declared
  * handler rather than around it.
  */
 #[Service(service: 'pkg.Cancelling')]
 final class CancellingControllerFixture
 {
-    #[Method(name: 'Cancel')]
+    #[Route(name: 'Cancel', handler: [self::class, 'cancel'])]
     public static function cancel(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         throw new GrpcCancelledException(
@@ -37,7 +37,12 @@ final class CancellingControllerFixture
         );
     }
 
-    #[Method(name: 'EmitThenFail', clientStreaming: true, serverStreaming: true)]
+    #[Route(
+        name: 'EmitThenFail',
+        handler: [self::class, 'emitThenFail'],
+        clientStreaming: true,
+        serverStreaming: true
+    )]
     public static function emitThenFail(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         $container->getSingleton(ServiceCallContract::class)->send('partial');
@@ -48,7 +53,7 @@ final class CancellingControllerFixture
         );
     }
 
-    #[Method(name: 'Expire')]
+    #[Route(name: 'Expire', handler: [self::class, 'expire'])]
     public static function expire(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
         throw new GrpcCancelledException(

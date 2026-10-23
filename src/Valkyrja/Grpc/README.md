@@ -35,7 +35,7 @@ provider lists.
 #[Service(service: 'example.Greeter')]
 final class GreeterController
 {
-    #[Method(name: 'SayHello')]
+    #[Route(name: 'SayHello', handler: [self::class, 'sayHello'])]
     #[Middleware(name: AppAuthMiddleware::class)]
     public static function sayHello(ContainerContract $container, RouteContract $route): ServiceResponseContract
     {
@@ -48,18 +48,31 @@ final class GreeterController
 }
 ```
 
-| Marker             | On       | States                                           |
-| ------------------ | -------- | ------------------------------------------------ |
-| `#[Service]`       | a class  | the full service name, such as `example.Greeter` |
-| `#[Method]`        | a method | the remote method's name, and which side streams |
-| `#[Middleware]`    | a method | one middleware class of this method              |
-| `#[MethodHandler]` | a method | a handler to dispatch instead of the method      |
+| Marker            | On       | States                                           |
+| ----------------- | -------- | ------------------------------------------------ |
+| `#[Service]`      | a class  | the full service name, such as `example.Greeter` |
+| `#[Route]`        | a method | every field of the route, less the service name  |
+| `#[Middleware]`   | a method | one middleware class of this method              |
+| `#[RouteHandler]` | a method | the route's handler                              |
 
 `#[Middleware]` is repeatable, so a method may carry several.
 
-A handler method is `public static`, because the component calls it without an
-instance. `#[MethodHandler]` names a different callable to dispatch, and a
-method that carries it is exempt from that rule.
+`#[Route]` is repeatable too, and each one is a route of its own. One method
+therefore answers several remote methods. A service keeps an older name beside a
+new one this way.
+
+Every other attribute on the method applies to all routes that the method
+declares. Give a route its own configuration through that route's own arguments.
+
+**Every route names a handler.** `#[Route]` takes it as an optional `handler`
+argument, `#[RouteHandler]` is the second spelling of the same field, and the
+handler attribute wins when a method carries both. The collector rejects a route
+that names neither, and the failure names the route, the class and the method.
+
+An attribute takes the handler as a `[$class, $method]` pair, and PHP accepts
+that pair as a `callable` only for a public static method, so a handler named in
+an attribute is public and static. The attributed method is not the handler, so
+the component imposes nothing on the attributed method.
 
 ### Declaring methods in a provider
 
@@ -152,7 +165,7 @@ inbound message first, so `getMessages` returns a fixed sequence, and the handle
 returns its own messages on the response.
 
 ```php
-#[Method(name: 'ListGreetings', serverStreaming: true)]
+#[Route(name: 'ListGreetings', handler: [self::class, 'listGreetings'], serverStreaming: true)]
 public static function listGreetings(ContainerContract $container, RouteContract $route): ServiceResponseContract
 {
     return ServiceResponse::ok()
@@ -165,7 +178,12 @@ calls the handler at once, `getMessages` yields each message as it arrives, and
 the handler replies through `send` rather than by returning its messages.
 
 ```php
-#[Method(name: 'Chat', clientStreaming: true, serverStreaming: true)]
+#[Route(
+    name: 'Chat',
+    handler: [self::class, 'chat'],
+    clientStreaming: true,
+    serverStreaming: true,
+)]
 public static function chat(ContainerContract $container, RouteContract $route): ServiceResponseContract
 {
     $call = $container->getSingleton(ServiceCallContract::class);
@@ -426,8 +444,23 @@ one through the container ([Container](../Container/README.md) covers bindings).
 ### Middleware on one method
 
 Declare it on the method, and the router appends it to the stage handlers for
-that call alone. A method's route carries a list per stage, and the stage a class
-lands in follows from the contracts the class implements.
+that call alone. Each route carries a list per stage, and the stage a class lands
+in follows from the contracts the class implements.
+
+**Two spellings declare the same lists.** `#[Route]` takes one list argument for
+each stage, and `#[Middleware]` names one class the collector appends to every
+stage list whose contract the class implements. A method that carries both gets
+the argument's classes first.
+
+```php
+#[Route(
+    name: 'SayHello',
+    handler: [self::class, 'sayHello'],
+    routeMatchedMiddleware: [AppAuthMiddleware::class],
+)]
+#[Middleware(name: AppAuditMiddleware::class)]
+public static function sayHello(ContainerContract $container, RouteContract $route): ServiceResponseContract
+```
 
 `RouteNotMatched` takes no method-level middleware, because no route matched. An
 unknown method answers `UNIMPLEMENTED`, and that stage is where an application
