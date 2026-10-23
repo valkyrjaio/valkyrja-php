@@ -1,6 +1,13 @@
 # Release Notes for 26.x
 
-## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.22.1...26.x)
+## [Unreleased](https://github.com/valkyrjaio/valkyrja/compare/v26.23.0...26.x)
+
+## [v26.23.0](https://github.com/valkyrjaio/valkyrja/compare/v26.22.1...v26.23.0) - 2026-10-22
+
+* [Dependency] build: Require PHP 8.4.27 or later by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1393
+* [Dependency] docs: State the PHP 8.4.27 floor in the support table by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1394
+* [Grpc] feat!: Name the route attribute after the route it builds and declare its whole field set by [@MelechMizrachi](https://github.com/MelechMizrachi) in https://github.com/valkyrjaio/valkyrja-php/pull/1395
+* [Dependency] build: Update composer dependencies by [@valkyrja-volundr](https://github.com/valkyrja-volundr)[bot] in https://github.com/valkyrjaio/valkyrja-php/pull/1396
 
 ## [v26.22.1](https://github.com/valkyrjaio/valkyrja/compare/v26.22.0...v26.22.1) - 2026-10-21
 
