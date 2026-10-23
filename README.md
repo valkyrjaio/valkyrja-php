@@ -101,15 +101,18 @@ For more information see our
 Bug fixes are provided until 3 months after the next major release. Security
 fixes are provided for 2 years after the initial release.
 
-| Version | PHP       | Release             | Bug Fixes Until | Security Fixes Until |
-| :------ | :-------- | :------------------ | :-------------- | :------------------- |
-| 25 (*)  | 8.4 – 8.6 | December 11th, 2025 | March 31, 2026  | March 31, 2026       |
-| 26      | 8.4 – 8.6 | March 31, 2026      | Q2 2027         | Q1 2028              |
-| 27      | 8.5 – 8.6 | Q1 2027             | Q2 2028         | Q1 2029              |
-| 28      | 8.6+      | Q1 2028             | Q2 2029         | Q1 2030              |
+| Version | PHP              | Release             | Bug Fixes Until | Security Fixes Until |
+| :------ | :--------------- | :------------------ | :-------------- | :------------------- |
+| 25 (*)  | 8.4 – 8.6        | December 11th, 2025 | March 31, 2026  | March 31, 2026       |
+| 26      | 8.4.27 – 8.6 (†) | March 31, 2026      | Q2 2027         | Q1 2028              |
+| 27      | 8.5 – 8.6        | Q1 2027             | Q2 2028         | Q1 2029              |
+| 28      | 8.6+             | Q1 2028             | Q2 2029         | Q1 2030              |
 
 (*) Version 25 was a pre-release line. It is no longer supported now that
 version 26 has shipped.
+
+(†) PHP 8.4.27 fixes CVE-2026-109618 and CVE-2026-109619. A Valkyrja 26 PHP
+package does not install on an earlier 8.4 release.
 
 Contributing
 ------------
