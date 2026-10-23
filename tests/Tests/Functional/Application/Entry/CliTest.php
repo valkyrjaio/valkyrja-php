@@ -22,7 +22,7 @@ use Valkyrja\Application\Provider\CliApplicationComponentProvider;
 use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
 use Valkyrja\Cli\Interaction\Output\Output;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Server\Support\Exiter;
@@ -54,7 +54,7 @@ final class CliTest extends TestCase
     }
 
     #[Route('version', 'test')]
-    #[RouteHandler([self::class, 'routeHandler'])]
+    #[Handler([self::class, 'routeHandler'])]
     public static function routeCallback(): Output
     {
         self::$runCalled = true;

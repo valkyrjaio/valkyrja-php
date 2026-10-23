@@ -10,21 +10,21 @@ declare(strict_types=1);
  * Released under the MIT License. See LICENSE.md for details.
  */
 
-namespace Valkyrja\Tests\Unit\Event\Attribute;
+namespace Valkyrja\Tests\Unit\Event\Attribute\Listener;
 
-use Valkyrja\Event\Attribute\ListenerHandler;
+use Valkyrja\Event\Attribute\Listener\Handler;
 use Valkyrja\Tests\Unit\Abstract\TestCase;
 
 /**
  * Test the listener handler attribute.
  */
-final class ListenerHandlerTest extends TestCase
+final class HandlerTest extends TestCase
 {
     public function testHandler(): void
     {
         $handler = static fn () => null;
 
-        $listenerHandler = new ListenerHandler($handler);
+        $listenerHandler = new Handler($handler);
 
         self::assertSame($handler, $listenerHandler->handler);
     }

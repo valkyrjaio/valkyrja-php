@@ -18,7 +18,7 @@ use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-class RouteHandler
+class Handler
 {
     /** @var callable(ContainerContract, RouteContract):OutputContract */
     public $handler;

@@ -28,7 +28,7 @@ use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
 use Valkyrja\Cli\Interaction\Output\Factory\Contract\OutputFactoryContract;
 use Valkyrja\Cli\Routing\Attribute\OptionParameter;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Cli\Routing\Data\Contract\RouteContract;
 use Valkyrja\Cli\Routing\Provider\CliRoutingCliRouteProvider;
@@ -67,7 +67,7 @@ class ListCommand
         valueDisplayName: 'namespace',
         shortNames: ['n']
     )]
-    #[RouteHandler([CliRoutingCliRouteProvider::class, 'listHandler'])]
+    #[Handler([CliRoutingCliRouteProvider::class, 'listHandler'])]
     public function run(): OutputContract
     {
         $routes    = $this->collection->all();

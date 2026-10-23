@@ -132,7 +132,7 @@ final class AttributeRouteCollectorTest extends TestCase
         self::assertSame('/controller/welcome/path', $welcomeRoute->getPath());
         self::assertSame('controller.' . ControllerAttributedFixture::WELCOME_NAME . '.name', $welcomeRoute->getName());
         // Each route names its handler through the attribute's own argument and
-        // carries no RouteHandler attribute, so the collector keeps both
+        // carries no Handler attribute, so the collector keeps both
         self::assertSame([ControllerAttributedFixture::class, 'welcomeHandler'], $welcomeRoute->getHandler());
 
         $showRoute = $routes[1];

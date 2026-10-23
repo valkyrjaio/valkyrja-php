@@ -14,8 +14,8 @@ namespace Valkyrja\Tests\Unit\Grpc\Routing\Attribute;
 
 use ReflectionMethod;
 use Valkyrja\Grpc\Routing\Attribute\Route;
+use Valkyrja\Grpc\Routing\Attribute\Route\Handler;
 use Valkyrja\Grpc\Routing\Attribute\Route\Middleware;
-use Valkyrja\Grpc\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Grpc\Routing\Attribute\Service;
 use Valkyrja\Grpc\Routing\Data\Route as DataRoute;
 use Valkyrja\Tests\Fixtures\Grpc\Middleware\AllMiddlewareFixture;
@@ -100,6 +100,6 @@ final class AttributesTest extends TestCase
     {
         $handler = [GreeterControllerFixture::class, 'sayHello'];
 
-        self::assertSame($handler, new RouteHandler($handler)->handler);
+        self::assertSame($handler, new Handler($handler)->handler);
     }
 }

@@ -23,7 +23,7 @@ use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Http\Message\Response\Contract\ResponseContract;
 use Valkyrja\Http\Message\Response\Response;
 use Valkyrja\Http\Routing\Attribute\Route;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 use Valkyrja\Http\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Http\Routing\Data\Contract\RouteContract;
 use Valkyrja\Tests\Fixtures\Application\Provider\HttpComponentProviderFixture;
@@ -48,7 +48,7 @@ final class HttpTest extends TestCase
     }
 
     #[Route('/version', 'version')]
-    #[RouteHandler([self::class, 'routeHandler'])]
+    #[Handler([self::class, 'routeHandler'])]
     public static function routeCallback(): Response
     {
         self::$runCalled = true;

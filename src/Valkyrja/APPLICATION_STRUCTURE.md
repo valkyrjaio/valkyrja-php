@@ -722,7 +722,7 @@ during development.
 
 1. Create a controller that extends `App\Http\Controller\Controller`.
 2. Add a method annotated with a `#[Route]` attribute.
-3. Name the route's handler with a `#[RouteHandler]` attribute on the same
+3. Name the route's handler with a `#[Handler]` attribute on the same
    method.
 4. Register the controller class in `RouteProvider::getControllerClasses()`.
 5. Register the controller in `ServiceProvider::publishers()`.
@@ -735,7 +735,7 @@ use Valkyrja\Http\Message\Enum\RequestMethod;
 use Valkyrja\Http\Message\Response\Contract\TextResponseContract;
 use Valkyrja\Http\Message\Response\TextResponse;
 use Valkyrja\Http\Routing\Attribute\Route;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 use Valkyrja\Http\Routing\Data\Contract\RouteContract;
 
 class HomeController extends Controller
@@ -748,7 +748,7 @@ class HomeController extends Controller
     }
 
     #[Route(path: '/', name: 'welcome', requestMethods: [RequestMethod::GET])]
-    #[RouteHandler([self::class, 'welcomeHandler'])]
+    #[Handler([self::class, 'welcomeHandler'])]
     public function welcome(): TextResponseContract
     {
         return new TextResponse('Hello World!');

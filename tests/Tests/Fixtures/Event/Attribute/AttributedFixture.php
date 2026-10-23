@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace Valkyrja\Tests\Fixtures\Event\Attribute;
 
 use Valkyrja\Event\Attribute\Listener;
-use Valkyrja\Event\Attribute\ListenerHandler;
+use Valkyrja\Event\Attribute\Listener\Handler;
 use Valkyrja\Tests\Unit\Event\Collector\AttributesListenerCollectorTest;
 
 /**
@@ -26,7 +26,7 @@ final class AttributedFixture
 {
     #[Listener(AttributesListenerCollectorTest::VALUE1, 'AttributedFixture::staticMethodValue1')]
     #[Listener(AttributesListenerCollectorTest::VALUE2, 'AttributedFixture::staticMethodValue2')]
-    #[ListenerHandler([self::class, 'handler'])]
+    #[Handler([self::class, 'handler'])]
     public static function staticMethod(): string
     {
         return 'Static Method';

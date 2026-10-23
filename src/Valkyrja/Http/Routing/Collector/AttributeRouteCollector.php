@@ -25,13 +25,13 @@ use Valkyrja\Http\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 use Valkyrja\Http\Routing\Attribute\DynamicRoute as DynamicAttribute;
 use Valkyrja\Http\Routing\Attribute\Parameter;
 use Valkyrja\Http\Routing\Attribute\Route as Attribute;
+use Valkyrja\Http\Routing\Attribute\Route\Handler;
 use Valkyrja\Http\Routing\Attribute\Route\Middleware;
 use Valkyrja\Http\Routing\Attribute\Route\Name;
 use Valkyrja\Http\Routing\Attribute\Route\Path;
 use Valkyrja\Http\Routing\Attribute\Route\RequestMethod;
 use Valkyrja\Http\Routing\Attribute\Route\RequestStruct;
 use Valkyrja\Http\Routing\Attribute\Route\ResponseStruct;
-use Valkyrja\Http\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Http\Routing\Collector\Contract\RouteCollectorContract;
 use Valkyrja\Http\Routing\Data\Contract\ParameterContract;
 use Valkyrja\Http\Routing\Data\Contract\RouteContract;
@@ -183,8 +183,8 @@ class AttributeRouteCollector implements RouteCollectorContract
      */
     protected function updateHandler(Route $route, string $class, string $method): Route
     {
-        /** @var RouteHandler[] $routeHandlers */
-        $routeHandlers = $this->attributes->forMethod($class, $method, RouteHandler::class);
+        /** @var Handler[] $routeHandlers */
+        $routeHandlers = $this->attributes->forMethod($class, $method, Handler::class);
         $routeHandler  = $routeHandlers[0] ?? null;
 
         // The route attribute's own handler argument supplies a handler too, so

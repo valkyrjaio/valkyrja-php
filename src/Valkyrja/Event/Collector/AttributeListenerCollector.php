@@ -16,7 +16,7 @@ use Override;
 use ReflectionMethod;
 use Valkyrja\Attribute\Collector\Contract\CollectorContract;
 use Valkyrja\Event\Attribute\Listener as Attribute;
-use Valkyrja\Event\Attribute\ListenerHandler;
+use Valkyrja\Event\Attribute\Listener\Handler;
 use Valkyrja\Event\Collector\Contract\ListenerCollectorContract;
 use Valkyrja\Event\Data\Contract\ListenerContract;
 use Valkyrja\Event\Data\Listener;
@@ -69,14 +69,14 @@ class AttributeListenerCollector implements ListenerCollectorContract
     protected function updateHandler(ListenerContract $listener, string $class, string|null $method = null): ListenerContract
     {
         if ($method === null) {
-            /** @var ListenerHandler[] $classHandlers */
-            $classHandlers = $this->attributes->forClass($class, ListenerHandler::class);
+            /** @var Handler[] $classHandlers */
+            $classHandlers = $this->attributes->forClass($class, Handler::class);
             $classHandler  = $classHandlers[0] ?? null;
 
             $handler = $classHandler->handler ?? null;
         } else {
-            /** @var ListenerHandler[] $methodHandlers */
-            $methodHandlers = $this->attributes->forMethod($class, $method, ListenerHandler::class);
+            /** @var Handler[] $methodHandlers */
+            $methodHandlers = $this->attributes->forMethod($class, $method, Handler::class);
             $methodHandler  = $methodHandlers[0] ?? null;
 
             $handler = $methodHandler->handler ?? null;

@@ -426,28 +426,28 @@ The attribute is repeatable, so one class or method can listen to more than
 one event.
 
 `#[Listener]` takes the event class name, a unique listener name, and an
-optional handler. A companion `#[ListenerHandler]` attribute on the same class
+optional handler. A companion `#[Handler]` attribute on the same class
 or method can supply the handler instead.
 
 Warning: a `#[Listener]` with no handler registers a listener whose handler
 does nothing and returns `null`. A `#[Listener]` has no handler when neither
-the attribute nor a companion `#[ListenerHandler]` supplies one. The dispatch
+the attribute nor a companion `#[Handler]` supplies one. The dispatch
 reports no error. Always supply a handler.
 
 PHP permits a closure in an attribute argument only from PHP 8.5. This
 package supports PHP 8.4, so an attribute handler is an array callable, and
 the named method must be static.
 
-**Class-level attributes** — place `#[Listener]` and `#[ListenerHandler]` on
+**Class-level attributes** — place `#[Listener]` and `#[Handler]` on
 the class:
 
 ```php
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Event\Attribute\Listener;
-use Valkyrja\Event\Attribute\ListenerHandler;
+use Valkyrja\Event\Attribute\Listener\Handler;
 
 #[Listener(UserRegistered::class, 'welcome_email.user_registered')]
-#[ListenerHandler([self::class, 'handle'])]
+#[Handler([self::class, 'handle'])]
 class SendWelcomeEmail
 {
     /** @param array<string, mixed> $arguments */
@@ -461,19 +461,19 @@ class SendWelcomeEmail
 }
 ```
 
-**Method-level attributes** — place `#[Listener]` and `#[ListenerHandler]` on
+**Method-level attributes** — place `#[Listener]` and `#[Handler]` on
 the method. A static handler that resolves the class from the container keeps
 the instance method as the unit of work:
 
 ```php
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Event\Attribute\Listener;
-use Valkyrja\Event\Attribute\ListenerHandler;
+use Valkyrja\Event\Attribute\Listener\Handler;
 
 class NotificationService
 {
     #[Listener(UserRegistered::class, 'notification.user_registered')]
-    #[ListenerHandler([self::class, 'handle'])]
+    #[Handler([self::class, 'handle'])]
     public function onUserRegistered(UserRegistered $event): void
     {
         // Send the notification.
@@ -492,7 +492,7 @@ container, so `NotificationService` needs a binding of its own. The container
 has no autowiring. See [Resolving Dependencies](#resolving-dependencies).
 
 **The handler as the third argument** — pass the handler on the `#[Listener]`
-attribute in place of a `#[ListenerHandler]`:
+attribute in place of a `#[Handler]`:
 
 ```php
 use Valkyrja\Container\Manager\Contract\ContainerContract;
@@ -509,12 +509,12 @@ class AuditLog
 }
 ```
 
-When a `#[Listener]` carries a handler and a `#[ListenerHandler]` targets the
-same class or method, the `#[ListenerHandler]` handler wins. The collector
-reads the first `#[ListenerHandler]` on the target, and that one handler
+When a `#[Listener]` carries a handler and a `#[Handler]` targets the
+same class or method, the `#[Handler]` handler wins. The collector
+reads the first `#[Handler]` on the target, and that one handler
 serves every `#[Listener]` on the same target. A class-level `#[Listener]`
-pairs with a class-level `#[ListenerHandler]`, and a method-level
-`#[Listener]` pairs with a `#[ListenerHandler]` on the same method.
+pairs with a class-level `#[Handler]`, and a method-level
+`#[Listener]` pairs with a `#[Handler]` on the same method.
 
 The listener provider names each attributed class:
 
@@ -672,7 +672,7 @@ use Valkyrja\Application\Provider\Contract\ComponentProviderContract;
 use Valkyrja\Container\Manager\Contract\ContainerContract;
 use Valkyrja\Container\Provider\Contract\ServiceProviderContract;
 use Valkyrja\Event\Attribute\Listener;
-use Valkyrja\Event\Attribute\ListenerHandler;
+use Valkyrja\Event\Attribute\Listener\Handler;
 use Valkyrja\Event\Contract\ArgumentsCapableEventContract;
 use Valkyrja\Event\Contract\DispatchCollectableEventContract;
 use Valkyrja\Event\Provider\Contract\ListenerProviderContract;
@@ -713,7 +713,7 @@ class UserRegistered implements ArgumentsCapableEventContract, DispatchCollectab
 class NotificationService
 {
     #[Listener(UserRegistered::class, 'notification.user_registered')]
-    #[ListenerHandler([self::class, 'handle'])]
+    #[Handler([self::class, 'handle'])]
     public function onUserRegistered(UserRegistered $event): string
     {
         // Send the notification.

@@ -28,7 +28,7 @@ use Valkyrja\Cli\Interaction\Message\NewLine;
 use Valkyrja\Cli\Interaction\Output\Contract\OutputContract;
 use Valkyrja\Cli\Interaction\Output\Factory\Contract\OutputFactoryContract;
 use Valkyrja\Cli\Routing\Attribute\Route;
-use Valkyrja\Cli\Routing\Attribute\Route\RouteHandler;
+use Valkyrja\Cli\Routing\Attribute\Route\Handler;
 use Valkyrja\Cli\Routing\Collection\Contract\RouteCollectionContract;
 use Valkyrja\Cli\Routing\Data\Contract\ArgumentParameterContract;
 use Valkyrja\Cli\Routing\Data\Contract\OptionParameterContract;
@@ -81,7 +81,7 @@ class HelpCommand
             ),
         ]
     )]
-    #[RouteHandler([CliRoutingCliRouteProvider::class, 'helpHandler'])]
+    #[Handler([CliRoutingCliRouteProvider::class, 'helpHandler'])]
     public function run(): OutputContract
     {
         $commandName = $this->route->getOptionValue('command');

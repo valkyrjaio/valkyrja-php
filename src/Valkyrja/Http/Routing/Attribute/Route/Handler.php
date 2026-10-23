@@ -18,7 +18,7 @@ use Valkyrja\Http\Message\Response\Contract\ResponseContract;
 use Valkyrja\Http\Routing\Data\Contract\RouteContract;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-class RouteHandler
+class Handler
 {
     /** @var callable(ContainerContract, RouteContract):ResponseContract */
     public $handler;

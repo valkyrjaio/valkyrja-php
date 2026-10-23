@@ -21,9 +21,9 @@ use Valkyrja\Queue\Middleware\Contract\RouteMatchedMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\SettlingResultMiddlewareContract;
 use Valkyrja\Queue\Middleware\Contract\ThrowableCaughtMiddlewareContract;
 use Valkyrja\Queue\Routing\Attribute\Route as Attribute;
+use Valkyrja\Queue\Routing\Attribute\Route\Handler;
 use Valkyrja\Queue\Routing\Attribute\Route\Middleware;
 use Valkyrja\Queue\Routing\Attribute\Route\Name;
-use Valkyrja\Queue\Routing\Attribute\Route\RouteHandler;
 use Valkyrja\Queue\Routing\Collector\Contract\RouteCollectorContract;
 use Valkyrja\Queue\Routing\Data\Contract\RouteContract;
 use Valkyrja\Queue\Routing\Data\Route;
@@ -81,8 +81,8 @@ class AttributeRouteCollector implements RouteCollectorContract
      */
     protected function updateHandler(Route $route, string $class, string $method): Route
     {
-        /** @var RouteHandler[] $routeHandlers */
-        $routeHandlers = $this->attributes->forMethod($class, $method, RouteHandler::class);
+        /** @var Handler[] $routeHandlers */
+        $routeHandlers = $this->attributes->forMethod($class, $method, Handler::class);
         $routeHandler  = $routeHandlers[0] ?? null;
 
         $handler = $routeHandler->handler ?? null;
