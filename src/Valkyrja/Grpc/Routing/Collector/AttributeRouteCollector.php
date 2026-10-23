@@ -96,9 +96,6 @@ class AttributeRouteCollector implements RouteCollectorContract
 
         return new Route(
             method: $fullMethod,
-            // The route validates its own method on construction, and the attribute declares only
-            // the remote method's name, so the handler is resolved before the route exists rather
-            // than replaced on a built one.
             handler: $this->getHandler($attribute, $class, $method),
             requestType: $attribute->requestType,
             responseType: $attribute->responseType,
