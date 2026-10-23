@@ -1,6 +1,6 @@
 {
   "require"           : {
-    "php" : ">=8.4"
+    "php" : ">=8.4.27"
   },
   "require-dev"       : {
     "valkyrja/ci-rector" : "^26.3.74"

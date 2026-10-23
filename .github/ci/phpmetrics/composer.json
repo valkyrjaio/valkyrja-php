@@ -1,6 +1,6 @@
 {
   "require"           : {
-    "php" : ">=8.4"
+    "php" : ">=8.4.27"
   },
   "require-dev"       : {
     "phpmetrics/phpmetrics" : "^3.0.0rc8"
