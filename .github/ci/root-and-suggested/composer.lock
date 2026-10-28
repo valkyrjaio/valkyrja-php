@@ -460,16 +460,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.402.1",
+            "version": "3.402.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "8c7d9eb8d8baa92ce13ba875ceac7da89597ad8e"
+                "reference": "8c6f1eeb8975212ec90fb7a22f332ba6b17f990c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/8c7d9eb8d8baa92ce13ba875ceac7da89597ad8e",
-                "reference": "8c7d9eb8d8baa92ce13ba875ceac7da89597ad8e",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/8c6f1eeb8975212ec90fb7a22f332ba6b17f990c",
+                "reference": "8c6f1eeb8975212ec90fb7a22f332ba6b17f990c",
                 "shasum": ""
             },
             "require": {
@@ -551,9 +551,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.402.1"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.402.2"
             },
-            "time": "2026-10-26T18:06:02+00:00"
+            "time": "2026-10-27T18:08:49+00:00"
         },
         {
             "name": "brick/math",
@@ -965,16 +965,16 @@
         },
         {
             "name": "google/cloud-pubsub",
-            "version": "v2.23.0",
+            "version": "v2.24.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/google-cloud-php-pubsub.git",
-                "reference": "a89e7875e7b3b079d86a1591bb00de28e9880783"
+                "reference": "a0c6913fdba56b8961e5ed87712af1f27fcdac63"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/google-cloud-php-pubsub/zipball/a89e7875e7b3b079d86a1591bb00de28e9880783",
-                "reference": "a89e7875e7b3b079d86a1591bb00de28e9880783",
+                "url": "https://api.github.com/repos/googleapis/google-cloud-php-pubsub/zipball/a0c6913fdba56b8961e5ed87712af1f27fcdac63",
+                "reference": "a0c6913fdba56b8961e5ed87712af1f27fcdac63",
                 "shasum": ""
             },
             "require": {
@@ -1015,22 +1015,22 @@
             ],
             "description": "Cloud PubSub Client for PHP",
             "support": {
-                "source": "https://github.com/googleapis/google-cloud-php-pubsub/tree/v2.23.0"
+                "source": "https://github.com/googleapis/google-cloud-php-pubsub/tree/v2.24.0"
             },
-            "time": "2026-10-16T21:30:20+00:00"
+            "time": "2026-10-28T01:51:30+00:00"
         },
         {
             "name": "google/common-protos",
-            "version": "4.14.3",
+            "version": "4.15.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/common-protos-php.git",
-                "reference": "3c219d28f513a8997ac5d098f43943e3c5b4509a"
+                "reference": "74893ae29540a7166dab074cee8b57e78c534702"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/common-protos-php/zipball/3c219d28f513a8997ac5d098f43943e3c5b4509a",
-                "reference": "3c219d28f513a8997ac5d098f43943e3c5b4509a",
+                "url": "https://api.github.com/repos/googleapis/common-protos-php/zipball/74893ae29540a7166dab074cee8b57e78c534702",
+                "reference": "74893ae29540a7166dab074cee8b57e78c534702",
                 "shasum": ""
             },
             "require": {
@@ -1074,9 +1074,9 @@
                 "google"
             ],
             "support": {
-                "source": "https://github.com/googleapis/common-protos-php/tree/v4.14.3"
+                "source": "https://github.com/googleapis/common-protos-php/tree/v4.15.0"
             },
-            "time": "2026-09-14T18:27:51+00:00"
+            "time": "2026-10-28T01:51:30+00:00"
         },
         {
             "name": "google/gax",
@@ -1188,16 +1188,16 @@
         },
         {
             "name": "google/longrunning",
-            "version": "0.8.5",
+            "version": "0.9.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/php-longrunning.git",
-                "reference": "ca83fbce2e20556f9abdb939efce14f642336acd"
+                "reference": "ccecf40953cefbddb569fd67b27bd0cf8a1381da"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/php-longrunning/zipball/ca83fbce2e20556f9abdb939efce14f642336acd",
-                "reference": "ca83fbce2e20556f9abdb939efce14f642336acd",
+                "url": "https://api.github.com/repos/googleapis/php-longrunning/zipball/ccecf40953cefbddb569fd67b27bd0cf8a1381da",
+                "reference": "ccecf40953cefbddb569fd67b27bd0cf8a1381da",
                 "shasum": ""
             },
             "require-dev": {
@@ -1226,9 +1226,9 @@
             ],
             "description": "Google LongRunning Client for PHP",
             "support": {
-                "source": "https://github.com/googleapis/php-longrunning/tree/v0.8.5"
+                "source": "https://github.com/googleapis/php-longrunning/tree/v0.9.0"
             },
-            "time": "2026-09-28T17:51:46+00:00"
+            "time": "2026-10-28T01:51:30+00:00"
         },
         {
             "name": "google/protobuf",
@@ -1276,16 +1276,16 @@
         },
         {
             "name": "grpc/grpc",
-            "version": "1.85.1",
+            "version": "1.85.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/grpc/grpc-php.git",
-                "reference": "9c61b0afe526a88857953a7f9e40cf97463097aa"
+                "reference": "08bd482ca6f99d45fa85ad0bd70876e7455e39cf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/grpc/grpc-php/zipball/9c61b0afe526a88857953a7f9e40cf97463097aa",
-                "reference": "9c61b0afe526a88857953a7f9e40cf97463097aa",
+                "url": "https://api.github.com/repos/grpc/grpc-php/zipball/08bd482ca6f99d45fa85ad0bd70876e7455e39cf",
+                "reference": "08bd482ca6f99d45fa85ad0bd70876e7455e39cf",
                 "shasum": ""
             },
             "require": {
@@ -1314,9 +1314,9 @@
                 "rpc"
             ],
             "support": {
-                "source": "https://github.com/grpc/grpc-php/tree/v1.85.1"
+                "source": "https://github.com/grpc/grpc-php/tree/v1.85.0"
             },
-            "time": "2026-10-27T16:48:12+00:00"
+            "time": "2026-10-28T05:30:17+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",
@@ -4712,16 +4712,16 @@
         },
         {
             "name": "symfony/polyfill-mbstring",
-            "version": "v1.43.0",
+            "version": "v1.43.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-mbstring.git",
-                "reference": "4d5d331bf731e0aedbc6b2f5e61135b7b7996a72"
+                "reference": "122889ed24dc000165bcbfd77ec412f15cbdfc6a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/4d5d331bf731e0aedbc6b2f5e61135b7b7996a72",
-                "reference": "4d5d331bf731e0aedbc6b2f5e61135b7b7996a72",
+                "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/122889ed24dc000165bcbfd77ec412f15cbdfc6a",
+                "reference": "122889ed24dc000165bcbfd77ec412f15cbdfc6a",
                 "shasum": ""
             },
             "require": {
@@ -4773,7 +4773,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.43.0"
+                "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.43.3"
             },
             "funding": [
                 {
@@ -4793,7 +4793,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-09-24T15:19:04+00:00"
+            "time": "2026-10-28T09:35:49+00:00"
         },
         {
             "name": "symfony/polyfill-php80",
