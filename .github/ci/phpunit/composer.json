@@ -3,7 +3,7 @@
     "php" : ">=8.4.27"
   },
   "require-dev"       : {
-    "valkyrja/ci-phpunit" : "^26.6.79"
+    "valkyrja/ci-phpunit" : "^26.6.80"
   },
   "scripts"           : {
     "check"                  : "php -d memory_limit=-1 vendor/bin/phpunit --no-coverage --display-all-issues",
