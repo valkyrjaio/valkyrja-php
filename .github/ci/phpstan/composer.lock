@@ -4,16 +4,16 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1aa6b3c3e9b6f1e738b6ad9958f35e09",
+    "content-hash": "1918067d95d53da37d1808eb346af6e8",
     "packages": [],
     "packages-dev": [
         {
             "name": "phpstan/phpstan",
-            "version": "2.3.3",
+            "version": "2.3.4",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/4b57dc8ca7456b635d1661845f44bc060b02c6b0",
-                "reference": "4b57dc8ca7456b635d1661845f44bc060b02c6b0",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/f20ce6f3c82556cfcfc086b152445a12d1d64fff",
+                "reference": "f20ce6f3c82556cfcfc086b152445a12d1d64fff",
                 "shasum": ""
             },
             "require": {
@@ -69,7 +69,8 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-27T14:06:26+00:00"
+            "time": "2026-10-28T22:38:53+00:00",
+            "published-time": "2026-10-28T22:39:06+00:00"
         },
         {
             "name": "valkyrja/ci-phpstan",
@@ -116,7 +117,8 @@
                 "issues": "https://github.com/valkyrjaio/ci-phpstan-php/issues",
                 "source": "https://github.com/valkyrjaio/ci-phpstan-php/tree/v26.3.81"
             },
-            "time": "2026-10-28T17:03:13+00:00"
+            "time": "2026-10-28T17:03:13+00:00",
+            "published-time": "2026-10-28T17:03:24+00:00"
         }
     ],
     "aliases": [],
@@ -128,5 +130,5 @@
         "php": ">=8.4.27"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.11.0"
 }
