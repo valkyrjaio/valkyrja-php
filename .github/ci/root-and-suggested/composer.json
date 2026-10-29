@@ -15,7 +15,7 @@
     "guzzlehttp/guzzle"          : "^7.16.1",
     "league/flysystem"           : "^3.36.0",
     "league/flysystem-aws-s3-v3" : "^3.35.3",
-    "mailgun/mailgun-php"        : "^4.5.2",
+    "mailgun/mailgun-php"        : "^4.5.3",
     "monolog/monolog"            : "^3.12.1",
     "openswoole/core"            : "^26.2.1",
     "pda/pheanstalk"             : "^8.0.2",
