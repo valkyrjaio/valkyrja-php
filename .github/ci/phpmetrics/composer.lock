@@ -62,7 +62,8 @@
                 "issues": "https://github.com/nikic/PHP-Parser/issues",
                 "source": "https://github.com/nikic/PHP-Parser/tree/v5.9.0"
             },
-            "time": "2026-09-13T18:51:52+00:00"
+            "time": "2026-09-13T18:51:52+00:00",
+            "published-time": "2026-09-13T18:53:16+00:00"
         },
         {
             "name": "openmetrics-php/exposition-text",
@@ -105,7 +106,8 @@
                 "issues": "https://github.com/openmetrics-php/exposition-text/issues",
                 "source": "https://github.com/openmetrics-php/exposition-text/tree/v0.4.3"
             },
-            "time": "2026-02-20T11:21:20+00:00"
+            "time": "2026-02-20T11:21:20+00:00",
+            "published-time": "2026-02-20T11:22:06+00:00"
         },
         {
             "name": "phpmetrics/phpmetrics",
@@ -182,7 +184,8 @@
                 "issues": "https://github.com/PhpMetrics/PhpMetrics/issues",
                 "source": "https://github.com/phpmetrics/PhpMetrics/tree/v3.0.0rc8"
             },
-            "time": "2025-02-05T09:10:37+00:00"
+            "time": "2025-02-05T09:10:37+00:00",
+            "published-time": "2025-02-05T09:10:47+00:00"
         }
     ],
     "aliases": [],
@@ -194,5 +197,5 @@
         "php": ">=8.4.27"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.11.0"
 }
