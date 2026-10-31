@@ -3,7 +3,7 @@
     "php" : ">=8.4.27"
   },
   "require-dev"       : {
-    "valkyrja/ci-phparkitect" : "^26.7.85"
+    "valkyrja/ci-phparkitect" : "^26.7.86"
   },
   "scripts"           : {
     "check" : "vendor/bin/phparkitect check --config=phparkitect.php"
