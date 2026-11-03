@@ -3862,16 +3862,16 @@
         },
         {
             "name": "roadrunner/api-dto",
-            "version": "v2.1.0",
+            "version": "v2.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/roadrunner-php/roadrunner-api-dto.git",
-                "reference": "90e5b93788820a08184ed9c0b821df8272cc24e5"
+                "reference": "7cbe55544af8537ade89507eae406ae6fc6ade20"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/roadrunner-php/roadrunner-api-dto/zipball/90e5b93788820a08184ed9c0b821df8272cc24e5",
-                "reference": "90e5b93788820a08184ed9c0b821df8272cc24e5",
+                "url": "https://api.github.com/repos/roadrunner-php/roadrunner-api-dto/zipball/7cbe55544af8537ade89507eae406ae6fc6ade20",
+                "reference": "7cbe55544af8537ade89507eae406ae6fc6ade20",
                 "shasum": ""
             },
             "require": {
@@ -3883,6 +3883,10 @@
             },
             "replace": {
                 "roadrunner-php/roadrunner-api-dto": "self.version"
+            },
+            "require-dev": {
+                "llm/skills": "^1.14",
+                "roxblnfk/unpoly": "^1.8"
             },
             "suggest": {
                 "google/common-protos": "Required for Temporal API"
@@ -3936,8 +3940,8 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-10T12:47:42+00:00",
-            "published-time": "2026-10-10T12:47:53+00:00"
+            "time": "2026-11-03T16:28:57+00:00",
+            "published-time": "2026-11-03T16:29:10+00:00"
         },
         {
             "name": "roadrunner/goridge",
