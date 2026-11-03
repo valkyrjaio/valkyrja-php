@@ -21,7 +21,7 @@
     "pda/pheanstalk"             : "^8.0.2",
     "php-amqplib/php-amqplib"    : "^3.7.5",
     "phpmailer/phpmailer"        : "^7.1.1",
-    "predis/predis"              : "^3.7.0",
+    "predis/predis"              : "^3.7.1",
     "pusher/pusher-php-server"   : "^7.3.0",
     "spiral/roadrunner-http"     : "^4.2.1",
     "twig/twig"                  : "^3.30.0",

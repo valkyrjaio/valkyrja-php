@@ -35,7 +35,7 @@
     "pda/pheanstalk"             : "^8.0.2",
     "php-amqplib/php-amqplib"    : "^3.7.5",
     "phpmailer/phpmailer"        : "^7.1.1",
-    "predis/predis"              : "^3.7.0",
+    "predis/predis"              : "^3.7.1",
     "pusher/pusher-php-server"   : "^7.3.0",
     "twig/twig"                  : "^3.30.0",
     "vonage/client-core"         : "^4.15.0"
@@ -53,7 +53,7 @@
     "pda/pheanstalk"             : "<8.0.2",
     "php-amqplib/php-amqplib"    : "<3.7.5",
     "phpmailer/phpmailer"        : "<7.1.1",
-    "predis/predis"              : "<3.7.0",
+    "predis/predis"              : "<3.7.1",
     "pusher/pusher-php-server"   : "<7.3.0",
     "twig/twig"                  : "<3.30.0",
     "vonage/client-core"         : "<4.15.0"
@@ -84,7 +84,7 @@
     "pda/pheanstalk"             : "Required to use the beanstalkd Queue processor (^8.0.2).",
     "php-amqplib/php-amqplib"    : "Required to use the AMQP Queue processor (^3.7.5).",
     "phpmailer/phpmailer"        : "Required to use the default Mail adapter (^7.1.1).",
-    "predis/predis"              : "Required to use the Redis Cache store and the Redis queue client (^3.7.0).",
+    "predis/predis"              : "Required to use the Redis Cache store and the Redis queue client (^3.7.1).",
     "pusher/pusher-php-server"   : "Required to use the Pusher Broadcast adapter (^7.3.0).",
     "twig/twig"                  : "Required to use the Twig View engine (^3.30.0).",
     "vonage/client-core"         : "Required to use the default SMS adapter (^4.15.0).",
