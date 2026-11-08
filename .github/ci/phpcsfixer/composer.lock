@@ -2884,16 +2884,16 @@
         },
         {
             "name": "valkyrja/ci-phpcsfixer",
-            "version": "v26.4.91",
+            "version": "v26.4.92",
             "source": {
                 "type": "git",
                 "url": "https://github.com/valkyrjaio/ci-phpcsfixer-php.git",
-                "reference": "af3f6c61e25c5bfe82a5539e394952416b0c645b"
+                "reference": "1ebcccd242f8ee0508c6305562b74094feb8aa08"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/valkyrjaio/ci-phpcsfixer-php/zipball/af3f6c61e25c5bfe82a5539e394952416b0c645b",
-                "reference": "af3f6c61e25c5bfe82a5539e394952416b0c645b",
+                "url": "https://api.github.com/repos/valkyrjaio/ci-phpcsfixer-php/zipball/1ebcccd242f8ee0508c6305562b74094feb8aa08",
+                "reference": "1ebcccd242f8ee0508c6305562b74094feb8aa08",
                 "shasum": ""
             },
             "require": {
@@ -2925,10 +2925,10 @@
             ],
             "support": {
                 "issues": "https://github.com/valkyrjaio/ci-phpcsfixer-php/issues",
-                "source": "https://github.com/valkyrjaio/ci-phpcsfixer-php/tree/v26.4.91"
+                "source": "https://github.com/valkyrjaio/ci-phpcsfixer-php/tree/v26.4.92"
             },
-            "time": "2026-11-07T16:46:14+00:00",
-            "published-time": "2026-11-07T16:46:24+00:00"
+            "time": "2026-11-08T16:56:01+00:00",
+            "published-time": "2026-11-08T16:56:08+00:00"
         }
     ],
     "aliases": [],
