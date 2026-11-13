@@ -3312,16 +3312,16 @@
         },
         {
             "name": "valkyrja/ci-psalm",
-            "version": "v26.3.96",
+            "version": "v26.3.97",
             "source": {
                 "type": "git",
                 "url": "https://github.com/valkyrjaio/ci-psalm-php.git",
-                "reference": "66eb06da60a5641499b5434ebb86d9999e0fa61b"
+                "reference": "c8013a1e34f113a65ee766cc7909bbd1253d7d90"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/valkyrjaio/ci-psalm-php/zipball/66eb06da60a5641499b5434ebb86d9999e0fa61b",
-                "reference": "66eb06da60a5641499b5434ebb86d9999e0fa61b",
+                "url": "https://api.github.com/repos/valkyrjaio/ci-psalm-php/zipball/c8013a1e34f113a65ee766cc7909bbd1253d7d90",
+                "reference": "c8013a1e34f113a65ee766cc7909bbd1253d7d90",
                 "shasum": ""
             },
             "require": {
@@ -3353,10 +3353,10 @@
             ],
             "support": {
                 "issues": "https://github.com/valkyrjaio/ci-psalm-php/issues",
-                "source": "https://github.com/valkyrjaio/ci-psalm-php/tree/v26.3.96"
+                "source": "https://github.com/valkyrjaio/ci-psalm-php/tree/v26.3.97"
             },
-            "time": "2026-11-12T18:43:42+00:00",
-            "published-time": "2026-11-12T18:43:52+00:00"
+            "time": "2026-11-13T18:21:44+00:00",
+            "published-time": "2026-11-13T18:21:54+00:00"
         },
         {
             "name": "vimeo/psalm",
