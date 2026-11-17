@@ -10,7 +10,7 @@
   "require-dev"       : {
     "async-aws/sqs"              : "^2.9.0",
     "filp/whoops"                : "^2.19.3",
-    "firebase/php-jwt"           : "^7.2.1",
+    "firebase/php-jwt"           : "^7.2.2",
     "google/cloud-pubsub"        : "^2.24.0",
     "guzzlehttp/guzzle"          : "^7.16.3",
     "league/flysystem"           : "^3.36.0",
