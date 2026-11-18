@@ -19,7 +19,7 @@ jobs:
 
   commit-message-check:
     name: Commit Message Check
-    uses: valkyrjaio/.github/.github/workflows/_commit-message-check.yml@0e5df89eba16d3322131cc1e490bb4041d75e296
+    uses: valkyrjaio/.github/.github/workflows/_commit-message-check.yml@01b32c336c1a4c3349ee66806f7e72058f3c7c98
     secrets:
       VALKYRJA_GHA_APP_ID: ${{ secrets.VALKYRJA_GHA_APP_ID }}
       VALKYRJA_GHA_PRIVATE_KEY: ${{ secrets.VALKYRJA_GHA_PRIVATE_KEY }}
