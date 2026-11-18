@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "21b27b4db2b96e196808ddb40d4ce5ed",
+    "content-hash": "afa1752e49abfe0e77324acdb72e5654",
     "packages": [
         {
             "name": "psr/container",
@@ -2321,16 +2321,16 @@
         },
         {
             "name": "openswoole/core",
-            "version": "26.2.1",
+            "version": "26.11.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/openswoole/core.git",
-                "reference": "cc83e3d9b769380555bb7a4508368a8edc3a7ab1"
+                "reference": "a1a9699ac652f1e3cb80f9f43afae99709563fef"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/openswoole/core/zipball/cc83e3d9b769380555bb7a4508368a8edc3a7ab1",
-                "reference": "cc83e3d9b769380555bb7a4508368a8edc3a7ab1",
+                "url": "https://api.github.com/repos/openswoole/core/zipball/a1a9699ac652f1e3cb80f9f43afae99709563fef",
+                "reference": "a1a9699ac652f1e3cb80f9f43afae99709563fef",
                 "shasum": ""
             },
             "require": {
@@ -2388,8 +2388,8 @@
                 "pull-request": "https://github.com/openswoole/openswoole/pulls",
                 "source": "https://github.com/openswoole/openswoole"
             },
-            "time": "2026-07-27T11:48:01+00:00",
-            "published-time": "2026-07-27T11:51:15+00:00"
+            "time": "2026-11-18T11:47:02+00:00",
+            "published-time": "2026-11-18T11:52:55+00:00"
         },
         {
             "name": "paragonie/constant_time_encoding",
