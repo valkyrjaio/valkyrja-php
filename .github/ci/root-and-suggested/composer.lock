@@ -2321,16 +2321,16 @@
         },
         {
             "name": "openswoole/core",
-            "version": "26.11.0",
+            "version": "26.11.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/openswoole/core.git",
-                "reference": "a1a9699ac652f1e3cb80f9f43afae99709563fef"
+                "reference": "bd3f3f2f5c44a6ed65996c805dd0d764d1a70370"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/openswoole/core/zipball/a1a9699ac652f1e3cb80f9f43afae99709563fef",
-                "reference": "a1a9699ac652f1e3cb80f9f43afae99709563fef",
+                "url": "https://api.github.com/repos/openswoole/core/zipball/bd3f3f2f5c44a6ed65996c805dd0d764d1a70370",
+                "reference": "bd3f3f2f5c44a6ed65996c805dd0d764d1a70370",
                 "shasum": ""
             },
             "require": {
@@ -2388,8 +2388,8 @@
                 "pull-request": "https://github.com/openswoole/openswoole/pulls",
                 "source": "https://github.com/openswoole/openswoole"
             },
-            "time": "2026-11-18T11:47:02+00:00",
-            "published-time": "2026-11-18T11:52:55+00:00"
+            "time": "2026-11-20T14:56:20+00:00",
+            "published-time": "2026-11-20T15:35:11+00:00"
         },
         {
             "name": "paragonie/constant_time_encoding",

@@ -17,7 +17,7 @@
     "league/flysystem-aws-s3-v3" : "^3.35.3",
     "mailgun/mailgun-php"        : "^4.5.3",
     "monolog/monolog"            : "^3.13.0",
-    "openswoole/core"            : "^26.11.0",
+    "openswoole/core"            : "^26.11.1",
     "pda/pheanstalk"             : "^8.0.2",
     "php-amqplib/php-amqplib"    : "^3.7.5",
     "phpmailer/phpmailer"        : "^7.2.0",
