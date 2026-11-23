@@ -21,10 +21,10 @@
     "pda/pheanstalk"             : "^8.0.2",
     "php-amqplib/php-amqplib"    : "^3.7.5",
     "phpmailer/phpmailer"        : "^7.2.0",
-    "predis/predis"              : "^3.7.1",
+    "predis/predis"              : "^3.8.0",
     "pusher/pusher-php-server"   : "^7.3.0",
     "spiral/roadrunner-http"     : "^4.2.1",
-    "twig/twig"                  : "^3.30.0",
+    "twig/twig"                  : "^3.31.0",
     "vonage/client-core"         : "^4.15.0"
   },
   "minimum-stability" : "dev",
