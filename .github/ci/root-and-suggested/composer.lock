@@ -4040,16 +4040,16 @@
         },
         {
             "name": "roadrunner/roadrunner",
-            "version": "v3.0.1",
+            "version": "v3.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/roadrunner-server/roadrunner.git",
-                "reference": "ed89c2ec991f64b072297fcbee5ad7f058779199"
+                "reference": "c8611fbb442cc706d3d0be4cff0d5d3c6759ac84"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/roadrunner-server/roadrunner/zipball/ed89c2ec991f64b072297fcbee5ad7f058779199",
-                "reference": "ed89c2ec991f64b072297fcbee5ad7f058779199",
+                "url": "https://api.github.com/repos/roadrunner-server/roadrunner/zipball/c8611fbb442cc706d3d0be4cff0d5d3c6759ac84",
+                "reference": "c8611fbb442cc706d3d0be4cff0d5d3c6759ac84",
                 "shasum": ""
             },
             "type": "metapackage",
@@ -4077,7 +4077,7 @@
                 "chat": "https://discord.gg/V6EK4he",
                 "docs": "https://docs.roadrunner.dev/",
                 "issues": "https://github.com/roadrunner-server/roadrunner/issues",
-                "source": "https://github.com/roadrunner-server/roadrunner/tree/v3.0.1"
+                "source": "https://github.com/roadrunner-server/roadrunner/tree/v3.2.0"
             },
             "funding": [
                 {
@@ -4085,8 +4085,8 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-21T19:33:12+00:00",
-            "published-time": "2026-10-21T19:33:25+00:00"
+            "time": "2026-11-27T10:38:52+00:00",
+            "published-time": "2026-11-27T10:39:13+00:00"
         },
         {
             "name": "roadrunner/worker",
