@@ -2383,16 +2383,16 @@
         },
         {
             "name": "symfony/console",
-            "version": "v8.1.12",
+            "version": "v8.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/console.git",
-                "reference": "20d14376137e111569de1f62ba4274731a9c9345"
+                "reference": "ea1860277087a43c75a02591d71a5a217682f494"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/console/zipball/20d14376137e111569de1f62ba4274731a9c9345",
-                "reference": "20d14376137e111569de1f62ba4274731a9c9345",
+                "url": "https://api.github.com/repos/symfony/console/zipball/ea1860277087a43c75a02591d71a5a217682f494",
+                "reference": "ea1860277087a43c75a02591d71a5a217682f494",
                 "shasum": ""
             },
             "require": {
@@ -2404,7 +2404,7 @@
                 "symfony/string": "^7.4.6|^8.0.6"
             },
             "conflict": {
-                "symfony/dependency-injection": "<8.1",
+                "symfony/dependency-injection": "<8.2",
                 "symfony/event-dispatcher": "<8.1"
             },
             "provide": {
@@ -2413,7 +2413,7 @@
             "require-dev": {
                 "psr/log": "^1|^2|^3",
                 "symfony/config": "^7.4|^8.0",
-                "symfony/dependency-injection": "^8.1",
+                "symfony/dependency-injection": "^8.2",
                 "symfony/event-dispatcher": "^8.1",
                 "symfony/filesystem": "^7.4|^8.0",
                 "symfony/http-foundation": "^7.4|^8.0",
@@ -2459,7 +2459,7 @@
                 "terminal"
             ],
             "support": {
-                "source": "https://github.com/symfony/console/tree/v8.1.12"
+                "source": "https://github.com/symfony/console/tree/v8.2.0"
             },
             "funding": [
                 {
@@ -2479,8 +2479,8 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-11-24T15:59:55+00:00",
-            "published-time": "2026-11-25T09:31:15+00:00"
+            "time": "2026-11-24T16:01:15+00:00",
+            "published-time": "2026-11-28T12:13:07+00:00"
         },
         {
             "name": "symfony/deprecation-contracts",
@@ -2556,16 +2556,16 @@
         },
         {
             "name": "symfony/filesystem",
-            "version": "v8.1.13",
+            "version": "v8.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/filesystem.git",
-                "reference": "5215ed1c40d7f5532dc109f53f0defd3478ac6ea"
+                "reference": "3225b1890286c7f8f1b48aac013e8762b97679e7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/filesystem/zipball/5215ed1c40d7f5532dc109f53f0defd3478ac6ea",
-                "reference": "5215ed1c40d7f5532dc109f53f0defd3478ac6ea",
+                "url": "https://api.github.com/repos/symfony/filesystem/zipball/3225b1890286c7f8f1b48aac013e8762b97679e7",
+                "reference": "3225b1890286c7f8f1b48aac013e8762b97679e7",
                 "shasum": ""
             },
             "require": {
@@ -2603,7 +2603,7 @@
             "description": "Provides basic utilities for the filesystem",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/filesystem/tree/v8.1.13"
+                "source": "https://github.com/symfony/filesystem/tree/v8.2.0"
             },
             "funding": [
                 {
@@ -2623,8 +2623,8 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-11-27T13:27:33+00:00",
-            "published-time": "2026-11-27T14:50:03+00:00"
+            "time": "2026-11-27T13:28:56+00:00",
+            "published-time": "2026-11-28T12:12:22+00:00"
         },
         {
             "name": "symfony/polyfill-ctype",
@@ -3217,16 +3217,16 @@
         },
         {
             "name": "symfony/string",
-            "version": "v8.1.13",
+            "version": "v8.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/string.git",
-                "reference": "ff6a90fe4c4e0e4de484d07189aa25d6d7f447be"
+                "reference": "24a5a339853a0742edfc8a456d55e3314d489555"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/string/zipball/ff6a90fe4c4e0e4de484d07189aa25d6d7f447be",
-                "reference": "ff6a90fe4c4e0e4de484d07189aa25d6d7f447be",
+                "url": "https://api.github.com/repos/symfony/string/zipball/24a5a339853a0742edfc8a456d55e3314d489555",
+                "reference": "24a5a339853a0742edfc8a456d55e3314d489555",
                 "shasum": ""
             },
             "require": {
@@ -3283,7 +3283,7 @@
                 "utf8"
             ],
             "support": {
-                "source": "https://github.com/symfony/string/tree/v8.1.13"
+                "source": "https://github.com/symfony/string/tree/v8.2.0"
             },
             "funding": [
                 {
@@ -3303,8 +3303,8 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-11-27T13:27:33+00:00",
-            "published-time": "2026-11-27T14:50:30+00:00"
+            "time": "2026-11-27T13:28:56+00:00",
+            "published-time": "2026-11-28T12:12:38+00:00"
         },
         {
             "name": "valkyrja/ci-psalm",
