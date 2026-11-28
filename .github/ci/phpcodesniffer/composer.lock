@@ -106,16 +106,16 @@
         },
         {
             "name": "phpstan/phpdoc-parser",
-            "version": "2.4.2",
+            "version": "2.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpstan/phpdoc-parser.git",
-                "reference": "f80e753caa465ab4f93cb265ae32e2e8cb02c3f3"
+                "reference": "839c252522bb9d2be16ce89d99487d2a75eadc8e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpdoc-parser/zipball/f80e753caa465ab4f93cb265ae32e2e8cb02c3f3",
-                "reference": "f80e753caa465ab4f93cb265ae32e2e8cb02c3f3",
+                "url": "https://api.github.com/repos/phpstan/phpdoc-parser/zipball/839c252522bb9d2be16ce89d99487d2a75eadc8e",
+                "reference": "839c252522bb9d2be16ce89d99487d2a75eadc8e",
                 "shasum": ""
             },
             "require": {
@@ -147,10 +147,10 @@
             "description": "PHPDoc parser with support for nullable, intersection and generic types",
             "support": {
                 "issues": "https://github.com/phpstan/phpdoc-parser/issues",
-                "source": "https://github.com/phpstan/phpdoc-parser/tree/2.4.2"
+                "source": "https://github.com/phpstan/phpdoc-parser/tree/2.5.1"
             },
-            "time": "2026-11-25T13:45:51+00:00",
-            "published-time": "2026-11-25T13:46:33+00:00"
+            "time": "2026-11-28T13:46:42+00:00",
+            "published-time": "2026-11-28T13:47:37+00:00"
         },
         {
             "name": "slevomat/coding-standard",
